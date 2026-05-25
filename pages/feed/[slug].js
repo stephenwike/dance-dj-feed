@@ -214,11 +214,18 @@ export default function FeedSlugPage({ sessionId, slug }) {
                         <span className={styles.statusLabel}>{isPaused ? 'Paused' : 'Playing'}</span>
                       </div>
                       <div className={styles.playingBadges}>
-                        {isPartner && <span className={styles.partnerBadge}>👫 Partner{first.partnerStyle ? ` — ${first.partnerStyle}` : ''}</span>}
+                        {isPartner && <span className={styles.partnerBadge}>👫 Partner{first.partnerStyle ? ` — ${first.partnerStyle}` : ' Dance'}</span>}
                         {first.isSongSwap && <span className={styles.swapChip}>↻ Song Swap</span>}
                       </div>
                     </div>
-                    <div className={styles.queueDancePlaying}>{first.danceName}</div>
+                    <div className={styles.queueDancePlaying}>
+                      {isPartner ? (first.songName || first.danceName) : first.danceName}
+                    </div>
+                    {isPartner && first.artist && (
+                      <div className={styles.partnerArtistLine}>
+                        <span className={styles.partnerArtist}>{first.artist}</span>
+                      </div>
+                    )}
                     {first.isSongSwap && first.swapSongName && (
                       <div className={styles.swapSongLine}>
                         <span className={styles.swapArrow}>↪</span>
@@ -246,14 +253,19 @@ export default function FeedSlugPage({ sessionId, slug }) {
                       <li key={r._id} className={`${styles.queueItem} ${r.isSongSwap ? styles.queueItemSwap : ''} ${r.danceType === 'message' ? styles.queueItemMsg : ''}`}>
                         <span className={styles.queueNum}>{r.danceType === 'message' ? '💬' : r.num}</span>
                         <span className={styles.queueDanceCol}>
-                          <span className={styles.queueDance}>{r.danceName}</span>
+                          <span className={styles.queueDance}>
+                            {r.danceType === 'partner' ? (r.songName || r.danceName) : r.danceName}
+                          </span>
                           {r.isSongSwap && r.swapSongName && <span className={styles.queueSwapRow}>↪ {r.swapSongName}</span>}
+                          {r.danceType === 'partner' && r.artist && (
+                            <span className={styles.queuePartnerRow}>{r.artist}</span>
+                          )}
                         </span>
                         <div className={styles.queueRight}>
                           {r.danceType !== 'message' && <span className={styles.queueTime}>{r.startTime}</span>}
                           {r.danceType === 'message' ? null
                             : r.danceType === 'partner' ? (
-                              <span className={styles.diffPip} style={{ background: 'rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.25)' }}>
+                              <span className={styles.diffPip} style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
                                 {r.partnerStyle || 'Partner'}
                               </span>
                             ) : r.difficulty ? (

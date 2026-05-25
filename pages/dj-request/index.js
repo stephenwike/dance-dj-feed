@@ -375,7 +375,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
       if (requestType === 'partner') {
         doc = await submitRequest({
           danceId: null,
-          danceName: partnerStyle || 'Partner Dance',
+          danceName: partnerStyle ? `Partner — ${partnerStyle}` : 'Partner Dance',
           danceType: 'partner',
           partnerStyle: partnerStyle || null,
           songName: swapSongName.trim() || null,

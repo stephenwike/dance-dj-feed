@@ -308,6 +308,29 @@
   flex-shrink: 0;
 }
 
+/* ── Partner dance artist sub-line ── */
+.partnerArtistLine {
+  margin-top: clamp(2px, 0.3vh, 6px);
+}
+
+.partnerArtist {
+  font-size: clamp(1.4rem, 2.6vw, 3.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.1;
+}
+
+.queuePartnerRow {
+  font-size: clamp(0.95rem, 1.6vw, 2rem);
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
 /* ── Song swap indicators ────────────────────────────────────────────────── */
 /* ── Song swap — playing card ────────────────────────────────────────────── */
 
