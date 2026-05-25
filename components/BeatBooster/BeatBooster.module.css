@@ -1,0 +1,111 @@
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 28px 8px;
+  flex-wrap: wrap;
+  animation: slideDown 0.12s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.chip {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #8A5CFF;
+  background: rgba(138, 92, 255, 0.07);
+  border: 1.5px solid rgba(138, 92, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s, border-color 0.12s;
+  white-space: nowrap;
+}
+
+.chip:hover:not(:disabled) {
+  background: rgba(138, 92, 255, 0.16);
+  border-color: #8A5CFF;
+  transform: scale(1.06);
+}
+
+.chip:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.chip:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.closeBtn {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: #d1d5db;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color 0.12s;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover { color: #9ca3af; }
+
+/* ── Confirm state ── */
+.warn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 2px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.confirmQ {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.confirmYes {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 14px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.confirmYes:hover:not(:disabled) { background: #7c3aed; }
+.confirmYes:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.confirmNo {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.confirmNo:hover { color: #6b7280; }
+
+.noBeats {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+  flex: 1;
+}

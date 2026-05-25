@@ -1,0 +1,43 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #6b5fa6;
+  background: #f5f3ff;
+  border: 1.5px solid #e4e0f5;
+  border-radius: 20px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: border-color 0.13s, background 0.13s, color 0.13s;
+}
+
+.chip:hover {
+  border-color: #8A5CFF;
+  color: #7c3aed;
+  background: #ede9ff;
+}
+
+.chipActive {
+  background: #8A5CFF;
+  border-color: #8A5CFF;
+  color: #fff;
+}
+
+.chipActive:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
+}

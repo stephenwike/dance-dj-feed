@@ -1,0 +1,178 @@
+.tipper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.presetBtn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #8A5CFF;
+  background: rgba(138, 92, 255, 0.07);
+  border: 1px solid rgba(138, 92, 255, 0.25);
+  border-radius: 20px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+  white-space: nowrap;
+}
+
+.presetBtn:hover:not(:disabled) {
+  background: rgba(138, 92, 255, 0.18);
+  border-color: #8A5CFF;
+}
+
+.presetBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pendingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(138, 92, 255, 0.05);
+  border: 1px solid rgba(138, 92, 255, 0.2);
+  border-radius: 10px;
+}
+
+.pendingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pendingAmount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #8A5CFF;
+}
+
+.clearLink {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.clearLink:hover { color: #6b7280; }
+
+/* ── Warnings ── */
+.warnAll,
+.warnMost,
+.warnLarge {
+  margin: 0;
+  font-size: 0.78rem;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+.warnAll {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.warnMost {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.warnLarge {
+  background: #fef3c7;
+  color: #78350f;
+  border: 1px solid #fcd34d;
+}
+
+/* ── Confirm step ── */
+.tipBtn {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.13s;
+}
+
+.tipBtn:hover { background: #7c3aed; }
+
+.confirmRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirmText {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelBtn {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.cancelBtn:hover { background: #e5e7eb; }
+
+.confirmBtn {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.confirmBtn:hover:not(:disabled) { background: #7c3aed; }
+.confirmBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.tipError {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #ef4444;
+}
+
+.balanceHint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.noBeats {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
+}

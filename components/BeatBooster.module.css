@@ -1,0 +1,112 @@
+.wrap {
+  margin: 0 28px 8px;
+  padding: 12px 14px;
+  background: rgba(138, 92, 255, 0.05);
+  border: 1.5px solid rgba(138, 92, 255, 0.25);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #5b21b6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.balance {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8A5CFF;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #6b5fa6;
+  background: #fff;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 20px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: border-color 0.13s, background 0.13s, color 0.13s;
+}
+
+.chip:hover {
+  border-color: #8A5CFF;
+  color: #7c3aed;
+  background: #ede9ff;
+}
+
+.chipActive {
+  background: #8A5CFF;
+  border-color: #8A5CFF;
+  color: #fff;
+}
+
+.chipActive:hover {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: #6b7280;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.cancelBtn:hover {
+  background: #f9fafb;
+}
+
+.confirmBtn {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #fff;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: #7c3aed;
+}
+
+.confirmBtn:disabled {
+  background: #c4b5fd;
+  cursor: not-allowed;
+}

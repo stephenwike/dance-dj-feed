@@ -1,0 +1,224 @@
+.page {
+  min-height: 100vh;
+  background: #0f0a1e;
+  color: #f3f4f6;
+  padding: 0 0 60px;
+  font-family: 'Montserrat', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  width: 100%;
+  max-width: 520px;
+  padding: 20px 20px 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  transition: color 0.13s;
+}
+
+.back:hover { color: rgba(255, 255, 255, 0.8); }
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin: 8px 20px 0;
+  width: calc(100% - 40px);
+  max-width: 520px;
+}
+
+.notice {
+  width: calc(100% - 40px);
+  max-width: 520px;
+  box-sizing: border-box;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  color: #c4b5fd;
+  margin: 8px 20px 0;
+}
+
+/* ── Balance ── */
+.balanceLabel {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.balanceAmount {
+  margin: 0;
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: -0.03em;
+}
+
+/* ── Section headers ── */
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ── Payout setup ── */
+.connectedMsg {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6ee7b7;
+  font-weight: 600;
+}
+
+.pendingMsg, .setupMsg {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+}
+
+.btn {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+
+.btn:hover:not(:disabled) { background: #7c3aed; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Withdraw ── */
+.withdrawHint {
+  margin: 0 0 12px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.withdrawRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.withdrawDollar {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.withdrawInput {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.13s;
+}
+
+.withdrawInput:focus { border-color: #8A5CFF; }
+
+.withdrawBtn {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.13s;
+}
+
+.withdrawBtn:hover:not(:disabled) { background: #7c3aed; }
+.withdrawBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.withdrawError {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: #f87171;
+}
+
+.withdrawSuccess {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: #6ee7b7;
+  font-weight: 600;
+}
+
+/* ── Transactions ── */
+.txList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.txRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.txRow:last-child { border-bottom: none; }
+
+.txType {
+  flex: 1;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.txAge {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+}
+
+.txAmount {
+  font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.txCredit { color: #a78bfa; }
+.txDebit  { color: rgba(255, 255, 255, 0.4); }

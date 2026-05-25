@@ -1,0 +1,458 @@
+/* ── Shell ── */
+.page {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  background: #0e0e18;
+  color: #e2e2f0;
+  font-family: 'Montserrat', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* ── QR sidebar ── */
+.left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px;
+  background: #13132a;
+  border-right: 1px solid rgba(138, 92, 255, 0.18);
+  gap: 24px;
+}
+
+.title {
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  font-weight: 800;
+  text-align: center;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.qrWrap {
+  background: #fff;
+  padding: 16px;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(138,92,255,0.2), 0 0 40px rgba(138,92,255,0.2);
+}
+
+.qrPlaceholder {
+  width: 220px;
+  height: 220px;
+  background: #f0f0f0;
+  border-radius: 6px;
+}
+
+.urlHint {
+  font-size: 0.58rem;
+  color: rgba(255,255,255,0.18);
+  text-align: center;
+  word-break: break-all;
+  margin: 0;
+}
+
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: clamp(0.85rem, 1.1vw, 1.05rem);
+  line-height: 1.5;
+  color: rgba(255,255,255,0.6);
+}
+
+.noPartnerNotice {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px;
+  font-size: clamp(0.65rem, 0.9vw, 0.82rem);
+  font-weight: 600;
+  color: rgba(239,68,68,0.8);
+  text-align: center;
+}
+
+.stepNum {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(138,92,255,0.2);
+  border: 1px solid rgba(138,92,255,0.4);
+  color: #a78bfa;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Queue panel ── */
+.right {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 5vh 5vw;
+  overflow: hidden;
+}
+
+.empty {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: rgba(255,255,255,0.12);
+  font-style: italic;
+  margin: auto;
+  text-align: center;
+}
+
+/* ── List ── */
+.queueList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Shared item base ── */
+.queueItem {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.8vw, 24px);
+}
+
+.queueItem + .queueItem {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 2.5vh;
+  margin-top: 2.5vh;
+}
+
+/* ── Playing card ── */
+.queueItemPlaying {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(4px, 0.8vh, 10px);
+  background: rgba(138,92,255,0.08);
+  border: 1px solid rgba(138,92,255,0.25);
+  border-left: 4px solid #8A5CFF;
+  border-radius: 14px;
+  padding: 2.5vh 2.5vw 2.8vh;
+  margin-bottom: 3vh;
+}
+
+.queueItemPlaying + .queueItem {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* Top row of card: label + difficulty */
+.playingTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 1.5vw;
+}
+
+.playingLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Pulsing dot */
+.playingDot {
+  flex-shrink: 0;
+  width: clamp(8px, 0.9vw, 12px);
+  height: clamp(8px, 0.9vw, 12px);
+  border-radius: 50%;
+  background: #8A5CFF;
+  box-shadow: 0 0 0 0 rgba(138,92,255,0.7);
+  animation: pulse 2s ease-out infinite;
+}
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(138,92,255,0.7); }
+  70%  { box-shadow: 0 0 0 clamp(7px,0.9vw,12px) rgba(138,92,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(138,92,255,0); }
+}
+
+/* ── Position number ── */
+.queueNum {
+  font-size: clamp(1.4rem, 2.4vw, 3rem);
+  font-weight: 800;
+  color: rgba(255,255,255,0.28);
+  width: clamp(32px, 4vw, 64px);
+  text-align: right;
+  flex-shrink: 0;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Dance name ── */
+.queueDancePlaying {
+  font-size: clamp(2.6rem, 5vw, 6.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #ffffff;
+  padding-bottom: 0.08em;
+}
+
+.queueDance {
+  font-size: clamp(1.7rem, 3vw, 3.8rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: rgba(255,255,255,0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-bottom: 0.06em;
+}
+
+/* ── Right column: time above, difficulty below ── */
+.queueRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: clamp(4px, 0.6vh, 8px);
+  flex-shrink: 0;
+}
+
+/* ── Partner dance badge on playing card ── */
+.partnerBadge {
+  font-size: clamp(0.7rem, 1vw, 1.1rem);
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: clamp(3px,0.4vh,6px) clamp(8px,0.8vw,14px);
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Progress bar ── */
+.progressBar {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: clamp(6px, 0.8vh, 12px);
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+/* ── "Up Next" section header ── */
+.upNextHeader {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1vw, 14px);
+  margin: clamp(2vh, 2.5vh, 3vh) 0 clamp(1.5vh, 2vh, 2.5vh);
+  padding-left: 4vw;
+}
+
+.upNextDot {
+  width: clamp(8px, 0.9vw, 12px);
+  height: clamp(8px, 0.9vw, 12px);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+
+/* Shared label — "Playing" and "Up Next" */
+.statusLabel {
+  font-size: clamp(0.75rem, 1.1vw, 1.2rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #8A5CFF;
+  white-space: nowrap;
+}
+
+/* ── Time values ── */
+.queueTime {
+  font-size: clamp(1.4rem, 2.3vw, 2.8rem);
+  font-weight: 700;
+  color: rgba(255,255,255,0.65);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Difficulty pip ── */
+.diffPip {
+  font-size: clamp(0.65rem, 0.9vw, 1rem);
+  font-weight: 700;
+  padding: clamp(3px,0.4vh,6px) clamp(7px,0.7vw,12px);
+  border-radius: 4px;
+  color: #fff;
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Song swap indicators ────────────────────────────────────────────────── */
+/* ── Song swap — playing card ────────────────────────────────────────────── */
+
+/* Chip in the top-right header bar alongside partner badge */
+.playingBadges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swapChip {
+  font-size: clamp(0.7rem, 1vw, 1.1rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  padding: clamp(3px, 0.4vh, 6px) clamp(8px, 0.8vw, 14px);
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Large swap song subtitle below the dance name */
+.swapSongLine {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(6px, 0.6vw, 12px);
+  margin-top: clamp(2px, 0.3vh, 6px);
+}
+
+.swapArrow {
+  font-size: clamp(1.2rem, 2vw, 2.8rem);
+  color: #fbbf24;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.swapSongName {
+  font-size: clamp(1.3rem, 2.4vw, 3.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fbbf24;
+  line-height: 1.1;
+}
+
+.swapSongArtist {
+  font-size: clamp(0.9rem, 1.4vw, 2rem);
+  font-weight: 500;
+  color: rgba(251, 191, 36, 0.7);
+  line-height: 1.1;
+}
+
+/* ── Song swap — queue list items ────────────────────────────────────────── */
+
+/* Wrapper that turns the dance name cell into a column */
+.queueDanceCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.3vh, 4px);
+  min-width: 0;
+}
+
+/* Swap song row below the dance name in the queue */
+.queueSwapRow {
+  font-size: clamp(0.95rem, 1.6vw, 2rem);
+  font-weight: 600;
+  color: #fbbf24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+
+/* ── DJ Message banner ── */
+.messageBanner {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-radius: clamp(12px, 1.5vw, 20px);
+  padding: clamp(20px, 3vh, 36px) clamp(20px, 3vw, 40px);
+  margin-bottom: clamp(12px, 1.5vh, 20px);
+  text-align: center;
+  box-shadow: 0 0 60px rgba(251, 191, 36, 0.45), 0 0 120px rgba(251, 191, 36, 0.2);
+  animation: msgPulse 2.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.messageText {
+  font-size: clamp(1.6rem, 4vw, 3.2rem);
+  font-weight: 800;
+  color: #1a1033;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.messageTimer {
+  margin-top: clamp(10px, 1.5vh, 16px);
+  height: 5px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.messageTimerFill {
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 3px;
+  transition: width 1s linear;
+}
+
+@keyframes msgPulse {
+  0%, 100% { box-shadow: 0 0 60px rgba(251, 191, 36, 0.45), 0 0 120px rgba(251, 191, 36, 0.2); }
+  50%       { box-shadow: 0 0 80px rgba(251, 191, 36, 0.7),  0 0 160px rgba(251, 191, 36, 0.35); }
+}
+
+/* ── In-queue message playing card ── */
+.queueMsgPlaying {
+  border-left: 4px solid rgba(255,255,255,0.25);
+  border-radius: clamp(10px, 1.2vw, 16px);
+  background: rgba(255,255,255,0.06);
+  padding: clamp(16px, 2.5vh, 28px) clamp(16px, 2.5vw, 28px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1vh, 14px);
+  margin-bottom: clamp(12px, 1.5vh, 20px);
+  flex-shrink: 0;
+}
+
+.queueMsgIcon {
+  font-size: clamp(1.2rem, 2vw, 2rem);
+  line-height: 1;
+}
+
+.queueMsgText {
+  font-size: clamp(1.4rem, 3.5vw, 2.8rem);
+  font-weight: 800;
+  color: #e2e2f0;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* In-queue message item in Up Next list */
+.queueItemMsg {
+  opacity: 0.75;
+  font-style: italic;
+}
