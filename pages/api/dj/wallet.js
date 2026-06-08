@@ -1,4 +1,4 @@
-import clientPromise from '../../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const client = await clientPromise;
-  const transactions = await client.db('bld')
+  const transactions = await client.db(DB_NAME)
     .collection('dj_wallet_transactions')
     .find({ ownerId: userId })
     .sort({ createdAt: -1 })
@@ -25,3 +25,4 @@ export default async function handler(req, res) {
     })),
   });
 }
+

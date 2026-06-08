@@ -1,5 +1,5 @@
-import Stripe from 'stripe';
-import clientPromise from '../../../lib/server/mongodb';
+﻿import Stripe from 'stripe';
+import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { markWebhookReceived } from '../../../lib/server/stripeHealth';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const session = event.data.object;
     const metadata = session.metadata ?? {};
     const client = await clientPromise;
-    const db = client.db('bld');
+    const db = client.db(DB_NAME);
 
     if (metadata.type === 'direct_tip') {
       const { djId, amountCents } = metadata;
@@ -89,3 +89,4 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ received: true });
 }
+

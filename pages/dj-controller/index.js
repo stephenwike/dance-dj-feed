@@ -9,769 +9,26 @@ import {
   DndContext, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
 import {
-  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+  SortableContext, verticalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import styles from './dj-controller.module.css';
 import { buildPendingGroups } from '../../lib/client/dj/pendingGroups';
 import { buildPlaysPerClient } from '../../lib/client/dj/fairnessScore';
 import { remainingMs } from '../../lib/client/dj/autoAdvance';
 import { StandardAdapter, SpotifyAdapter } from '../../lib/client/dj/controllerAdapters';
+import { patch, del } from '../../lib/client/dj/requests';
+import { useSpotifyPlugin } from '../../lib/client/dj/plugins/useSpotifyPlugin';
 import sp from '../dj-spotify/dj-spotify.module.css';
+import { SpotifyPanel, SpotifySearch } from '../../components/dj-controller/SpotifyComponents';
+import SortableQueueItem from '../../components/dj-controller/SortableQueueItem';
+import RemoteControl from '../../components/dj-controller/RemoteControl';
+import QueueCard from '../../components/dj-controller/QueueCard';
+import { diffColor, timeAgo } from '../../components/dj-controller/utils';
+import PendingCard from '../../components/dj-controller/PendingCard';
+import SessionsPanel from '../../components/dj-controller/SessionsPanel';
+import CustomEditModal from '../../components/dj-controller/CustomEditModal';
 
 const fetcher = url => fetch(url).then(r => r.json());
-
-function formatDuration(ms) {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-function formatTimestamp(date) {
-  return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
-const DIFF_COLORS = {
-  beginner: '#22c55e', improver: '#3b82f6',
-  intermediate: '#f59e0b', advanced: '#ef4444',
-};
-
-function diffColor(d = '') {
-  const key = Object.keys(DIFF_COLORS).find(k => d.toLowerCase().includes(k));
-  return key ? DIFF_COLORS[key] : '#8A5CFF';
-}
-
-function timeAgo(date) {
-  const s = Math.floor((Date.now() - new Date(date)) / 1000);
-  if (s < 60) return `${s}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  return `${Math.floor(s / 3600)}h`;
-}
-
-async function patch(id, body) {
-  await fetch(`/api/dj/requests/${id}`, {
-    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
-async function del(id) {
-  await fetch(`/api/dj/requests/${id}`, { method: 'DELETE' });
-}
-
-function fmtMs(ms) {
-  if (!ms) return '0:00';
-  const s = Math.floor(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-async function spotifyCmd(method, body) {
-  const res = await fetch('/api/spotify/player', {
-    method, headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Spotify ${res.status}`);
-  return data;
-}
-
-// ── Spotify Plugin Components ─────────────────────────────────────────────────
-function SpotifyPanel({ data, onControl, connected, error, onRetry }) {
-  if (!connected) {
-    return (
-      <div className={sp.spotifyPanel}>
-        <p className={sp.spotifyNotConnected}>Spotify not connected</p>
-        <a href="/api/spotify/auth" className={sp.connectBtn}>Connect Spotify</a>
-      </div>
-    );
-  }
-  if (error?.toLowerCase().includes('no active device')) {
-    return (
-      <div className={sp.spotifyPanel}>
-        <p className={sp.spotifyNotConnected}>No active Spotify device</p>
-        <p className={sp.spotifyHint}>Open Spotify on any device, then retry.</p>
-        <div className={sp.spotifyControls}>
-          <a href="https://open.spotify.com" target="_blank" rel="noopener noreferrer" className={sp.connectBtn}>Open Spotify</a>
-          <button className={sp.retryBtn} onClick={onRetry}>Retry</button>
-        </div>
-      </div>
-    );
-  }
-  const pb = data?.playback;
-  const track = pb?.item;
-  const isPlaying = pb?.is_playing;
-  const progress = track ? (pb.progress_ms / track.duration_ms) * 100 : 0;
-  return (
-    <div className={sp.spotifyPanel}>
-      <div className={sp.spotifyTrackRow}>
-        {track?.album?.images?.[2] && <img className={sp.albumArt} src={track.album.images[2].url} alt="" />}
-        <div className={sp.spotifyTrackInfo}>
-          <span className={sp.spotifyTrackName}>{track?.name ?? 'Nothing playing'}</span>
-          <span className={sp.spotifyTrackArtist}>{track?.artists?.map(a => a.name).join(', ') ?? ''}</span>
-        </div>
-        <span className={sp.spotifyDuration}>{track ? `${fmtMs(pb.progress_ms)} / ${fmtMs(track.duration_ms)}` : ''}</span>
-      </div>
-      {track && (
-        <div className={sp.spotifyProgress}>
-          <div className={sp.spotifyProgressFill} style={{ width: `${progress}%` }} />
-        </div>
-      )}
-      <div className={sp.spotifyControls}>
-        <button className={sp.ctrlBtn} onClick={() => onControl('previous')}>⏮</button>
-        <button className={`${sp.ctrlBtn} ${sp.ctrlBtnMain}`} onClick={() => onControl(isPlaying ? 'pause' : 'play')}>
-          {isPlaying ? '⏸' : '▶'}
-        </button>
-        <button className={sp.ctrlBtn} onClick={() => onControl('next')}>⏭</button>
-      </div>
-    </div>
-  );
-}
-
-function SpotifySearch({ onAdd }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  async function search(e) {
-    e.preventDefault();
-    if (!q.trim()) return;
-    setLoading(true);
-    const data = await fetch(`/api/spotify/search?q=${encodeURIComponent(q)}`).then(r => r.json()).catch(() => []);
-    setResults(Array.isArray(data) ? data : []);
-    setLoading(false);
-  }
-  if (!open) return <button className={sp.searchToggle} onClick={() => setOpen(true)}>+ Add from Spotify</button>;
-  return (
-    <div className={sp.searchPanel}>
-      <form onSubmit={search} className={sp.searchForm}>
-        <input className={sp.searchInput} value={q} onChange={e => setQ(e.target.value)} placeholder="Search Spotify…" autoFocus />
-        <button type="submit" className={sp.searchBtn} disabled={loading}>{loading ? '…' : 'Search'}</button>
-        <button type="button" className={sp.searchClose} onClick={() => { setOpen(false); setResults([]); setQ(''); }}>✕</button>
-      </form>
-      {results.length > 0 && (
-        <ul className={sp.searchResults}>
-          {results.map(t => (
-            <li key={t.id}>
-              <button className={sp.searchResult} onClick={() => { onAdd(t); setOpen(false); setResults([]); setQ(''); }}>
-                {t.image && <img src={t.image} className={sp.searchThumb} alt="" />}
-                <div className={sp.searchResultInfo}>
-                  <span className={sp.searchResultName}>{t.name}</span>
-                  <span className={sp.searchResultArtist}>{t.artists}</span>
-                </div>
-                <span className={sp.searchResultDur}>{fmtMs(t.duration_ms)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-// ── Sessions Panel ───────────────────────────────────────────────────────────
-function SessionRow({ session, onContinue, onClose }) {
-  const [expanded, setExpanded] = useState(false);
-  const [played, setPlayed] = useState(null);
-
-  async function toggle() {
-    if (!expanded && played === null) {
-      const data = await fetch(`/api/dj/sessions/${session._id}`).then(r => r.json());
-      setPlayed(data.played ?? []);
-    }
-    setExpanded(v => !v);
-  }
-
-  const duration = session.closedAt
-    ? formatDuration(new Date(session.closedAt) - new Date(session.startedAt))
-    : 'ongoing';
-
-  return (
-    <div className={styles.sessionRow}>
-      <div className={styles.sessionRowHead}>
-        <div className={styles.sessionRowInfo}>
-          <span className={styles.sessionRowName}>{session.name}</span>
-          <span className={styles.sessionRowMeta}>
-            {new Date(session.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            {' · '}{duration}
-            {session.status === 'active' && <span className={styles.activePip}> · active</span>}
-          </span>
-        </div>
-        <div className={styles.sessionRowActions}>
-          {session.status === 'active' && (
-            <button className={styles.btnCloseSession} onClick={() => onClose(session._id)}>
-              Close
-            </button>
-          )}
-          {session.status === 'closed' && (
-            <button className={styles.btnContinue} onClick={() => onContinue(session._id)}>
-              Continue
-            </button>
-          )}
-          <button className={styles.btnExpand} onClick={toggle}>
-            {expanded ? '▲' : '▼'}
-          </button>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className={styles.sessionPlayed}>
-          {played === null && <p className={styles.sessionLoading}>Loading…</p>}
-          {played?.length === 0 && <p className={styles.sessionEmpty}>No tracks played.</p>}
-          {played?.map((r, i) => (
-            <div key={r._id} className={styles.sessionTrack}>
-              <span className={styles.sessionTrackNum}>{i + 1}</span>
-              <span className={styles.sessionTrackName}>{r.danceName}</span>
-              <span className={styles.sessionTrackTime}>{formatTimestamp(r.updatedAt)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SessionsPanel({ sessions, activeSession, onClose, onContinue, onCloseSession }) {
-  return (
-    <div className={styles.sessionsOverlay}>
-      <div className={styles.sessionsPanel}>
-        <div className={styles.sessionsPanelHead}>
-          <span className={styles.sessionsPanelTitle}>Sessions</span>
-          <button className={styles.btnClosePanel} onClick={onClose}>✕</button>
-        </div>
-
-        <Link href="/start" className={styles.btnNewSession} onClick={onClose}>
-          + Start New Session
-        </Link>
-
-        <div className={styles.sessionsList}>
-          {sessions.length === 0 && (
-            <p className={styles.sessionEmpty}>No sessions yet.</p>
-          )}
-          {sessions.map(s => (
-            <SessionRow key={s._id} session={s} onContinue={onContinue} onClose={onCloseSession} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Custom Edit Modal ─────────────────────────────────────────────────────────
-function CustomEditModal({ group, onClose, onSave }) {
-  const [editType, setEditType] = useState(
-    group.requests[0]?.danceType || 'partner'
-  );
-  const [editStyle, setEditStyle] = useState(group.requests[0]?.partnerStyle || '');
-  const [editName, setEditName] = useState(group.danceName);
-  const [editDifficulty, setEditDifficulty] = useState(group.difficulty || '');
-  const [lineMode, setLineMode] = useState('search');
-  const [danceSearch, setDanceSearch] = useState('');
-  const [dbDances, setDbDances] = useState(null);
-  const [dbLoading, setDbLoading] = useState(false);
-  const [selectedDb, setSelectedDb] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setDbLoading(true);
-    fetch('/api/dj/dances').then(r => r.json()).then(data => {
-      setDbDances(data);
-      setDbLoading(false);
-    });
-  }, []);
-
-  const filteredDb = useMemo(() => {
-    if (!dbDances || !danceSearch.trim()) return [];
-    const q = danceSearch.toLowerCase();
-    return dbDances.filter(d =>
-      d.danceName?.toLowerCase().includes(q) || d.songName?.toLowerCase().includes(q)
-    ).slice(0, 7);
-  }, [dbDances, danceSearch]);
-
-  async function handleSave() {
-    setSaving(true);
-    const updates = {};
-    if (selectedDb) {
-      Object.assign(updates, {
-        danceId: selectedDb.id,
-        danceName: selectedDb.danceName,
-        songName: selectedDb.songName || '',
-        artist: selectedDb.artist || '',
-        difficulty: selectedDb.difficulty || '',
-        stepsheet: selectedDb.stepsheet || '',
-        duration_ms: selectedDb.duration_ms ?? null,
-        danceType: null,
-      });
-    } else {
-      updates.danceType = editType;
-      updates.danceName = editName.trim() || group.danceName;
-      if (editType === 'partner') updates.partnerStyle = editStyle.trim();
-      if (editType === 'line') updates.difficulty = editDifficulty;
-    }
-    await onSave(group.requests, updates);
-    setSaving(false);
-    onClose();
-  }
-
-  return (
-    <div className={styles.modalOverlay} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className={styles.modal}>
-        <div className={styles.modalHead}>
-          <span className={styles.modalTitle}>Edit Request</span>
-          <button className={styles.btnClosePanel} onClick={onClose}>✕</button>
-        </div>
-
-        <div className={styles.modalBody}>
-          <p className={styles.modalSubtitle}>
-            &ldquo;{group.danceName}&rdquo; &mdash; {group.requests.length} requester{group.requests.length !== 1 ? 's' : ''}
-          </p>
-
-          {/* Type toggle */}
-          <label className={styles.modalLabel}>Dance type</label>
-          <div className={styles.customTypeToggle}>
-            <button className={`${styles.customTypeBtn} ${editType === 'partner' ? styles.customTypeBtnActive : ''}`}
-              onClick={() => setEditType('partner')}>👫 Partner Dance</button>
-            <button className={`${styles.customTypeBtn} ${editType === 'line' ? styles.customTypeBtnActive : ''}`}
-              onClick={() => setEditType('line')}>💃 Line Dance</button>
-          </div>
-
-          {/* Partner dance — style + name */}
-          {editType === 'partner' && (
-            <>
-              <label className={styles.modalLabel}>Dance style</label>
-              <input
-                className={styles.customEditInput}
-                list="partner-styles"
-                value={editStyle}
-                onChange={e => setEditStyle(e.target.value)}
-                placeholder="e.g. Waltz, 2 Step, West Coast Swing…"
-                autoFocus
-              />
-              <datalist id="partner-styles">
-                {PARTNER_STYLES.map(s => <option key={s} value={s} />)}
-              </datalist>
-              <label className={styles.modalLabel}>Description (optional)</label>
-              <input className={styles.customEditInput} value={editName}
-                onChange={e => setEditName(e.target.value)}
-                placeholder="e.g. that slow one they played last week" />
-            </>
-          )}
-
-          {/* Line dance — search or manual */}
-          {editType === 'line' && (
-            <>
-              <label className={styles.modalLabel}>Identify as</label>
-              <div className={styles.customTypeToggle}>
-                <button className={`${styles.customTypeBtn} ${lineMode === 'search' ? styles.customTypeBtnActive : ''}`}
-                  onClick={() => setLineMode('search')}>Search database</button>
-                <button className={`${styles.customTypeBtn} ${lineMode === 'manual' ? styles.customTypeBtnActive : ''}`}
-                  onClick={() => setLineMode('manual')}>Edit manually</button>
-              </div>
-
-              {lineMode === 'search' && (
-                <div className={styles.customSearchWrap}>
-                  {selectedDb ? (
-                    <div className={styles.customSelectedDb}>
-                      <span style={{ flex: 1 }}>{selectedDb.danceName}</span>
-                      {selectedDb.difficulty && (
-                        <span className={styles.diffPip} style={{ background: diffColor(selectedDb.difficulty), fontSize: '0.65rem' }}>
-                          {selectedDb.difficulty}
-                        </span>
-                      )}
-                      <button className={styles.customCancelBtn}
-                        onClick={() => { setSelectedDb(null); setDanceSearch(''); }}>✕</button>
-                    </div>
-                  ) : (
-                    <>
-                      <input className={styles.customEditInput} value={danceSearch}
-                        onChange={e => setDanceSearch(e.target.value)}
-                        placeholder={dbLoading ? 'Loading…' : 'Search by name or song…'}
-                        autoFocus />
-                      {filteredDb.length > 0 && (
-                        <ul className={styles.customDbResults}>
-                          {filteredDb.map(d => (
-                            <li key={d.id}>
-                              <button className={styles.customDbResult}
-                                onClick={() => { setSelectedDb(d); setDanceSearch(d.danceName); }}>
-                                <span>{d.danceName}</span>
-                                {d.songName && <span className={styles.modalDanceSong}>{d.songName}</span>}
-                                {d.difficulty && (
-                                  <span className={styles.diffPip} style={{ background: diffColor(d.difficulty), fontSize: '0.6rem' }}>
-                                    {d.difficulty}
-                                  </span>
-                                )}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {lineMode === 'manual' && (
-                <>
-                  <label className={styles.modalLabel}>Dance name</label>
-                  <input className={styles.customEditInput} value={editName}
-                    onChange={e => setEditName(e.target.value)} placeholder="Dance name" autoFocus />
-                  <label className={styles.modalLabel}>Difficulty</label>
-                  <select className={styles.customEditSelect} value={editDifficulty}
-                    onChange={e => setEditDifficulty(e.target.value)}>
-                    <option value="">Select difficulty…</option>
-                    {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className={styles.modalFoot}>
-          <button className={styles.customCancelBtn} onClick={onClose}>Cancel</button>
-          <button className={styles.customSaveBtn} onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Countdown timer (isolated so only this re-renders each second) ────────────
-function CountdownTimer({ playStartedAt, duration_ms, className }) {
-  const [remaining, setRemaining] = useState(null);
-
-  useEffect(() => {
-    function update() {
-      const elapsed = Date.now() - new Date(playStartedAt).getTime();
-      setRemaining(Math.max(0, (duration_ms ?? 180000) - elapsed));
-    }
-    update();
-    const iv = setInterval(update, 1000);
-    return () => clearInterval(iv);
-  }, [playStartedAt, duration_ms]);
-
-  if (remaining === null) return null;
-  const s = Math.floor(remaining / 1000);
-  return (
-    <span className={className ?? styles.countdown}>
-      {Math.floor(s / 60)}:{String(s % 60).padStart(2, '0')}
-    </span>
-  );
-}
-
-// ── Remote Control ────────────────────────────────────────────────────────────
-function RemoteControl({ playing, queue, onAction, activeSession }) {
-  const track = playing[0] ?? null;
-  const isPaused = !!(track?.pausedAt);
-
-  if (!activeSession) return (
-    <div className={styles.remote}>
-      <p className={styles.remoteNoSession}>Open a session to start the queue.</p>
-    </div>
-  );
-  if (!track && queue.length === 0) return null;
-
-  return (
-    <div className={styles.remote}>
-      {track ? (
-        <>
-          <div className={styles.remoteTrackRow}>
-            <div className={styles.remoteTrackInfo}>
-              <span className={styles.remoteStatus}>{isPaused ? '⏸ Paused' : '▶ Now Playing'}</span>
-              <span className={styles.remoteTrackName}>{track.danceName}</span>
-            </div>
-            {track.playStartedAt && !isPaused && (
-              <CountdownTimer playStartedAt={track.playStartedAt} duration_ms={track.duration_ms} className={styles.remoteCountdown} />
-            )}
-          </div>
-          <div className={styles.remoteButtons}>
-            <button
-              className={`${styles.remoteBtn} ${isPaused ? styles.remoteBtnResume : styles.remoteBtnPause}`}
-              onClick={() => onAction(track._id, isPaused ? 'resume' : 'pause')}
-            >
-              {isPaused ? '▶ Resume' : '⏸ Pause'}
-            </button>
-            <button className={`${styles.remoteBtn} ${styles.remoteBtnSkip}`} onClick={() => onAction(track._id, 'advance')}>
-              ⏭ Skip
-            </button>
-            <button className={`${styles.remoteBtn} ${styles.remoteBtnStop}`} onClick={() => onAction(track._id, 'remove')}>
-              ✕ Stop
-            </button>
-          </div>
-        </>
-      ) : (
-        <button className={styles.remoteBtnStart} onClick={() => onAction(queue[0]._id, 'startQueue')}>
-          ▶ Start Queue
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ── Queue Card (approved items only) ─────────────────────────────────────────
-function QueueCard({ request, onAction, resolvedName, dragHandleProps, requesterCount }) {
-  const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, duration_ms } = request;
-  const isMessage = danceType === 'message';
-  const displayName = resolvedName || clientId || '';
-  const hasCustomName = displayName && displayName !== clientId;
-
-  return (
-    <div className={`${styles.qCard} ${isMessage ? styles.qCardMessage : ''}`}>
-      <div className={styles.qGrip} {...dragHandleProps} title="Drag to reorder">
-        <span aria-hidden>⠿</span>
-      </div>
-      <div className={styles.qInfo}>
-        <div className={styles.qName}>
-          {isMessage
-            ? <><span className={styles.qMsgIcon}>💬</span>{danceName}</>
-            : stepsheet
-              ? <a href={stepsheet} target="_blank" rel="noopener noreferrer" className={styles.qNameLink}>{danceName}</a>
-              : danceName}
-        </div>
-        {!isMessage && songName && <div className={styles.qSong}>{songName}{artist ? ` — ${artist}` : ''}</div>}
-        <div className={styles.qMeta}>
-          {isMessage ? (
-            <span className={styles.qMsgDuration}>
-              {duration_ms ? `${Math.round(duration_ms / 60000)} min` : 'Until skipped'}
-            </span>
-          ) : (
-            <>
-              {difficulty && (
-                <span className={styles.diffPip} style={{ background: diffColor(difficulty) }}>{difficulty}</span>
-              )}
-              {requesterCount > 1
-                ? <span className={styles.queueCountBadge}>{requesterCount}</span>
-                : displayName && (
-                  <span className={styles.qWho}>
-                    {hasCustomName ? displayName : clientId}
-                    {hasCustomName && clientId && <span className={styles.qClientId}>{clientId}</span>}
-                  </span>
-                )
-              }
-              {(tipCents ?? 0) > 0 && (
-                <span className={styles.qBeatChip}>♫ {Math.round(tipCents / 5)}</span>
-              )}
-            </>
-          )}
-          <span className={styles.qAge}>{timeAgo(createdAt)}</span>
-        </div>
-        {!isMessage && notes && <div className={styles.qNote}>&ldquo;{notes}&rdquo;</div>}
-      </div>
-      <div className={styles.qActions}>
-        <button className={styles.btnPlayed} onClick={() => onAction(_id, 'played')}>
-          {isMessage ? '✓ Done' : '✓ Played'}
-        </button>
-        <button className={styles.btnRemove} onClick={() => onAction(_id, 'remove')}>✕</button>
-      </div>
-    </div>
-  );
-}
-
-const DIFFICULTIES = ['Beginner', 'Beginner Hustle', 'Improver', 'Low Intermediate', 'Intermediate', 'Advanced'];
-const PARTNER_STYLES = [
-  '2 Step', '3 Step', 'Waltz', 'Viennese Waltz', 'Foxtrot', 'Quickstep',
-  'Tango', 'Nightclub 2 Step', 'West Coast Swing', 'East Coast Swing',
-  'Lindy Hop', 'Cha Cha', 'Salsa', 'Hustle', 'Polka', 'Rumba', 'Bachata',
-];
-
-// ── Pending Card ──────────────────────────────────────────────────────────────
-function PendingCard({ request, onAction, resolvedName, repeatRequester }) {
-  const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, danceType } = request;
-  const isCustom = !request.danceId;
-  const displayName = resolvedName || clientId || '';
-  const hasCustomName = displayName && displayName !== clientId;
-
-  const [editing, setEditing] = useState(false);
-  const [editType, setEditType] = useState(danceType || 'partner');
-  const [editName, setEditName] = useState(danceName);
-  const [editDifficulty, setEditDifficulty] = useState(difficulty || '');
-  const [lineMode, setLineMode] = useState('search'); // 'search' | 'manual'
-  const [danceSearch, setDanceSearch] = useState('');
-  const [dbDances, setDbDances] = useState(null);
-  const [dbLoading, setDbLoading] = useState(false);
-  const [selectedDb, setSelectedDb] = useState(null);
-
-  function openEdit() {
-    setEditing(true);
-    if (!dbDances) loadDances();
-  }
-
-  async function loadDances() {
-    setDbLoading(true);
-    const data = await fetch('/api/dj/dances').then(r => r.json());
-    setDbDances(data);
-    setDbLoading(false);
-  }
-
-  const filteredDb = useMemo(() => {
-    if (!dbDances || !danceSearch.trim()) return [];
-    const q = danceSearch.toLowerCase();
-    return dbDances.filter(d =>
-      d.danceName?.toLowerCase().includes(q) || d.songName?.toLowerCase().includes(q)
-    ).slice(0, 6);
-  }, [dbDances, danceSearch]);
-
-  async function saveEdit() {
-    const updates = { danceType: editType };
-    if (selectedDb) {
-      Object.assign(updates, {
-        danceId: selectedDb.id,
-        danceName: selectedDb.danceName,
-        songName: selectedDb.songName || '',
-        artist: selectedDb.artist || '',
-        difficulty: selectedDb.difficulty || '',
-        stepsheet: selectedDb.stepsheet || '',
-        duration_ms: selectedDb.duration_ms ?? null,
-        danceType: null, // now a known dance, not custom
-      });
-    } else {
-      updates.danceName = editName.trim() || danceName;
-      if (editType === 'line') updates.difficulty = editDifficulty;
-    }
-    await fetch(`/api/dj/requests/${_id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
-    });
-    setEditing(false);
-    onAction(_id, 'mutate');
-  }
-
-  function cancelEdit() {
-    setEditName(danceName); setEditType(danceType || 'partner');
-    setEditDifficulty(difficulty || ''); setDanceSearch('');
-    setSelectedDb(null); setEditing(false);
-  }
-
-  return (
-    <div className={`${styles.pCard} ${repeatRequester ? styles.pCardRepeat : ''}`}>
-      <div className={styles.pInfo}>
-        <div className={styles.pName}>
-          {stepsheet
-            ? <a href={stepsheet} target="_blank" rel="noopener noreferrer" className={styles.pNameLink}>{danceName}</a>
-            : danceName}
-          {repeatRequester && <span className={styles.repeatTag}>repeat</span>}
-          {isCustom && !editing && (
-            <span className={styles.customTypeBadge} data-type={editType}>
-              {editType === 'line' ? 'Line Dance' : 'Partner Dance'}
-            </span>
-          )}
-        </div>
-        {songName && <div className={styles.pSong}>{songName}{artist ? ` — ${artist}` : ''}</div>}
-        <div className={styles.pMeta}>
-          {difficulty && (
-            <span className={styles.diffPip} style={{ background: diffColor(difficulty) }}>{difficulty}</span>
-          )}
-          {displayName && (
-            <span className={styles.pWho}>
-              {hasCustomName ? displayName : clientId}
-              {hasCustomName && clientId && <span className={styles.qClientId}>{clientId}</span>}
-            </span>
-          )}
-          <span className={styles.qAge}>{timeAgo(createdAt)}</span>
-        </div>
-        {notes && <div className={styles.qNote}>&ldquo;{notes}&rdquo;</div>}
-
-        {/* ── Inline edit for custom requests ── */}
-        {isCustom && editing && (
-          <div className={styles.customEdit}>
-            {/* Type toggle */}
-            <div className={styles.customTypeToggle}>
-              <button className={`${styles.customTypeBtn} ${editType === 'partner' ? styles.customTypeBtnActive : ''}`}
-                onClick={() => setEditType('partner')}>👫 Partner Dance</button>
-              <button className={`${styles.customTypeBtn} ${editType === 'line' ? styles.customTypeBtnActive : ''}`}
-                onClick={() => setEditType('line')}>💃 Line Dance</button>
-            </div>
-
-            {/* Partner dance: just name */}
-            {editType === 'partner' && (
-              <input className={styles.customEditInput} value={editName}
-                onChange={e => setEditName(e.target.value)}
-                placeholder="Dance / song description (optional)"
-                onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-                autoFocus />
-            )}
-
-            {/* Line dance: search or manual */}
-            {editType === 'line' && (
-              <>
-                <div className={styles.customTypeToggle} style={{ marginTop: 0 }}>
-                  <button className={`${styles.customTypeBtn} ${lineMode === 'search' ? styles.customTypeBtnActive : ''}`}
-                    onClick={() => setLineMode('search')}>Search database</button>
-                  <button className={`${styles.customTypeBtn} ${lineMode === 'manual' ? styles.customTypeBtnActive : ''}`}
-                    onClick={() => setLineMode('manual')}>Edit manually</button>
-                </div>
-
-                {lineMode === 'search' && (
-                  <div className={styles.customSearchWrap}>
-                    <input className={styles.customEditInput} value={danceSearch}
-                      onChange={e => setDanceSearch(e.target.value)}
-                      placeholder={dbLoading ? 'Loading dances…' : 'Search by name or song…'}
-                      autoFocus />
-                    {selectedDb ? (
-                      <div className={styles.customSelectedDb}>
-                        <span>{selectedDb.danceName}</span>
-                        {selectedDb.difficulty && <span className={styles.diffPip} style={{ background: diffColor(selectedDb.difficulty) }}>{selectedDb.difficulty}</span>}
-                        <button className={styles.customCancelBtn} onClick={() => { setSelectedDb(null); setDanceSearch(''); }}>✕</button>
-                      </div>
-                    ) : filteredDb.length > 0 && (
-                      <ul className={styles.customDbResults}>
-                        {filteredDb.map(d => (
-                          <li key={d.id}>
-                            <button className={styles.customDbResult} onClick={() => { setSelectedDb(d); setDanceSearch(d.danceName); }}>
-                              <span>{d.danceName}</span>
-                              {d.difficulty && <span className={styles.diffPip} style={{ background: diffColor(d.difficulty), fontSize: '0.6rem' }}>{d.difficulty}</span>}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-
-                {lineMode === 'manual' && (
-                  <>
-                    <input className={styles.customEditInput} value={editName}
-                      onChange={e => setEditName(e.target.value)}
-                      placeholder="Dance name" autoFocus />
-                    <select className={styles.customEditSelect} value={editDifficulty}
-                      onChange={e => setEditDifficulty(e.target.value)}>
-                      <option value="">Select difficulty…</option>
-                      {DIFFICULTIES.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </>
-                )}
-              </>
-            )}
-
-            <div className={styles.customEditActions}>
-              <button className={styles.customSaveBtn} onClick={saveEdit}>Save</button>
-              <button className={styles.customCancelBtn} onClick={cancelEdit}>Cancel</button>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className={styles.pActions}>
-        {isCustom && !editing && (
-          <button className={styles.btnEdit} onClick={openEdit} title="Edit">✎</button>
-        )}
-        <button className={styles.btnApprove} onClick={() => onAction(_id, 'approve')}>Queue →</button>
-        <button className={styles.btnSkip} onClick={() => onAction(_id, 'skip')}>Skip</button>
-      </div>
-    </div>
-  );
-}
-
-// ── Sortable wrapper ──────────────────────────────────────────────────────────
-function SortableQueueItem({ id, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 10 : 'auto' }} {...attributes}>
-      {children(listeners)}
-    </div>
-  );
-}
 
 // ── Main Controller ───────────────────────────────────────────────────────────
 function Controller() {
@@ -788,14 +45,11 @@ function Controller() {
   const [showHamburger, setShowHamburger] = useState(false);
   const hamburgerRef = useRef(null);
 
-  // ── Spotify plugin state (unused when plugin !== 'spotify') ──
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [spotifyData, setSpotifyData] = useState(null);
-  const [spotifyError, setSpotifyError] = useState(null);
-  const allRequestsRef = useRef([]);
-  const lastTrackUriRef = useRef(null);
-  const queuedAheadRef = useRef(null);
-  const aheadTimerRef = useRef(null);
+  // ── Queue reorder: debounce + diff state ──
+  const dbPositionsRef = useRef(null);   // last-confirmed DB positions
+  const pendingReorderRef = useRef(null); // latest intended order waiting to flush
+  const reorderTimerRef = useRef(null);
+
 
   async function saveGroupEdit(requests, updates) {
     await Promise.all(requests.map(r =>
@@ -868,6 +122,9 @@ function Controller() {
     refreshInterval: 5000, revalidateOnFocus: true, dedupingInterval: 2000,
   });
 
+  // ── Spotify plugin ────────────────────────────────────────────────────────────
+  const spotify = useSpotifyPlugin({ isActive: isSpotify, rawRequests, mutate });
+
   const { data: stripeStatus } = useSWR('/api/dev/stripe-status', fetcher, {
     refreshInterval: 10000, shouldRetryOnError: false,
   });
@@ -883,9 +140,7 @@ function Controller() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'closed' }),
     });
-    if (isSpotify && spotifyConnected) {
-      try { await spotifyCmd('PUT', { action: 'pause' }); } catch {}
-    }
+    if (isSpotify) await spotify.onCloseSession();
     mutateSessions();
     mutate();
   }
@@ -921,145 +176,6 @@ function Controller() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showHamburger]);
-
-  // ── Spotify: keep ref current so polling closure sees fresh requests ────────
-  useEffect(() => { allRequestsRef.current = rawRequests; }, [rawRequests]);
-
-  // ── Spotify: check connection when plugin is spotify ────────────────────────
-  useEffect(() => {
-    if (!isSpotify) return;
-    fetch('/api/spotify/player')
-      .then(r => r.json())
-      .then(d => setSpotifyConnected(!!d.connected))
-      .catch(() => {});
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('spotify_connected')) {
-      setSpotifyConnected(true);
-      window.history.replaceState({}, '', '/dj-controller');
-    }
-  }, [isSpotify]);
-
-  // ── Spotify: polling loop + track-change detection ──────────────────────────
-  useEffect(() => {
-    if (!isSpotify || !spotifyConnected) return;
-    let cancelled = false;
-
-    async function queueNextTrack() {
-      const allReqs = allRequestsRef.current;
-      const nextUp = allReqs
-        .filter(r => r.status === 'approved')
-        .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))[0];
-      if (!nextUp?.spotifyUri) return;
-      if (queuedAheadRef.current === nextUp._id) return;
-      try {
-        await spotifyCmd('POST', { uri: nextUp.spotifyUri });
-        queuedAheadRef.current = nextUp._id;
-      } catch {}
-    }
-
-    async function poll() {
-      try {
-        const data = await fetch('/api/spotify/player').then(r => r.json());
-        if (cancelled) return;
-        setSpotifyData(data);
-        const currentUri = data?.playback?.item?.uri ?? null;
-        const prevUri = lastTrackUriRef.current;
-        if (currentUri && prevUri && currentUri !== prevUri) {
-          const allReqs = allRequestsRef.current;
-          const wasPlaying = allReqs.find(r => r.status === 'playing' && r.spotifyUri === prevUri);
-          if (wasPlaying) {
-            await patch(wasPlaying._id, { status: 'played' });
-            const nextUp = allReqs
-              .filter(r => r.status === 'approved')
-              .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))[0];
-            if (nextUp) {
-              await patch(nextUp._id, {
-                status: 'playing',
-                playStartedAt: new Date(Date.now() - (data.playback?.progress_ms ?? 0)).toISOString(),
-                ...SpotifyAdapter.playingStamps(),
-              });
-            }
-            queuedAheadRef.current = null;
-            if (aheadTimerRef.current) clearTimeout(aheadTimerRef.current);
-            mutate();
-          }
-        }
-        lastTrackUriRef.current = currentUri;
-        if (data?.playback?.is_playing && data.playback.item) {
-          const remaining = data.playback.item.duration_ms - data.playback.progress_ms;
-          if (aheadTimerRef.current) clearTimeout(aheadTimerRef.current);
-          if (remaining <= 5000) {
-            await queueNextTrack();
-          } else {
-            aheadTimerRef.current = setTimeout(queueNextTrack, remaining - 5000);
-          }
-        }
-      } catch {}
-    }
-
-    poll();
-    const iv = setInterval(poll, 5000);
-    return () => {
-      cancelled = true;
-      clearInterval(iv);
-      if (aheadTimerRef.current) clearTimeout(aheadTimerRef.current);
-    };
-  }, [isSpotify, spotifyConnected, mutate]);
-
-  // ── Spotify: player controls ─────────────────────────────────────────────────
-  async function handleSpotifyControl(action) {
-    try {
-      if (action === 'previous') {
-        await spotifyCmd('PUT', { action: 'seek', position_ms: 0 });
-        const playingItem = rawRequests.find(r => r.status === 'playing');
-        if (playingItem) { await patch(playingItem._id, { playStartedAt: new Date().toISOString() }); mutate(); }
-      } else if (action === 'pause') {
-        await spotifyCmd('PUT', { action: 'pause' });
-        const playingItem = rawRequests.find(r => r.status === 'playing');
-        if (playingItem) { await patch(playingItem._id, { pausedAt: new Date().toISOString() }); mutate(); }
-      } else if (action === 'play') {
-        await spotifyCmd('PUT', { action: 'play' });
-        const playingItem = rawRequests.find(r => r.status === 'playing');
-        if (playingItem?.pausedAt && playingItem?.playStartedAt) {
-          const elapsed = new Date(playingItem.pausedAt) - new Date(playingItem.playStartedAt);
-          await patch(playingItem._id, { playStartedAt: new Date(Date.now() - elapsed).toISOString(), pausedAt: null });
-          mutate();
-        }
-      } else if (action === 'next') {
-        const playingItem = rawRequests.find(r => r.status === 'playing');
-        if (playingItem) {
-          await patch(playingItem._id, { status: 'played' });
-          const nextUp = rawRequests
-            .filter(r => r.status === 'approved')
-            .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))[0];
-          if (nextUp) await patch(nextUp._id, { status: 'playing', playStartedAt: new Date().toISOString(), ...SpotifyAdapter.playingStamps() });
-          mutate();
-        }
-        await spotifyCmd('PUT', { action: 'next' });
-        setTimeout(() => fetch('/api/spotify/player').then(r => r.json()).then(d => {
-          lastTrackUriRef.current = d?.playback?.item?.uri ?? null;
-          setSpotifyData(d);
-        }).catch(() => {}), 800);
-      }
-      setSpotifyError(null);
-    } catch (err) {
-      setSpotifyError(err.message);
-    }
-    setTimeout(() => fetch('/api/spotify/player').then(r => r.json()).then(setSpotifyData).catch(() => {}), 800);
-  }
-
-  async function addFromSpotify(track) {
-    await fetch('/api/dj/requests', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        danceId: null, danceName: track.name, songName: track.name,
-        artist: track.artists, duration_ms: track.duration_ms,
-        spotifyUri: track.uri, clientId: 'dj', requesterName: 'DJ',
-        notes: '', status: 'approved', queuePosition: nextQueuePos,
-      }),
-    });
-    mutate();
-  }
 
   async function continueSession(id) {
     await fetch(`/api/dj/sessions/${id}`, {
@@ -1118,6 +234,25 @@ function Controller() {
   const queue = useMemo(() =>
     rawRequests.filter(r => r.status === 'approved').sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0)),
     [rawRequests]);
+
+  // Keep dbPositionsRef in sync with what the server knows
+  useEffect(() => {
+    if (!dbPositionsRef.current) {
+      dbPositionsRef.current = Object.fromEntries(queue.map(r => [r._id, r.queuePosition ?? 0]));
+      return;
+    }
+    const currentIds = new Set(queue.map(r => r._id));
+    for (const id of Object.keys(dbPositionsRef.current)) {
+      if (!currentIds.has(id)) delete dbPositionsRef.current[id];
+    }
+    for (const r of queue) {
+      if (!(r._id in dbPositionsRef.current)) {
+        dbPositionsRef.current[r._id] = r.queuePosition ?? 0;
+      }
+    }
+  }, [queue]);
+
+  useEffect(() => () => { if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current); }, []);
 
   const history = useMemo(() =>
     rawRequests.filter(r => r.status === 'played' || r.status === 'skipped').sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
@@ -1222,18 +357,35 @@ function Controller() {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-  const handleDragEnd = useCallback(async ({ active, over }) => {
+  const handleDragEnd = useCallback(({ active, over }) => {
     if (!over || active.id === over.id) return;
     const oldIdx = queue.findIndex(r => r._id === active.id);
     const newIdx = queue.findIndex(r => r._id === over.id);
     if (oldIdx === -1 || newIdx === -1) return;
     const reordered = arrayMove(queue, oldIdx, newIdx);
+
+    // Optimistic UI update — instant, no network call yet
     mutate(prev => {
       const pos = Object.fromEntries(reordered.map((r, i) => [r._id, i + 1]));
       return prev.map(r => r._id in pos ? { ...r, queuePosition: pos[r._id] } : r);
     }, false);
-    await Promise.all(reordered.map((r, i) => patch(r._id, { queuePosition: i + 1 })));
-    mutate();
+
+    // Accumulate the latest intended order and debounce the write
+    pendingReorderRef.current = reordered;
+    if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current);
+    reorderTimerRef.current = setTimeout(async () => {
+      const finalQueue = pendingReorderRef.current;
+      if (!finalQueue) return;
+      const newPositions = Object.fromEntries(finalQueue.map((r, i) => [r._id, i + 1]));
+      const dbPos = dbPositionsRef.current ?? {};
+      const changed = finalQueue.filter(r => r._id in dbPos && dbPos[r._id] !== newPositions[r._id]);
+      if (changed.length > 0) {
+        await Promise.all(changed.map(r => patch(r._id, { queuePosition: newPositions[r._id] })));
+        Object.assign(dbPositionsRef.current, newPositions);
+      }
+      pendingReorderRef.current = null;
+      mutate();
+    }, 600);
   }, [queue, mutate]);
 
   const handleAction = useCallback(async (id, action, extra) => {
@@ -1248,24 +400,14 @@ function Controller() {
       await patch(id, { status: 'skipped' });
     } else if (action === 'played') {
       await patch(id, { status: 'played' });
+    } else if (action === 'dequeue') {
+      await patch(id, { status: 'pending', queuePosition: null });
     } else if (action === 'remove') {
       await del(id);
     } else if (action === 'startQueue') {
       const stamps = isSpotify ? SpotifyAdapter.playingStamps() : StandardAdapter.playingStamps();
       await patch(id, { status: 'playing', playStartedAt: new Date().toISOString(), ...stamps });
-      if (isSpotify && spotifyConnected) {
-        const item = rawRequests.find(r => r._id === id);
-        if (item?.spotifyUri) {
-          try {
-            await spotifyCmd('PUT', { action: 'play', uris: [item.spotifyUri] });
-            await spotifyCmd('PUT', { action: 'repeat', state: 'off' });
-            queuedAheadRef.current = null;
-            setSpotifyError(null);
-          } catch (err) {
-            setSpotifyError(err.message);
-          }
-        }
-      }
+      if (isSpotify) await spotify.onStartQueue(id);
     } else if (action === 'pause') {
       await patch(id, { pausedAt: new Date().toISOString() });
     } else if (action === 'resume') {
@@ -1281,7 +423,7 @@ function Controller() {
       }
     }
     mutate();
-  }, [nextQueuePos, queue, rawRequests, mutate, isSpotify, spotifyConnected]);
+  }, [nextQueuePos, queue, rawRequests, mutate, isSpotify, spotify]);
 
   async function clearHistory() {
     await Promise.all(history.map(r => del(r._id)));
@@ -1352,7 +494,7 @@ function Controller() {
           {/* Secondary nav — History + Wallet (hidden below 1100px) */}
           <div className={styles.topBarNavSecondary}>
             {isSpotify && (
-              spotifyConnected
+              spotify.connected
                 ? <span className={sp.spotifyChip}>● Spotify</span>
                 : <a href="/api/spotify/auth" className={sp.spotifyChipOff}>Connect Spotify</a>
             )}
@@ -1383,7 +525,7 @@ function Controller() {
                 {process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true' && (
                   <Link className={styles.hamburgerItem} href="/dj-profile" onClick={() => setShowHamburger(false)}>Wallet</Link>
                 )}
-                {isSpotify && !spotifyConnected && (
+                {isSpotify && !spotify.connected && (
                   <><div className={styles.hamburgerDivider} />
                   <a className={styles.hamburgerItem} href="/api/spotify/auth" onClick={() => setShowHamburger(false)}>Connect Spotify</a></>
                 )}
@@ -1515,14 +657,11 @@ function Controller() {
           <div className={styles.colBody}>
             {isSpotify ? (
               <SpotifyPanel
-                data={spotifyData}
-                onControl={handleSpotifyControl}
-                connected={spotifyConnected}
-                error={spotifyError}
-                onRetry={() => {
-                  setSpotifyError(null);
-                  fetch('/api/spotify/player').then(r => r.json()).then(setSpotifyData).catch(() => {});
-                }}
+                data={spotify.data}
+                onControl={spotify.handleControl}
+                connected={spotify.connected}
+                error={spotify.error}
+                onRetry={spotify.retry}
               />
             ) : (
               <RemoteControl playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession} />
@@ -1572,7 +711,7 @@ function Controller() {
               </SortableContext>
             </DndContext>
 
-            {isSpotify && <SpotifySearch onAdd={addFromSpotify} />}
+            {isSpotify && <SpotifySearch onAdd={(track) => spotify.handleAdd(track, nextQueuePos)} />}
 
             {history.length > 0 && (
               <details className={styles.historyDetails}>

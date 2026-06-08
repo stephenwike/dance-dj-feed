@@ -1,4 +1,4 @@
-import clientPromise from '../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../lib/server/mongodb';
 import DJRequestPage from '../dj-request/index';
 
 export default function RequestSlugPage({ sessionId, djId, sessionEnded, tippingEnabled }) {
@@ -8,7 +8,7 @@ export default function RequestSlugPage({ sessionId, djId, sessionEnded, tipping
 export async function getServerSideProps({ params }) {
   const { slug } = params;
   const client = await clientPromise;
-  const session = await client.db('bld').collection('dj_sessions').findOne(
+  const session = await client.db(DB_NAME).collection('dj_sessions').findOne(
     { slug },
     { sort: { startedAt: -1 }, projection: { _id: 1, status: 1, ownerId: 1, tippingEnabled: 1 } }
   );

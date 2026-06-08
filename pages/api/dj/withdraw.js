@@ -1,5 +1,5 @@
-import Stripe from 'stripe';
-import clientPromise from '../../../lib/server/mongodb';
+﻿import Stripe from 'stripe';
+import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   const client = await clientPromise;
-  const db = client.db('bld');
+  const db = client.db(DB_NAME);
 
   // Verify Stripe account exists and payouts are enabled
   const profile = await db.collection('dj_profiles').findOne({ ownerId: userId });
@@ -57,3 +57,4 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ ok: true, newBalance: balance - amountCents });
 }
+

@@ -1,4 +1,4 @@
-import clientPromise from '../../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
 function defaultSessionName() {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const client = await clientPromise;
-  const col = client.db('bld').collection('dj_sessions');
+  const col = client.db(DB_NAME).collection('dj_sessions');
 
   if (req.method === 'GET') {
     const sessions = await col.find({ ownerId: userId }).sort({ startedAt: -1 }).toArray();
@@ -62,3 +62,4 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
+

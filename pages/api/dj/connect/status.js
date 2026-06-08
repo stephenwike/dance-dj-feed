@@ -1,5 +1,5 @@
-import Stripe from 'stripe';
-import clientPromise from '../../../../lib/server/mongodb';
+﻿import Stripe from 'stripe';
+import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const client = await clientPromise;
-  const profile = await client.db('bld').collection('dj_profiles').findOne({ ownerId: userId });
+  const profile = await client.db(DB_NAME).collection('dj_profiles').findOne({ ownerId: userId });
 
   if (!profile?.stripeAccountId) {
     return res.status(200).json({ connected: false, payoutsEnabled: false });
@@ -24,3 +24,4 @@ export default async function handler(req, res) {
     detailsSubmitted: account.details_submitted,
   });
 }
+

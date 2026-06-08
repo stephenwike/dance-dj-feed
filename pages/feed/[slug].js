@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
-import clientPromise from '../../lib/server/mongodb';
+import clientPromise, { DB_NAME } from '../../lib/server/mongodb';
 import styles from '../dj-feed/dj-feed.module.css';
 import { remainingMs } from '../../lib/client/dj/autoAdvance';
 import { StandardAdapter } from '../../lib/client/dj/controllerAdapters';
@@ -288,7 +288,7 @@ export default function FeedSlugPage({ sessionId, slug }) {
 export async function getServerSideProps({ params }) {
   const { slug } = params;
   const client = await clientPromise;
-  const session = await client.db('bld').collection('dj_sessions').findOne(
+  const session = await client.db(DB_NAME).collection('dj_sessions').findOne(
     { slug, status: 'active' },
     { projection: { _id: 1, slug: 1 } }
   );

@@ -1,6 +1,7 @@
 /* ── Shell ── */
 .page {
-  height: 100vh;
+  position: fixed;
+  inset: 0;
   display: grid;
   grid-template-columns: 380px 1fr;
   background: #0e0e18;

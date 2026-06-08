@@ -1,4 +1,4 @@
-import clientPromise from '../../../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { ObjectId } from 'mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   try { objId = new ObjectId(id); } catch { return res.status(400).json({ error: 'Invalid id' }); }
 
   const client = await clientPromise;
-  await client.db('bld').collection('dj_messages').updateOne(
+  await client.db(DB_NAME).collection('dj_messages').updateOne(
     { _id: objId, ownerId: userId },
     { $set: { status: 'dismissed', updatedAt: new Date() } }
   );

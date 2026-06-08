@@ -1,8 +1,8 @@
-import clientPromise from '../../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
 async function getActiveSession(client, sessionId, ownerId) {
-  const col = client.db('bld').collection('dj_sessions');
+  const col = client.db(DB_NAME).collection('dj_sessions');
   if (sessionId) return col.findOne({ _id: require('mongodb').ObjectId.createFromHexString(sessionId) });
   const filter = { status: 'active' };
   if (ownerId) filter.ownerId = ownerId;
@@ -11,7 +11,7 @@ async function getActiveSession(client, sessionId, ownerId) {
 
 export default async function handler(req, res) {
   const client = await clientPromise;
-  const db = client.db('bld');
+  const db = client.db(DB_NAME);
   const col = db.collection('dj_messages');
 
   if (req.method === 'GET') {
@@ -69,3 +69,4 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
+

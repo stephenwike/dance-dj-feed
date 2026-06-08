@@ -1,4 +1,4 @@
-import clientPromise from '../../../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { ObjectId } from 'mongodb';
 import { getAuth } from '@clerk/nextjs/server';
 
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const client = await clientPromise;
-  const col = client.db('bld').collection('dj_sessions');
+  const col = client.db(DB_NAME).collection('dj_sessions');
   const { id } = req.query;
 
   let objId;
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const session = await col.findOne({ _id: objId });
     if (!session) return res.status(404).json({ error: 'Not found' });
-    const played = await client.db('bld').collection('dj_requests')
+    const played = await client.db(DB_NAME).collection('dj_requests')
       .find({ sessionId: String(objId), status: 'played' })
       .sort({ updatedAt: 1 })
       .toArray();

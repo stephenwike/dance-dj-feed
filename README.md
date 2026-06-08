@@ -63,14 +63,14 @@ Session creation and resumption. The DJ names the session (defaults to today's d
 #### `/dj-controller`
 Main queue management dashboard. Three-column layout:
 
-- **Left — Queue**: Now-playing card, approved/upcoming tracks (drag-to-reorder), session history
-- **Center — Pending**: Requests grouped by dance, sorted by fairness score + tip boost. Tabs for By Dance / By Requester
-- **Right — Controls**: Session settings, message broadcasting, hamburger nav
+- **Left — Queue**: Now-playing card, approved/upcoming tracks (drag-to-reorder via `SortableQueueItem` + `QueueCard`), session history (`SessionsPanel`)
+- **Center — Pending**: Requests grouped by dance, sorted by fairness score + tip boost (`PendingCard`). Tabs for By Dance / By Requester
+- **Right — Controls**: `RemoteControl` strip, session settings, message broadcasting, hamburger nav
 
 Actions: approve, play, pause, skip, remove, reorder. Fairness scoring is recalculated on every poll. Auto-advance fires when the current track's duration expires (Standard mode).
 
 #### `/dj-spotify`
-Same queue management as `/dj-controller` but with an embedded Spotify playback panel. The Spotify adapter polls playback state; when Spotify naturally advances to the next track, the system auto-marks the previous request played and queues the next Spotify URI. Manual controls (play/pause/skip) sync back to Spotify.
+Same queue management as `/dj-controller` but with an embedded Spotify playback panel (`SpotifyComponents`). All Spotify logic — polling, track-change detection, pre-queuing, and playback controls — lives in the `useSpotifyPlugin` hook. When Spotify naturally advances to the next track, the hook auto-marks the previous request played and queues the next Spotify URI. Manual controls (play/pause/skip) sync back to Spotify.
 
 #### `/reports`
 Post-session playlist report. Session list on the left; selected session shows played tracks (deduplicated by dance, with requester counts). Filters for partner dances and custom requests. Export as PNG or PDF.
@@ -300,6 +300,30 @@ Shared line dance catalogue managed by a separate app ([line-dance-manager-admin
 
 ---
 
+## Components
+
+### `components/dj-controller/`
+
+The controller page was refactored to extract its UI into focused components. All share the `dj-controller.module.css` stylesheet.
+
+| Component | Description |
+|---|---|
+| `QueueCard` | Approved queue item — dance name, song, drag handle, approve/skip/remove actions |
+| `PendingCard` | Pending request card — requester info, inline edit for custom requests, approve action |
+| `SortableQueueItem` | dnd-kit sortable wrapper; provides `setNodeRef`, `transform`, and `isDragging` to its child |
+| `RemoteControl` | Play/pause/skip control strip with `CountdownTimer` embedded |
+| `CountdownTimer` | Displays remaining time, derived live from `playStartedAt + duration_ms` |
+| `SessionsPanel` | Session list with expand/collapse; loads played track list lazily per session |
+| `CustomEditModal` | Modal for editing dance name, difficulty, partner style, and song on custom requests |
+| `SpotifyComponents` | `SpotifyPanel` (playback display + controls) and `SpotifySearch` (track search + add) |
+| `utils.js` | Shared helpers: `formatDuration`, `formatTimestamp`, `timeAgo`, `diffColor`, `DIFFICULTIES`, `PARTNER_STYLES` |
+
+### `components/BeatTipper/` and `components/BeatBooster/`
+
+Beat tipping UI used on the attendee request form. `BeatTipper` is embedded in the submission form; `BeatBooster` is the quick-tip modal on existing requests.
+
+---
+
 ## Key Libraries
 
 ### `lib/client/dj/controllerAdapters.js`
@@ -325,6 +349,12 @@ Groups pending requests by dance (and song-swap variant), hides dances already i
 
 ### `lib/server/dj/requestLogic.js`
 Request creation and sibling marking. When a request is marked played, this module finds all other requests for the same dance and marks matching siblings played too. Original plays only mark non-swap siblings; swap plays only mark siblings with the same swap song. Prevents Electric Slide (original) from wiping out Electric Slide + Boots On requests.
+
+### `lib/client/dj/plugins/useSpotifyPlugin.js`
+React hook that encapsulates all Spotify logic for the controller. Handles the polling loop, track-change detection (URI diff between polls), auto-advance, pre-queuing the next track 5 seconds before the current one ends, and all playback controls (play, pause, next, previous, seek). Returns `{ connected, data, error, handleControl, handleAdd, onStartQueue, onCloseSession, retry }` — the controller page calls this hook and passes the result down to `SpotifyComponents`.
+
+### `lib/client/dj/requests.js`
+Thin fetch helpers used by controller components: `patch(id, body)` and `del(id)`. Centralises the `PATCH /api/dj/requests/[id]` and `DELETE` calls so components don't inline raw `fetch` calls.
 
 ### `lib/client/dj/autoAdvance.js`
 Countdown timer that calculates `remainingMs` from `playStartedAt + duration_ms - pausedDuration`. Used by both the controller and the feed page to keep their timers in sync.

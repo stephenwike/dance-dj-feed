@@ -1,11 +1,11 @@
-import clientPromise from '../../../../lib/server/mongodb';
+﻿import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { ObjectId } from 'mongodb';
 import { markSiblingsPlayed, buildSiblingDanceMatch } from '../../../../lib/server/dj/requestLogic';
 import { getAuth } from '@clerk/nextjs/server';
 
 export default async function handler(req, res) {
   const client = await clientPromise;
-  const col = client.db('bld').collection('dj_requests');
+  const col = client.db(DB_NAME).collection('dj_requests');
   const { id } = req.query;
 
   let objId;

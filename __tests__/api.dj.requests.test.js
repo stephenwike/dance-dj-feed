@@ -21,10 +21,10 @@ function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing
   }
 
   const client = {
-    db: jest.fn((dbName) => ({
+    db: jest.fn(() => ({
       collection: jest.fn((colName) => {
-        if (dbName === 'bld' && colName === 'dj_sessions') return makeCol(session ? [session] : []);
-        if (dbName === 'bld' && colName === 'dj_requests') return makeCol(existing);
+        if (colName === 'dj_sessions') return makeCol(session ? [session] : []);
+        if (colName === 'dj_requests') return makeCol(existing);
         return makeCol([]);
       }),
     })),

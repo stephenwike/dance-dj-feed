@@ -1,6 +1,6 @@
-import { getAuth } from '@clerk/nextjs/server';
+﻿import { getAuth } from '@clerk/nextjs/server';
 import { ObjectId } from 'mongodb';
-import clientPromise from '../../../lib/server/mongodb';
+import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 
 const BEAT_VALUE_CENTS = 5;  // 1 beat = $0.05
 const DJ_CUT = 0.9;          // DJ receives 90% of tip value
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   const client = await clientPromise;
-  const db = client.db('bld');
+  const db = client.db(DB_NAME);
 
   const request = await db.collection('dj_requests').findOne({ _id: requestObjId });
   if (!request) return res.status(404).json({ error: 'Request not found' });
@@ -67,3 +67,4 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ beats: updated.beats });
 }
+
