@@ -686,8 +686,8 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                   <p className={styles.beatsSignInSub}>Sign in to buy Beats and increase the chances your dance gets played.</p>
                   <SignInButton
                     mode="modal"
-                    afterSignInUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}
-                    afterSignUpUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}
+                    fallbackRedirectUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}
+                    signUpFallbackRedirectUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}
                   >
                     <button className={styles.beatsSignInBtn}>Sign in to buy Beats</button>
                   </SignInButton>

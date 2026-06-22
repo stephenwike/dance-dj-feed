@@ -30,10 +30,10 @@ export default function Home() {
 
           {isLoaded && (
             <div className={styles.actions}>
-              <SignUpButton afterSignUpUrl="/start">
+              <SignUpButton fallbackRedirectUrl="/start" signInFallbackRedirectUrl="/start">
                 <button className={styles.btnPrimary}>Get Started Free</button>
               </SignUpButton>
-              <SignInButton afterSignInUrl="/start">
+              <SignInButton fallbackRedirectUrl="/start" signUpFallbackRedirectUrl="/start">
                 <button className={styles.btnSecondary}>Sign In</button>
               </SignInButton>
             </div>

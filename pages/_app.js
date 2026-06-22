@@ -1,6 +1,7 @@
 import { Montserrat } from 'next/font/google';
 import { SWRConfig } from 'swr';
 import { ClerkProvider } from '@clerk/nextjs';
+import '../styles/globals.css';
 
 const montserrat = Montserrat({
   subsets: ['latin'],

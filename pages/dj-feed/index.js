@@ -143,6 +143,7 @@ export default function DJFeedPage() {
     <>
       <Head>
         <title>DJ Request Feed</title>
+        <style>{`body { background: #0e0e18; margin: 0; padding: 0; overflow: hidden; }`}</style>
       </Head>
 
       <div className={styles.page}>
