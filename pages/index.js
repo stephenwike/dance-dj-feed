@@ -35,12 +35,11 @@ export default function Home() {
               <button className={styles.btnPrimary} onClick={() => signIn('ldco', { callbackUrl: '/start' })}>
                 Sign In
               </button>
+              <button className={styles.btnSecondary} onClick={() => signIn('ldco', { callbackUrl: '/start' }, { prompt: 'login' })}>
+                Switch Account
+              </button>
             </div>
           )}
-
-          <p className={styles.deviceNote}>
-            Sharing a device? <button className={styles.switchLink} onClick={() => signIn('ldco', { callbackUrl: '/start', prompt: 'login' })}>Sign in as a different DJ</button>
-          </p>
         </div>
       </div>
     </>

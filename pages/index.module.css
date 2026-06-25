@@ -91,15 +91,3 @@
   line-height: 1.5;
   max-width: 320px;
 }
-
-.switchLink {
-  background: none;
-  border: none;
-  color: rgba(255,255,255,0.4);
-  text-decoration: underline;
-  font-size: inherit;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-}
-.switchLink:hover { color: rgba(255,255,255,0.7); }
