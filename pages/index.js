@@ -33,16 +33,13 @@ export default function Home() {
           {isLoaded && !isSignedIn && (
             <div className={styles.actions}>
               <button className={styles.btnPrimary} onClick={() => signIn('ldco', { callbackUrl: '/start' })}>
-                Get Started Free
-              </button>
-              <button className={styles.btnSecondary} onClick={() => signIn('ldco', { callbackUrl: '/start' })}>
                 Sign In
               </button>
             </div>
           )}
 
           <p className={styles.deviceNote}>
-            Already hosting tonight? Sign in to manage your session from any device.
+            Sharing a device? <button className={styles.switchLink} onClick={() => signIn('ldco', { callbackUrl: '/start', prompt: 'login' })}>Sign in as a different DJ</button>
           </p>
         </div>
       </div>
