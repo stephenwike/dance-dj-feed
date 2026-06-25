@@ -46,7 +46,8 @@ function Controller() {
     tippingEnabled, partnerDancesEnabled, decayEnabled, halfLifeMinutes, currentDecayLabel,
   } = useSessionManager();
 
-  const { data: rawRequests = [], mutate } = useSWR('/api/dj/requests', fetcher, {
+  const requestsUrl = activeSession?._id ? `/api/dj/requests?sessionId=${activeSession._id}` : '/api/dj/requests';
+  const { data: rawRequests = [], mutate } = useSWR(requestsUrl, fetcher, {
     refreshInterval: 5000, revalidateOnFocus: true, dedupingInterval: 2000,
   });
 

@@ -186,8 +186,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
 
   const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
 
+  const requestsUrl = sessionId ? `/api/dj/requests?sessionId=${sessionId}` : '/api/dj/requests';
   const { data: allRequests = [], mutate: mutateRequests } = useSWR(
-    '/api/dj/requests',
+    requestsUrl,
     fetcher,
     { refreshInterval: 10000, dedupingInterval: 2000, revalidateOnFocus: false }
   );
