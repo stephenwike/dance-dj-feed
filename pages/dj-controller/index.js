@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -24,14 +25,19 @@ import ControlStrip from '../../components/dj-controller/ControlStrip';
 import MessagePanel from '../../components/dj-controller/MessagePanel';
 import PendingDanceGroup from '../../components/dj-controller/PendingDanceGroup';
 import PendingRequesterGroup from '../../components/dj-controller/PendingRequesterGroup';
+import SessionWarningBanner from '../../components/dj-controller/SessionWarningBanner';
+import ExtendSessionModal from '../../components/dj-controller/ExtendSessionModal';
+import useSessionTimeState from '../../lib/client/dj/hooks/useSessionTimeState';
 
 const fetcher = url => fetch(url).then(r => r.json());
 
 // ── Main Controller ───────────────────────────────────────────────────────────
 function Controller() {
+  const router = useRouter();
   const [pendingTab, setPendingTab] = useState('dances');
   const [showSessions, setShowSessions] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
+  const [showExtendModal, setShowExtendModal] = useState(false);
 
   const {
     sessions, activeSession, isSpotify, mutateSessions,
@@ -55,6 +61,15 @@ function Controller() {
 
   // ── Spotify plugin ────────────────────────────────────────────────────────────
   const spotify = useSpotifyPlugin({ isActive: isSpotify, rawRequests, mutate });
+
+  const { timeState, countdown, isGrace } = useSessionTimeState(activeSession);
+
+  useEffect(() => {
+    if (router.query.extension_success) {
+      window.history.replaceState({}, '', '/dj-controller');
+      mutateSessions();
+    }
+  }, [router.query.extension_success]);
 
   const { data: stripeStatus } = useSWR('/api/dev/stripe-status', fetcher, {
     refreshInterval: 10000, shouldRetryOnError: false,
@@ -115,7 +130,21 @@ function Controller() {
         isSpotify={isSpotify}
         spotifyConnected={spotify.connected}
         onShowSessions={() => setShowSessions(true)}
+        timeState={timeState}
+        countdown={countdown}
       />
+      <SessionWarningBanner
+        timeState={timeState}
+        countdown={countdown}
+        onExtend={() => setShowExtendModal(true)}
+      />
+      {showExtendModal && activeSession && (
+        <ExtendSessionModal
+          sessionId={activeSession._id}
+          onClose={() => setShowExtendModal(false)}
+          onExtended={() => mutateSessions()}
+        />
+      )}
 
       <ControlStrip
         activeSession={activeSession}
@@ -152,7 +181,7 @@ function Controller() {
 
       <div className={styles.layout}>
         {/* ── Queue column ── */}
-        <section className={styles.column}>
+        <section className={`${styles.column} ${isGrace ? styles.frozen : ''}`}>
           <div className={styles.colHead}>
             <span className={styles.colLabel}>Queue</span>
             <span className={styles.colCount}>{queue.length}</span>
@@ -238,7 +267,7 @@ function Controller() {
         </section>
 
         {/* ── Pending column ── */}
-        <section className={styles.column}>
+        <section className={`${styles.column} ${isGrace ? styles.frozen : ''}`}>
           <div className={styles.colHead}>
             <div className={styles.segControl}>
               <button

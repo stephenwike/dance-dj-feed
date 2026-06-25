@@ -61,6 +61,32 @@ export default async function handler(req, res) {
       return res.status(200).json({ received: true });
     }
 
+    if (metadata.type === 'session_extension') {
+      const { sessionId, hours } = metadata;
+      if (!sessionId || !hours) {
+        console.error('Missing session_extension metadata on session', session.id);
+        return res.status(400).end();
+      }
+      const { ObjectId } = require('mongodb');
+      const djSession = await db.collection('dj_sessions').findOne({ _id: new ObjectId(sessionId) });
+      if (!djSession) {
+        console.error('Session not found for extension', sessionId);
+        return res.status(400).end();
+      }
+      const currentEndsAt = new Date(djSession.endsAt).getTime();
+      const newEndsAt = new Date(currentEndsAt + Number(hours) * 3600000);
+      const update = {
+        $set: { endsAt: newEndsAt },
+        $push: { extensions: { hours: Number(hours), at: new Date(), stripeSessionId: session.id } },
+      };
+      if (djSession.status === 'closed') {
+        update.$set.status = 'active';
+        update.$set.closedAt = null;
+      }
+      await db.collection('dj_sessions').updateOne({ _id: new ObjectId(sessionId) }, update);
+      return res.status(200).json({ received: true });
+    }
+
     if (metadata.type === 'dj_session') {
       const { ownerId, name, plugin, durationMinutes } = metadata;
       if (!ownerId || !durationMinutes) {

@@ -14,6 +14,80 @@
   font-family: monospace;
 }
 
+/* ── Session Time Warning Banners ── */
+.sessionWarning,
+.sessionUrgent,
+.sessionGrace {
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.sessionWarning { background: #7c4a00; color: #ffd580; }
+.sessionUrgent { background: #7c1a1a; color: #ffb3b3; }
+.sessionGrace { background: #7c1a1a; color: #ffb3b3; animation: gracePulse 2s ease-in-out infinite; }
+@keyframes gracePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.sessionWarningExtend {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: inherit;
+  border-radius: 4px;
+  padding: 2px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.sessionWarningExtend:hover { background: rgba(255,255,255,0.3); }
+.sessionWarningDismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.1rem;
+  opacity: 0.6;
+  padding: 0 4px;
+}
+.sessionWarningDismiss:hover { opacity: 1; }
+
+/* ── Frozen overlay for grace period ── */
+.frozen { opacity: 0.5; pointer-events: none; }
+
+/* ── Extend Session Modal ── */
+.extendOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 200;
+}
+.extendModal {
+  background: #1a1a2e; border-radius: 12px; padding: 24px 28px;
+  min-width: 300px; max-width: 380px; text-align: center;
+}
+.extendTitle { margin: 0 0 16px; font-size: 1.1rem; color: #fff; }
+.extendOptions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 16px; }
+.extendOption {
+  background: #2a2a3e; border: 1px solid #444; color: #ccc; border-radius: 6px;
+  padding: 6px 14px; cursor: pointer; font-size: 0.85rem;
+}
+.extendOption:hover { border-color: #8A5CFF; }
+.extendOptionActive { background: #8A5CFF; border-color: #8A5CFF; color: #fff; font-weight: 600; }
+.extendPrice { font-size: 1.3rem; font-weight: 700; color: #fff; margin: 0 0 16px; }
+.extendError { color: #ff6b6b; font-size: 0.8rem; margin: 0 0 12px; }
+.extendActions { display: flex; gap: 10px; justify-content: center; }
+.extendCancel {
+  background: #333; border: none; color: #aaa; border-radius: 6px;
+  padding: 8px 20px; cursor: pointer;
+}
+.extendConfirm {
+  background: #8A5CFF; border: none; color: #fff; border-radius: 6px;
+  padding: 8px 20px; cursor: pointer; font-weight: 600;
+}
+.extendConfirm:disabled { opacity: 0.5; }
+
 /* ── PIN Gate ── */
 .pinPage {
   min-height: 100vh;

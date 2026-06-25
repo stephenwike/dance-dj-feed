@@ -2,6 +2,8 @@
 import { ObjectId } from 'mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
+import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
+import { normalizeSession } from '../../../../lib/server/dj/reportLogic';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -15,15 +17,25 @@ export default async function handler(req, res) {
   let objId;
   try { objId = new ObjectId(id); } catch { return res.status(400).json({ error: 'Invalid id' }); }
 
-  // GET — return session + played tracks for the report
   if (req.method === 'GET') {
     const session = await col.findOne({ _id: objId });
     if (!session) return res.status(404).json({ error: 'Not found' });
+
+    const report = await client.db(DB_NAME).collection('session_reports')
+      .findOne({ sessionId: String(objId) });
+    if (report) {
+      return res.status(200).json({ ...session, _id: String(session._id), report });
+    }
+
     const played = await client.db(DB_NAME).collection('dj_requests')
       .find({ sessionId: String(objId), status: 'played' })
       .sort({ updatedAt: 1 })
       .toArray();
-    return res.status(200).json({ ...session, _id: String(session._id), played: played.map(r => ({ ...r, _id: String(r._id) })) });
+    const out = { ...session, _id: String(session._id), played: played.map(r => ({ ...r, _id: String(r._id) })) };
+    if (session.status === 'active') {
+      out.timeState = getSessionTimeState(session).state;
+    }
+    return res.status(200).json(out);
   }
 
   if (req.method === 'PATCH') {
@@ -46,6 +58,13 @@ export default async function handler(req, res) {
     if (weightDecayEnabled !== undefined) set.weightDecayEnabled = !!weightDecayEnabled;
     if (weightDecayHalfLifeMinutes !== undefined) set.weightDecayHalfLifeMinutes = Number(weightDecayHalfLifeMinutes) || 60;
     await col.updateOne({ _id: objId, ownerId: userId }, { $set: set });
+
+    if (status === 'closed') {
+      normalizeSession(client, String(objId)).catch(err =>
+        console.error('Report normalization failed:', err)
+      );
+    }
+
     return res.status(200).json({ ok: true });
   }
 

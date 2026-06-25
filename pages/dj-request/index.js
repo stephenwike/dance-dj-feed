@@ -303,7 +303,11 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...payload, clientId, requesterName: displayName, ...(sessionId ? { sessionId } : {}) }),
     });
-    if (!res.ok) throw new Error('Request failed');
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (body.timeState) throw new Error('The session has ended — requests are no longer being accepted.');
+      throw new Error('Request failed');
+    }
     return res.json();
   }
 

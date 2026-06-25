@@ -2,6 +2,8 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import { createSession } from '../../../lib/server/dj/sessionLogic';
+import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
+import { normalizeSession } from '../../../lib/server/dj/reportLogic';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -13,7 +15,30 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const sessions = await col.find({ ownerId: userId }).sort({ startedAt: -1 }).toArray();
-    return res.status(200).json(sessions.map(s => ({ ...s, _id: String(s._id) })));
+    const now = new Date();
+
+    for (const s of sessions) {
+      if (s.status === 'active' && getSessionTimeState(s, now).state === 'expired') {
+        await col.updateOne(
+          { _id: s._id },
+          { $set: { status: 'closed', closedAt: now, autoClosedAt: now } },
+        );
+        s.status = 'closed';
+        s.closedAt = now;
+        s.autoClosedAt = now;
+        normalizeSession(client, String(s._id)).catch(err =>
+          console.error('Auto-close report normalization failed:', err)
+        );
+      }
+    }
+
+    return res.status(200).json(sessions.map(s => {
+      const out = { ...s, _id: String(s._id) };
+      if (s.status === 'active') {
+        out.timeState = getSessionTimeState(s, now).state;
+      }
+      return out;
+    }));
   }
 
   if (req.method === 'POST') {

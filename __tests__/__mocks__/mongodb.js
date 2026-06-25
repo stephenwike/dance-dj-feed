@@ -47,9 +47,16 @@ const mockClient = {
   })),
 };
 
+class ObjectId {
+  constructor(id) { this._id = id ?? 'generated-id'; }
+  toString() { return String(this._id); }
+  static createFromHexString(hex) { return new ObjectId(hex); }
+}
+
 module.exports = {
   __esModule: true,
   default: Promise.resolve(mockClient),
+  ObjectId,
   __state: state,
   __resetState: () => {
     state.activeSession = { _id: 'session1', status: 'active' };

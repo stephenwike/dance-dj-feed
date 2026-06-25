@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { markSiblingsPlayed, buildSiblingDanceMatch } from '../../../../lib/server/dj/requestLogic';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
+import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
 
 export default async function handler(req, res) {
   const client = await clientPromise;
@@ -12,6 +13,20 @@ export default async function handler(req, res) {
   let objId;
   try { objId = new ObjectId(id); } catch {
     return res.status(400).json({ error: 'Invalid id' });
+  }
+
+  if (req.method === 'PATCH' || req.method === 'DELETE') {
+    const reqDoc = await col.findOne({ _id: objId }, { projection: { sessionId: 1 } });
+    if (reqDoc?.sessionId) {
+      const djSession = await client.db(DB_NAME).collection('dj_sessions')
+        .findOne({ _id: new ObjectId(reqDoc.sessionId) });
+      if (djSession) {
+        const { state } = getSessionTimeState(djSession);
+        if (state === 'grace' || state === 'expired') {
+          return res.status(403).json({ error: 'Session expired', timeState: state });
+        }
+      }
+    }
   }
 
   if (req.method === 'PATCH') {

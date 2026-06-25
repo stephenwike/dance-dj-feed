@@ -4,7 +4,7 @@ import { signOut } from 'next-auth/react';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import sp from '../../pages/dj-spotify/dj-spotify.module.css';
 
-export default function TopBar({ activeSession, closeSession, isSpotify, spotifyConnected, onShowSessions }) {
+export default function TopBar({ activeSession, closeSession, isSpotify, spotifyConnected, onShowSessions, timeState, countdown }) {
   const [showHamburger, setShowHamburger] = useState(false);
   const hamburgerRef = useRef(null);
 
@@ -35,7 +35,9 @@ export default function TopBar({ activeSession, closeSession, isSpotify, spotify
             <span className={styles.topBarSessionName}>{activeSession.name}</span>
             {activeSession.endsAt && (
               <span className={styles.topBarEndsAt}>
-                ends {new Date(activeSession.endsAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {timeState && timeState !== 'active'
+                  ? countdown
+                  : `ends ${new Date(activeSession.endsAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
               </span>
             )}
             <button className={styles.topBarEndBtn} onClick={closeSession}>End</button>

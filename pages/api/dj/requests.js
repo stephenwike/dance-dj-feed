@@ -1,7 +1,8 @@
-import clientPromise from '../../../lib/server/mongodb';
-import { listRequests, createRequest } from '../../../lib/server/dj/requestLogic';
+import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
+import { listRequests, createRequest, getActiveSession } from '../../../lib/server/dj/requestLogic';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
+import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
 
 export default async function handler(req, res) {
   const client = await clientPromise;
@@ -15,6 +16,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    const djSession = await getActiveSession(client);
+    if (djSession) {
+      const { state } = getSessionTimeState(djSession);
+      if (state === 'grace' || state === 'expired') {
+        return res.status(403).json({ error: 'Session expired', timeState: state });
+      }
+    }
     try {
       const doc = await createRequest(client, req.body);
       return res.status(201).json(doc);
