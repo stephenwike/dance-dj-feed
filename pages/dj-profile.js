@@ -137,29 +137,41 @@ export default function DJProfilePage() {
         </div>
 
         {/* ── Withdraw ── */}
-        {payoutsEnabled && balance >= 100 && (
+        {payoutsEnabled && (
           <div className={styles.card}>
             <h2 className={styles.sectionTitle}>Withdraw</h2>
-            <p className={styles.withdrawHint}>Min $1.00 · Max {formatCents(balance)}</p>
-            <div className={styles.withdrawRow}>
-              <span className={styles.withdrawDollar}>$</span>
-              <input
-                className={styles.withdrawInput}
-                type="number"
-                min="1"
-                step="0.01"
-                placeholder="0.00"
-                value={withdrawAmount}
-                onChange={e => { setWithdrawAmount(e.target.value); setWithdrawError(''); }}
-              />
-              <button
-                className={styles.withdrawBtn}
-                onClick={handleWithdraw}
-                disabled={withdrawing || !withdrawAmount}
-              >
-                {withdrawing ? 'Processing…' : 'Withdraw'}
-              </button>
-            </div>
+            {balance < 100 ? (
+              <p className={styles.withdrawHint}>Minimum withdrawal is $1.00. Your current balance is {formatCents(balance)}.</p>
+            ) : (
+              <>
+                <p className={styles.withdrawHint}>Min $1.00 · Max {formatCents(balance)}</p>
+                <div className={styles.withdrawRow}>
+                  <span className={styles.withdrawDollar}>$</span>
+                  <input
+                    className={styles.withdrawInput}
+                    type="number"
+                    min="1"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={withdrawAmount}
+                    onChange={e => { setWithdrawAmount(e.target.value); setWithdrawError(''); }}
+                  />
+                  <button
+                    className={styles.withdrawAllBtn}
+                    onClick={() => { setWithdrawAmount((balance / 100).toFixed(2)); setWithdrawError(''); }}
+                  >
+                    Max
+                  </button>
+                  <button
+                    className={styles.withdrawBtn}
+                    onClick={handleWithdraw}
+                    disabled={withdrawing || !withdrawAmount}
+                  >
+                    {withdrawing ? 'Processing…' : 'Withdraw'}
+                  </button>
+                </div>
+              </>
+            )}
             {withdrawError && <p className={styles.withdrawError}>{withdrawError}</p>}
             {withdrawSuccess && <p className={styles.withdrawSuccess}>Transfer initiated — funds arrive in 1–3 business days.</p>}
           </div>

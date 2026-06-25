@@ -153,6 +153,20 @@
 
 .withdrawInput:focus { border-color: #8A5CFF; }
 
+.withdrawAllBtn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.13s;
+}
+.withdrawAllBtn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
 .withdrawBtn {
   font-size: 0.88rem;
   font-weight: 700;

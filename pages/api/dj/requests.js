@@ -10,9 +10,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     res.setHeader('Cache-Control', 'no-store');
     const { sessionId } = req.query;
-    const authSession = await getServerSession(req, res, authOptions);
-    const userId = authSession?.user?.id ?? null;
-    return res.status(200).json(await listRequests(client, sessionId ?? null, userId));
+    return res.status(200).json(await listRequests(client, sessionId ?? null, null));
   }
 
   if (req.method === 'POST') {

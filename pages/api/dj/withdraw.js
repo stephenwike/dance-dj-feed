@@ -41,12 +41,19 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Insufficient balance' });
   }
 
-  // Transfer to DJ's connected account
-  const transfer = await stripe.transfers.create({
-    amount: amountCents,
-    currency: 'usd',
-    destination: profile.stripeAccountId,
-  });
+  let transfer;
+  try {
+    transfer = await stripe.transfers.create({
+      amount: amountCents,
+      currency: 'usd',
+      destination: profile.stripeAccountId,
+    });
+  } catch (err) {
+    if (err.code === 'balance_insufficient') {
+      return res.status(400).json({ error: 'Funds are still pending in Stripe. Payments typically take 2-3 business days to settle before they can be withdrawn.' });
+    }
+    return res.status(500).json({ error: err.message || 'Transfer failed' });
+  }
 
   // Record the debit
   await db.collection('dj_wallet_transactions').insertOne({
