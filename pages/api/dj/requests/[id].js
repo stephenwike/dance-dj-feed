@@ -1,7 +1,8 @@
 ﻿import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { ObjectId } from 'mongodb';
 import { markSiblingsPlayed, buildSiblingDanceMatch } from '../../../../lib/server/dj/requestLogic';
-import { getAuth } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/server/authOptions';
 
 export default async function handler(req, res) {
   const client = await clientPromise;
@@ -43,7 +44,8 @@ export default async function handler(req, res) {
     if ('advancedBy' in body) set.advancedBy = advancedBy ?? null;
     if ('tipCents' in body) set.tipCents = Number.isFinite(tipCents) && tipCents > 0 ? Math.round(tipCents) : 0;
 
-    const { userId } = getAuth(req);
+    const authSession = await getServerSession(req, res, authOptions);
+    const userId = authSession?.user?.id ?? null;
     const filter = userId ? { _id: objId, ownerId: userId } : { _id: objId };
     await col.updateOne(filter, { $set: set });
 
@@ -55,8 +57,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    const { userId } = getAuth(req);
-    const filter = userId ? { _id: objId, ownerId: userId } : { _id: objId };
+    const delSession = await getServerSession(req, res, authOptions);
+    const delUserId = delSession?.user?.id ?? null;
+    const filter = delUserId ? { _id: objId, ownerId: delUserId } : { _id: objId };
     await col.deleteOne(filter);
     return res.status(200).json({ ok: true });
   }

@@ -1,6 +1,6 @@
 import { Montserrat } from 'next/font/google';
 import { SWRConfig } from 'swr';
-import { ClerkProvider } from '@clerk/nextjs';
+import { SessionProvider } from 'next-auth/react';
 import '../styles/globals.css';
 
 const montserrat = Montserrat({
@@ -16,14 +16,14 @@ const fetcher = async (url) => {
   return res.json();
 };
 
-export default function App({ Component, pageProps }) {
+export default function App({ Component, pageProps: { session, ...pageProps } }) {
   return (
-    <ClerkProvider {...pageProps}>
+    <SessionProvider session={session}>
       <SWRConfig value={{ fetcher, revalidateOnFocus: false, dedupingInterval: 60_000 }}>
         <div className={montserrat.variable}>
           <Component {...pageProps} />
         </div>
       </SWRConfig>
-    </ClerkProvider>
+    </SessionProvider>
   );
 }

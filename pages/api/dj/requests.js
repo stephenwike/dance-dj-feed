@@ -1,6 +1,7 @@
 import clientPromise from '../../../lib/server/mongodb';
 import { listRequests, createRequest } from '../../../lib/server/dj/requestLogic';
-import { getAuth } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../lib/server/authOptions';
 
 export default async function handler(req, res) {
   const client = await clientPromise;
@@ -8,8 +9,9 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     res.setHeader('Cache-Control', 'no-store');
     const { sessionId } = req.query;
-    const { userId } = getAuth(req);
-    return res.status(200).json(await listRequests(client, sessionId ?? null, userId ?? null));
+    const authSession = await getServerSession(req, res, authOptions);
+    const userId = authSession?.user?.id ?? null;
+    return res.status(200).json(await listRequests(client, sessionId ?? null, userId));
   }
 
   if (req.method === 'POST') {

@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useUser, SignInButton, SignUpButton } from '@clerk/nextjs';
+import { useSession, signIn } from 'next-auth/react';
 import styles from './index.module.css';
 
 export default function Home() {
   const router = useRouter();
-  const { isSignedIn, isLoaded } = useUser();
+  const { data: session, status } = useSession();
+  const isLoaded = status !== 'loading';
+  const isSignedIn = !!session;
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -28,14 +30,14 @@ export default function Home() {
             Request queue &middot; Beat tipping &middot; Spotify integration
           </p>
 
-          {isLoaded && (
+          {isLoaded && !isSignedIn && (
             <div className={styles.actions}>
-              <SignUpButton fallbackRedirectUrl="/start" signInFallbackRedirectUrl="/start">
-                <button className={styles.btnPrimary}>Get Started Free</button>
-              </SignUpButton>
-              <SignInButton fallbackRedirectUrl="/start" signUpFallbackRedirectUrl="/start">
-                <button className={styles.btnSecondary}>Sign In</button>
-              </SignInButton>
+              <button className={styles.btnPrimary} onClick={() => signIn('ldco', { callbackUrl: '/start' })}>
+                Get Started Free
+              </button>
+              <button className={styles.btnSecondary} onClick={() => signIn('ldco', { callbackUrl: '/start' })}>
+                Sign In
+              </button>
             </div>
           )}
 

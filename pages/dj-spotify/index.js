@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { UserButton } from '@clerk/nextjs';
+import { signOut } from 'next-auth/react';
 import {
   DndContext, PointerSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
@@ -500,7 +500,9 @@ function Controller({ spotifyConnected }) {
               : <a href="/api/spotify/auth" className={sp.spotifyChipOff}>Connect Spotify</a>}
             <Link href="/dj-controller" className={styles.topBarNavLink}>Standard</Link>
           </div>
-          <div className={styles.sessionBarUser}><UserButton /></div>
+          <div className={styles.sessionBarUser}>
+            <button className={styles.topBarNavBtn} onClick={() => signOut({ callbackUrl: '/' })}>Sign out</button>
+          </div>
         </div>
       </header>
 

@@ -1,5 +1,6 @@
 ﻿import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
-import { getAuth } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../lib/server/authOptions';
 
 async function getActiveSession(client, sessionId, ownerId) {
   const col = client.db(DB_NAME).collection('dj_sessions');
@@ -35,7 +36,8 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { userId } = getAuth(req);
+    const authSession = await getServerSession(req, res, authOptions);
+    const userId = authSession?.user?.id ?? null;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const { text, duration } = req.body ?? {};

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import useSWR from 'swr';
 import { Pencil, Check } from 'lucide-react';
-import { useUser, SignInButton, SignOutButton } from '@clerk/nextjs';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import styles from './dj-request.module.css';
 import { filterAvailableDances } from '../../lib/client/dj/availableDances';
 import { BEAT_PACKAGES } from '../../lib/beats/packages';
@@ -37,10 +37,11 @@ function formatPlayTime(date) {
 }
 
 export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, tippingEnabled: tippingEnabledProp = null }) {
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { data: authSession, status: authStatus } = useSession();
+  const isLoaded = authStatus !== 'loading';
+  const isSignedIn = !!authSession;
+  const user = authSession?.user;
 
-  // When signed in, use Clerk userId as the stable identity across devices.
-  // Fall back to the localStorage fingerprint for anonymous attendees.
   const [localClientId, setLocalClientId] = useState('');
   const clientId = isLoaded && isSignedIn ? user.id : localClientId;
 
@@ -90,11 +91,10 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     setDisplayName(saved || id);
   }, []);
 
-  // Once Clerk loads and the user is signed in, switch to their Clerk display name.
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) return;
-    const name = user.firstName
-      || user.primaryEmailAddress?.emailAddress?.split('@')[0]
+    const name = user.name
+      || user.email?.split('@')[0]
       || 'Dancer';
     setDisplayName(name);
   }, [isLoaded, isSignedIn, user?.id]);
@@ -640,11 +640,11 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                   <div className={styles.accountBarSignedIn}>
                     <div className={styles.accountIdentity}>
                       <span className={styles.accountEmail}>
-                        {user.primaryEmailAddress?.emailAddress}
+                        {user.email}
                       </span>
-                      <SignOutButton redirectUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}>
-                        <button className={styles.signOutBtn}>Sign out</button>
-                      </SignOutButton>
+                      <button className={styles.signOutBtn} onClick={() => signOut({ callbackUrl: window.location.href })}>
+                        Sign out
+                      </button>
                     </div>
                     {tippingEnabled && (
                       <div className={styles.accountBarActions}>
@@ -684,13 +684,12 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                 <div className={styles.beatsSignInPrompt}>
                   <p className={styles.beatsSignInHeading}>Tip with Beats to boost your request</p>
                   <p className={styles.beatsSignInSub}>Sign in to buy Beats and increase the chances your dance gets played.</p>
-                  <SignInButton
-                    mode="modal"
-                    fallbackRedirectUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}
-                    signUpFallbackRedirectUrl={typeof window !== 'undefined' ? window.location.href : '/dj-request'}
+                  <button
+                    className={styles.beatsSignInBtn}
+                    onClick={() => signIn('ldco', { callbackUrl: window.location.href })}
                   >
-                    <button className={styles.beatsSignInBtn}>Sign in to buy Beats</button>
-                  </SignInButton>
+                    Sign in to buy Beats
+                  </button>
                 </div>
               ) : null}
             </div>

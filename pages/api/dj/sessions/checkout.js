@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
-import { getAuth, clerkClient } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/server/authOptions';
 import clientPromise from '../../../../lib/server/mongodb';
 import { createSession } from '../../../../lib/server/dj/sessionLogic';
 import { isFreeSessionEmail } from '../../../../lib/server/dj/sessionAccess';
@@ -11,7 +12,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { userId } = getAuth(req);
+  const authSession = await getServerSession(req, res, authOptions);
+  const userId = authSession?.user?.id ?? null;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const { name, plugin, durationMinutes, returnUrl } = req.body ?? {};
@@ -26,10 +28,7 @@ export default async function handler(req, res) {
 
   let skipPayment = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'true';
   if (!skipPayment) {
-    const user = await clerkClient().users.getUser(userId);
-    const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
-      || user.emailAddresses[0]?.emailAddress;
-    skipPayment = isFreeSessionEmail(email);
+    skipPayment = isFreeSessionEmail(authSession.user.email);
   }
 
   if (skipPayment) {

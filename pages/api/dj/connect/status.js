@@ -1,13 +1,15 @@
 ﻿import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
-import { getAuth } from '@clerk/nextjs/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../../lib/server/authOptions';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { userId } = getAuth(req);
+  const session = await getServerSession(req, res, authOptions);
+  const userId = session?.user?.id ?? null;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const client = await clientPromise;

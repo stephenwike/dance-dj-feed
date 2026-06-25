@@ -1,24 +1,42 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { getToken } from 'next-auth/jwt';
+import { NextResponse } from 'next/server';
 
-const isPublic = createRouteMatcher([
+const publicPaths = [
   '/',
   '/dj-feed',
   '/dj-request',
-  '/feed/(.*)',
-  '/request/(.*)',
-  '/api/dj/dances',
-  '/api/dj/messages',       // GET — feed polling, public
-  '/api/dj/requests',       // GET (feed) + POST (attendee submissions)
-  '/api/dj/requests/(.*)',  // PATCH from feed auto-advance (unauthenticated TV display)
-  '/api/beats/webhook',     // Stripe — no user auth, verified by signature
-  '/api/tips/direct',       // anyone can tip the DJ, no account required
-]);
+];
 
-export default clerkMiddleware((auth, request) => {
-  if (!isPublic(request)) {
-    auth().protect();
+const publicPatterns = [
+  /^\/feed\/.+/,
+  /^\/request\/.+/,
+  /^\/api\/auth(\/|$)/,
+  /^\/api\/dj\/dances$/,
+  /^\/api\/dj\/messages/,
+  /^\/api\/dj\/requests/,
+  /^\/api\/beats\/webhook$/,
+  /^\/api\/tips\/direct$/,
+];
+
+function isPublic(pathname) {
+  if (publicPaths.includes(pathname)) return true;
+  return publicPatterns.some(p => p.test(pathname));
+}
+
+export async function middleware(req) {
+  const { pathname } = req.nextUrl;
+
+  if (isPublic(pathname)) return NextResponse.next();
+
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token) {
+    const signInUrl = new URL('/api/auth/signin', req.url);
+    signInUrl.searchParams.set('callbackUrl', req.url);
+    return NextResponse.redirect(signInUrl);
   }
-});
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
+import { signOut } from 'next-auth/react';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import sp from '../../pages/dj-spotify/dj-spotify.module.css';
 
@@ -97,7 +97,9 @@ export default function TopBar({ activeSession, closeSession, isSpotify, spotify
             </div>
           )}
         </div>
-        <div className={styles.sessionBarUser}><UserButton /></div>
+        <div className={styles.sessionBarUser}>
+          <button className={styles.topBarNavBtn} onClick={() => signOut({ callbackUrl: '/' })}>Sign out</button>
+        </div>
       </div>
     </header>
   );
