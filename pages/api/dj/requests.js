@@ -16,12 +16,19 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const djSession = await getActiveSession(client);
-    if (djSession) {
-      const { state } = getSessionTimeState(djSession);
-      if (state === 'grace' || state === 'expired') {
-        return res.status(403).json({ error: 'Session expired', timeState: state });
-      }
+    const targetSessionId = req.body?.sessionId;
+    if (targetSessionId) {
+      try {
+        const { ObjectId } = require('mongodb');
+        const djSession = await client.db(DB_NAME).collection('dj_sessions')
+          .findOne({ _id: new ObjectId(targetSessionId) });
+        if (djSession) {
+          const { state } = getSessionTimeState(djSession);
+          if (state === 'grace' || state === 'expired') {
+            return res.status(403).json({ error: 'Session expired', timeState: state });
+          }
+        }
+      } catch { /* invalid ObjectId, let createRequest handle it */ }
     }
     try {
       const doc = await createRequest(client, req.body);
