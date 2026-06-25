@@ -78,6 +78,21 @@
   letter-spacing: -0.03em;
 }
 
+.balanceBreakdown {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.balanceDetail {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.5);
+}
+.balancePending {
+  font-size: 0.78rem;
+  color: #f59e0b;
+}
+
 /* ── Section headers ── */
 .sectionTitle {
   margin: 0 0 12px;

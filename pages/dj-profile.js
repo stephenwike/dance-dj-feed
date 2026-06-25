@@ -42,6 +42,9 @@ export default function DJProfilePage() {
   const { data: connectStatus, mutate: mutateConnect } = useSWR('/api/dj/connect/status', fetcher, { refreshInterval: 60000 });
 
   const balance = wallet?.balance ?? 0;
+  const stripeAvailable = wallet?.stripeAvailable ?? 0;
+  const stripePending = wallet?.stripePending ?? 0;
+  const withdrawable = Math.min(balance, stripeAvailable);
   const transactions = wallet?.transactions ?? [];
   const payoutsEnabled = connectStatus?.payoutsEnabled ?? false;
   const detailsSubmitted = connectStatus?.detailsSubmitted ?? false;
@@ -105,8 +108,16 @@ export default function DJProfilePage() {
 
         {/* ── Balance ── */}
         <div className={styles.card}>
-          <p className={styles.balanceLabel}>Available balance</p>
+          <p className={styles.balanceLabel}>Total earnings</p>
           <p className={styles.balanceAmount}>{formatCents(balance)}</p>
+          {payoutsEnabled && (stripeAvailable > 0 || stripePending > 0) && (
+            <div className={styles.balanceBreakdown}>
+              <span className={styles.balanceDetail}>Available to withdraw: {formatCents(withdrawable)}</span>
+              {stripePending > 0 && (
+                <span className={styles.balancePending}>Pending settlement: {formatCents(stripePending)}</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Connect notice ── */}
@@ -140,11 +151,15 @@ export default function DJProfilePage() {
         {payoutsEnabled && (
           <div className={styles.card}>
             <h2 className={styles.sectionTitle}>Withdraw</h2>
-            {balance < 100 ? (
-              <p className={styles.withdrawHint}>Minimum withdrawal is $1.00. Your current balance is {formatCents(balance)}.</p>
+            {withdrawable < 100 ? (
+              <p className={styles.withdrawHint}>
+                {balance >= 100 && stripePending > 0
+                  ? `You have ${formatCents(balance)} in earnings, but funds are still settling with Stripe. Payments typically take 2–3 business days to become available.`
+                  : `Minimum withdrawal is $1.00. Your current available balance is ${formatCents(withdrawable)}.`}
+              </p>
             ) : (
               <>
-                <p className={styles.withdrawHint}>Min $1.00 · Max {formatCents(balance)}</p>
+                <p className={styles.withdrawHint}>Min $1.00 · Max {formatCents(withdrawable)}</p>
                 <div className={styles.withdrawRow}>
                   <span className={styles.withdrawDollar}>$</span>
                   <input
@@ -158,7 +173,7 @@ export default function DJProfilePage() {
                   />
                   <button
                     className={styles.withdrawAllBtn}
-                    onClick={() => { setWithdrawAmount((balance / 100).toFixed(2)); setWithdrawError(''); }}
+                    onClick={() => { setWithdrawAmount((withdrawable / 100).toFixed(2)); setWithdrawError(''); }}
                   >
                     Max
                   </button>
