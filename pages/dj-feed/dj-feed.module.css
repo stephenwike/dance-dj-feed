@@ -480,3 +480,52 @@
   opacity: 0.75;
   font-style: italic;
 }
+
+/* ── Payment link QR codes ── */
+.paymentSection {
+  width: 100%;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.paymentTitle {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.28);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.paymentLinks {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.paymentLink {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.paymentQrWrap {
+  background: #fff;
+  padding: 8px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.1);
+}
+
+.paymentLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+  letter-spacing: 0.04em;
+}

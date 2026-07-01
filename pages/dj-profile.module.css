@@ -211,6 +211,78 @@
   font-weight: 600;
 }
 
+/* ── Payment Links management ── */
+.linkList {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+}
+
+.linkLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #a78bfa;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.linkUrl {
+  flex: 1;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkRemove {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.35);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.13s, background 0.13s;
+  flex-shrink: 0;
+}
+.linkRemove:hover:not(:disabled) { color: #f87171; background: rgba(248,113,113,0.1); }
+
+.linkForm {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.linkInput {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 0.85rem;
+  color: #fff;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.13s;
+  width: 120px;
+}
+.linkInputUrl { flex: 1; min-width: 180px; }
+.linkInput:focus { border-color: #8A5CFF; }
+.linkInput::placeholder { color: rgba(255,255,255,0.25); }
+
 /* ── Transactions ── */
 .txList {
   list-style: none;

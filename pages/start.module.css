@@ -24,9 +24,31 @@
 .cardHeader {
   width: 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 4px;
 }
+
+.profileLink {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.35);
+  text-decoration: none;
+  transition: color 0.13s;
+}
+.profileLink:hover { color: #a78bfa; }
+
+.signOutBtn {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.35);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.13s;
+}
+.signOutBtn:hover { color: rgba(255,255,255,0.7); }
 
 .logo {
   font-size: 2.8rem;

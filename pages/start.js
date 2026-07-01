@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useSession, signOut } from 'next-auth/react';
 import styles from './start.module.css';
@@ -110,6 +111,7 @@ export default function StartPage() {
       <div className={styles.page}>
         <div className={styles.card}>
           <div className={styles.cardHeader}>
+            <Link href="/dj-profile" className={styles.profileLink}>Wallet &amp; Payouts</Link>
             <button className={styles.signOutBtn} onClick={() => signOut({ callbackUrl: '/' })}>Sign out</button>
           </div>
           <div className={styles.logo}>🎛️</div>

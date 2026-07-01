@@ -43,6 +43,9 @@ export default function DJFeedPage() {
     setRequestUrl(`${window.location.origin}/dj-request`);
   }, []);
 
+  const { data: profileData } = useSWR('/api/dj/profile', fetcher);
+  const paymentLinks = profileData?.paymentLinks ?? [];
+
   const { data: requests = [], mutate } = useSWR(requestsUrl, fetcher, {
     refreshInterval: 5000,
     revalidateOnFocus: true,
@@ -172,6 +175,22 @@ export default function DJFeedPage() {
             <li><span className={styles.stepNum}>2</span><span>Search for a dance you&apos;d like to see</span></li>
             <li><span className={styles.stepNum}>3</span><span>Submit your request!</span></li>
           </ol>
+
+          {paymentLinks.length > 0 && (
+            <div className={styles.paymentSection}>
+              <p className={styles.paymentTitle}>Tip the DJ</p>
+              <div className={styles.paymentLinks}>
+                {paymentLinks.map((link, idx) => (
+                  <div key={idx} className={styles.paymentLink}>
+                    <div className={styles.paymentQrWrap}>
+                      <QRCodeSVG value={link.url} size={90} bgColor="#ffffff" fgColor="#1a1033" level="M" />
+                    </div>
+                    <span className={styles.paymentLabel}>{link.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Right: Queue ── */}

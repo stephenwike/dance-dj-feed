@@ -37,9 +37,14 @@ export default function DJProfilePage() {
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
   const [onboarding, setOnboarding] = useState(false);
   const [connectNotice, setConnectNotice] = useState('');
+  const [linkLabel, setLinkLabel] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkError, setLinkError] = useState('');
+  const [savingLinks, setSavingLinks] = useState(false);
 
   const { data: wallet, mutate: mutateWallet } = useSWR('/api/dj/wallet', fetcher, { refreshInterval: 30000 });
   const { data: connectStatus, mutate: mutateConnect } = useSWR('/api/dj/connect/status', fetcher, { refreshInterval: 60000 });
+  const { data: profileData, mutate: mutateProfile } = useSWR('/api/dj/profile', fetcher);
 
   const balance = wallet?.balance ?? 0;
   const stripeAvailable = wallet?.stripeAvailable ?? 0;
@@ -48,6 +53,7 @@ export default function DJProfilePage() {
   const transactions = wallet?.transactions ?? [];
   const payoutsEnabled = connectStatus?.payoutsEnabled ?? false;
   const detailsSubmitted = connectStatus?.detailsSubmitted ?? false;
+  const paymentLinks = profileData?.paymentLinks ?? [];
 
   // Handle returns from Stripe Connect onboarding
   useEffect(() => {
@@ -72,6 +78,31 @@ export default function DJProfilePage() {
     } finally {
       setOnboarding(false);
     }
+  }
+
+  async function addPaymentLink() {
+    setLinkError('');
+    if (!linkLabel.trim()) { setLinkError('Label is required'); return; }
+    if (!linkUrl.trim()) { setLinkError('URL is required'); return; }
+    try { new URL(linkUrl.trim()); } catch { setLinkError('Enter a valid URL (include https://)'); return; }
+    setSavingLinks(true);
+    try {
+      const next = [...paymentLinks, { label: linkLabel.trim(), url: linkUrl.trim() }];
+      const res = await fetch('/api/dj/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentLinks: next }) });
+      const body = await res.json();
+      if (!res.ok) { setLinkError(body.error || 'Failed to save'); return; }
+      mutateProfile();
+      setLinkLabel(''); setLinkUrl('');
+    } finally { setSavingLinks(false); }
+  }
+
+  async function removePaymentLink(idx) {
+    setSavingLinks(true);
+    try {
+      const next = paymentLinks.filter((_, i) => i !== idx);
+      await fetch('/api/dj/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentLinks: next }) });
+      mutateProfile();
+    } finally { setSavingLinks(false); }
   }
 
   async function handleWithdraw() {
@@ -145,6 +176,47 @@ export default function DJProfilePage() {
               </button>
             </>
           )}
+        </div>
+
+        {/* ── Payment Links ── */}
+        <div className={styles.card}>
+          <h2 className={styles.sectionTitle}>Payment links</h2>
+          <p className={styles.setupMsg}>Add up to 3 links (Venmo, PayPal, CashApp, etc.) — attendees can scan them as QR codes on the feed screen to tip you directly.</p>
+
+          {paymentLinks.length > 0 && (
+            <ul className={styles.linkList}>
+              {paymentLinks.map((link, idx) => (
+                <li key={idx} className={styles.linkRow}>
+                  <span className={styles.linkLabel}>{link.label}</span>
+                  <span className={styles.linkUrl}>{link.url}</span>
+                  <button className={styles.linkRemove} onClick={() => removePaymentLink(idx)} disabled={savingLinks}>✕</button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {paymentLinks.length < 3 && (
+            <div className={styles.linkForm}>
+              <input
+                className={styles.linkInput}
+                placeholder="Label (e.g. Venmo)"
+                value={linkLabel}
+                onChange={e => { setLinkLabel(e.target.value); setLinkError(''); }}
+                disabled={savingLinks}
+              />
+              <input
+                className={`${styles.linkInput} ${styles.linkInputUrl}`}
+                placeholder="https://venmo.com/u/your-username"
+                value={linkUrl}
+                onChange={e => { setLinkUrl(e.target.value); setLinkError(''); }}
+                disabled={savingLinks}
+              />
+              <button className={styles.btn} onClick={addPaymentLink} disabled={savingLinks || !linkLabel || !linkUrl}>
+                {savingLinks ? 'Saving…' : 'Add'}
+              </button>
+            </div>
+          )}
+          {linkError && <p className={styles.withdrawError}>{linkError}</p>}
         </div>
 
         {/* ── Withdraw ── */}

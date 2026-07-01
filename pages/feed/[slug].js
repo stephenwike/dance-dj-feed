@@ -33,7 +33,7 @@ function formatTime(ms_offset) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
-export default function FeedSlugPage({ sessionId, slug }) {
+export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
   const requestsUrl = `/api/dj/requests?sessionId=${sessionId}`;
 
   const [requestUrl, setRequestUrl] = useState('');
@@ -155,6 +155,22 @@ export default function FeedSlugPage({ sessionId, slug }) {
             <li><span className={styles.stepNum}>2</span><span>Search for a dance you&apos;d like to see</span></li>
             <li><span className={styles.stepNum}>3</span><span>Submit your request!</span></li>
           </ol>
+
+          {paymentLinks.length > 0 && (
+            <div className={styles.paymentSection}>
+              <p className={styles.paymentTitle}>Tip the DJ</p>
+              <div className={styles.paymentLinks}>
+                {paymentLinks.map((link, idx) => (
+                  <div key={idx} className={styles.paymentLink}>
+                    <div className={styles.paymentQrWrap}>
+                      <QRCodeSVG value={link.url} size={90} bgColor="#ffffff" fgColor="#1a1033" level="M" />
+                    </div>
+                    <span className={styles.paymentLabel}>{link.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className={styles.right}>
@@ -290,8 +306,22 @@ export async function getServerSideProps({ params }) {
   const client = await clientPromise;
   const session = await client.db(DB_NAME).collection('dj_sessions').findOne(
     { slug, status: 'active' },
-    { projection: { _id: 1, slug: 1 } }
+    { projection: { _id: 1, slug: 1, ownerId: 1 } }
   );
   if (!session) return { notFound: true };
-  return { props: { sessionId: String(session._id), slug: session.slug } };
+
+  const profile = session.ownerId
+    ? await client.db(DB_NAME).collection('dj_profiles').findOne(
+        { ownerId: session.ownerId },
+        { projection: { paymentLinks: 1 } }
+      )
+    : null;
+
+  return {
+    props: {
+      sessionId: String(session._id),
+      slug: session.slug,
+      paymentLinks: profile?.paymentLinks ?? [],
+    },
+  };
 }
