@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import { SESSION_DURATIONS } from '../lib/dj/sessionPricing';
 import styles from './index.module.css';
@@ -21,7 +21,22 @@ const DEMO_STEPS = [
 ];
 const STEP_MS = 4200;
 
-// ── Mockup: Feed Screen ───────────────────────────────────────────────────────
+const DIFF_COLORS = {
+  Beginner:     '#22c55e',
+  Intermediate: '#f59e0b',
+  Advanced:     '#ef4444',
+};
+
+const DANCE_LIST = [
+  { id: 1, name: 'Electric Slide',       diff: 'Beginner' },
+  { id: 2, name: 'Tush Push',            diff: 'Intermediate' },
+  { id: 3, name: 'Copperhead Road',      diff: 'Advanced' },
+  { id: 4, name: 'Watermelon Crawl',     diff: 'Beginner' },
+  { id: 5, name: "Boot Scootin' Boogie", diff: 'Beginner' },
+  { id: 6, name: 'Cowboy Cha Cha',       diff: 'Intermediate' },
+];
+
+// ── Mockup: Feed Screen (used in "How it works" animated demo) ────────────────
 function FeedMockup() {
   return (
     <div className={styles.feedMock}>
@@ -65,7 +80,7 @@ function FeedMockup() {
   );
 }
 
-// ── Mockup: Phone Request ─────────────────────────────────────────────────────
+// ── Mockup: Phone Request (used in "How it works" animated demo) ──────────────
 function PhoneMockup() {
   return (
     <div className={styles.phoneMock}>
@@ -84,7 +99,7 @@ function PhoneMockup() {
   );
 }
 
-// ── Mockup: DJ Controller ─────────────────────────────────────────────────────
+// ── Mockup: DJ Controller (used in "How it works" animated demo) ──────────────
 function ControllerMockup() {
   return (
     <div className={styles.ctrlMock}>
@@ -109,88 +124,185 @@ function ControllerMockup() {
   );
 }
 
-// ── Mockup: Controller detail ─────────────────────────────────────────────────
-function CtrlDetailMockup() {
+// ── Interactive: DJ Controller ────────────────────────────────────────────────
+function ControllerMock({ pending, queue, playing, onApprove, onMarkPlayed, onRemove }) {
   return (
-    <div className={styles.ctrlDetail}>
-      <div className={styles.ctrlDetailSidebar}>
-        <div className={`${styles.ctrlDetailSideBtn} ${styles.ctrlDetailSideBtnActive}`}>📥</div>
-        <div className={styles.ctrlDetailSideBtn}>📋</div>
-        <div className={styles.ctrlDetailSideBtn}>💬</div>
-        <div className={styles.ctrlDetailSideBtn}>⚙️</div>
+    <div className={styles.ctrlFull}>
+      <div className={styles.ctrlFullBar}>
+        <span className={styles.ctrlFullTitle}>🎛️ DJ Controller</span>
+        <span className={styles.ctrlFullSession}>Dance Night Demo</span>
+        <span className={styles.ctrlFullLive}>
+          <span className={styles.ctrlFullDot} />
+          LIVE
+        </span>
       </div>
-      <div className={styles.ctrlDetailCol}>
-        <div className={styles.ctrlDetailColHead}>By Dance</div>
-        <div className={styles.ctrlDetailPending}>
-          <div>
-            <div className={styles.ctrlDetailPendingName}>Electric Slide</div>
-            <div className={styles.ctrlDetailPendingMeta}>6 requests · top scored</div>
+
+      <div className={styles.ctrlFullBody}>
+        <div className={styles.ctrlFullSidebar}>
+          <button className={`${styles.ctrlFullSideBtn} ${styles.ctrlFullSideBtnActive}`}>📥</button>
+          <button className={styles.ctrlFullSideBtn}>📋</button>
+          <button className={styles.ctrlFullSideBtn}>💬</button>
+          <button className={styles.ctrlFullSideBtn}>⚙️</button>
+          <button className={styles.ctrlFullSideBtn}>💳</button>
+        </div>
+
+        {/* Left panel: pending requests */}
+        <div className={styles.ctrlFullPanel}>
+          <div className={styles.ctrlFullPanelHead}>
+            <div className={styles.ctrlFullSegControl}>
+              <button className={`${styles.ctrlFullSeg} ${styles.ctrlFullSegActive}`}>By Dance</button>
+              <button className={styles.ctrlFullSeg}>By Requester</button>
+            </div>
+            {pending.length > 0 && (
+              <span className={styles.ctrlFullBadge}>{pending.length}</span>
+            )}
           </div>
-          <button className={styles.ctrlDetailApprove}>✓ Approve</button>
-        </div>
-        <div className={`${styles.ctrlDetailPending} ${styles.ctrlDetailPendingDim}`}>
-          <div>
-            <div className={styles.ctrlDetailPendingName}>Tush Push</div>
-            <div className={styles.ctrlDetailPendingMeta}>3 requests</div>
+          <div className={styles.ctrlFullPanelBody}>
+            {pending.length === 0 ? (
+              <div className={styles.ctrlFullEmpty}>
+                <span className={styles.ctrlFullEmptyIcon}>📥</span>
+                <span className={styles.ctrlFullEmptyTitle}>No pending requests yet</span>
+                <span className={styles.ctrlFullEmptyHint}>Use the request app below to send some</span>
+              </div>
+            ) : pending.map(item => (
+              <div key={item.id} className={styles.ctrlFullPendingCard}>
+                <div className={styles.ctrlFullPendingLeft}>
+                  <div className={styles.ctrlFullPendingName}>{item.name}</div>
+                  <div className={styles.ctrlFullPendingMeta}>
+                    {item.count} {item.count === 1 ? 'request' : 'requests'}
+                    {' · '}
+                    <span style={{ color: DIFF_COLORS[item.diff] }}>{item.diff}</span>
+                  </div>
+                </div>
+                <button className={styles.ctrlFullApproveBtn} onClick={() => onApprove(item)}>
+                  ✓ Approve
+                </button>
+              </div>
+            ))}
           </div>
-          <button className={styles.ctrlDetailApprove}>✓ Approve</button>
         </div>
-        <div className={`${styles.ctrlDetailPending} ${styles.ctrlDetailPendingDim}`} style={{opacity:0.35}}>
-          <div>
-            <div className={styles.ctrlDetailPendingName}>Boot Scootin&apos; Boogie</div>
-            <div className={styles.ctrlDetailPendingMeta}>2 requests</div>
+
+        {/* Right panel: queue */}
+        <div className={styles.ctrlFullPanel}>
+          <div className={styles.ctrlFullPanelHead}>
+            <span className={styles.ctrlFullPanelTitle}>Queue</span>
+            {(queue.length + (playing ? 1 : 0)) > 0 && (
+              <span className={styles.ctrlFullBadge}>{queue.length + (playing ? 1 : 0)}</span>
+            )}
           </div>
-          <button className={styles.ctrlDetailApprove}>✓ Approve</button>
-        </div>
-      </div>
-      <div className={styles.ctrlDetailCol}>
-        <div className={styles.ctrlDetailColHead}>Queue</div>
-        <div className={styles.ctrlDetailQueuePlaying}>
-          <span className={styles.ctrlDetailQueueDot} />
-          <span>Electric Slide</span>
-          <span className={styles.ctrlDetailNowBadge}>NOW</span>
-        </div>
-        <div className={styles.ctrlDetailQueueItem}>
-          <span className={styles.ctrlDetailQueuePos}>1</span>
-          Tush Push
-        </div>
-        <div className={`${styles.ctrlDetailQueueItem} ${styles.ctrlDetailQueueItemDim}`}>
-          <span className={styles.ctrlDetailQueuePos}>2</span>
-          Copperhead Road
+          <div className={styles.ctrlFullPanelBody}>
+            {!playing && queue.length === 0 ? (
+              <div className={styles.ctrlFullEmpty}>
+                <span className={styles.ctrlFullEmptyIcon}>🎵</span>
+                <span className={styles.ctrlFullEmptyTitle}>Queue is empty</span>
+                <span className={styles.ctrlFullEmptyHint}>Approve requests to add dances here</span>
+              </div>
+            ) : (
+              <>
+                {playing && (
+                  <div className={styles.ctrlFullPlayingCard}>
+                    <div className={styles.ctrlFullPlayingLeft}>
+                      <span className={styles.ctrlFullPlayingDot} />
+                      <div>
+                        <div className={styles.ctrlFullPlayingName}>{playing.name}</div>
+                        <div className={styles.ctrlFullPlayingMeta}>Now playing</div>
+                      </div>
+                    </div>
+                    <button className={styles.ctrlFullPlayedBtn} onClick={onMarkPlayed}>
+                      ✓ Played
+                    </button>
+                  </div>
+                )}
+                {queue.map((item, i) => (
+                  <div key={item.id} className={styles.ctrlFullQueueCard}>
+                    <span className={styles.ctrlFullQueuePos}>{i + 1}</span>
+                    <span className={styles.ctrlFullQueueName}>{item.name}</span>
+                    <button className={styles.ctrlFullRemoveBtn} onClick={() => onRemove(item)}>✕</button>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Mockup: Request app detail ────────────────────────────────────────────────
-function RequestDetailMockup() {
+// ── Interactive: Request App ──────────────────────────────────────────────────
+function RequestAppMock({ onRequest }) {
+  const [view, setView] = useState('list'); // 'list' | 'detail' | 'success'
+  const [selected, setSelected] = useState(null);
+  const timerRef = useRef(null);
+
+  function handleSelect(dance) {
+    setSelected(dance);
+    setView('detail');
+  }
+
+  function handleRequest() {
+    onRequest(selected);
+    setView('success');
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setView('list');
+      setSelected(null);
+    }, 2200);
+  }
+
+  function handleBack() {
+    setView('list');
+    setSelected(null);
+  }
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
   return (
-    <div className={styles.reqDetail}>
-      <div className={styles.reqDetailNotch} />
-      <div className={styles.reqDetailSearch}>
-        <span className={styles.reqDetailSearchIcon}>⌕</span>
-        <span className={styles.reqDetailSearchText}>Tush Push</span>
-      </div>
-      <div className={styles.reqDetailResult}>
-        <div className={styles.reqDetailResultName}>Tush Push</div>
-        <div className={styles.reqDetailResultMeta}>Line Dance · Intermediate</div>
-      </div>
-      <button className={styles.reqDetailBtn}>Request this dance →</button>
-      <div className={styles.reqDetailDivider}>or</div>
-      <div className={styles.reqDetailTip}>
-        <div className={styles.reqDetailTipRow}>
-          <span className={styles.reqDetailTipIcon}>⚡</span>
-          <div>
-            <div className={styles.reqDetailTipName}>Tip with Beats</div>
-            <div className={styles.reqDetailTipDesc}>Move it up the queue</div>
+    <div className={styles.reqApp}>
+      <div className={styles.reqAppPhone}>
+        <div className={styles.reqAppNotch} />
+        <div className={styles.reqAppUrl}>dancecard.app/request/dance-night</div>
+
+        {view === 'list' && (
+          <>
+            <div className={styles.reqAppHeader}>
+              Tonight&apos;s<br />Dance Night
+            </div>
+            <div className={styles.reqAppPrompt}>What would you like to see?</div>
+            <div className={styles.reqAppList}>
+              {DANCE_LIST.map(d => (
+                <button key={d.id} className={styles.reqAppListBtn} onClick={() => handleSelect(d)}>
+                  <span className={styles.reqAppListName}>{d.name}</span>
+                  <span className={styles.reqAppListDiff} style={{ color: DIFF_COLORS[d.diff] }}>
+                    {d.diff}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {view === 'detail' && selected && (
+          <>
+            <button className={styles.reqAppBack} onClick={handleBack}>← Back</button>
+            <div className={styles.reqAppDetailHeader}>{selected.name}</div>
+            <div className={styles.reqAppDetailMeta}>
+              Line Dance ·{' '}
+              <span style={{ color: DIFF_COLORS[selected.diff] }}>{selected.diff}</span>
+            </div>
+            <button className={styles.reqAppRequestBtn} onClick={handleRequest}>
+              Request this dance →
+            </button>
+          </>
+        )}
+
+        {view === 'success' && (
+          <div className={styles.reqAppSuccess}>
+            <div className={styles.reqAppSuccessIcon}>✓</div>
+            <div className={styles.reqAppSuccessName}>{selected?.name}</div>
+            <div className={styles.reqAppSuccessMsg}>Sent to the DJ!</div>
           </div>
-        </div>
-        <div className={styles.reqDetailBeatBtns}>
-          <button className={styles.reqDetailBeatBtn}>5 ⚡</button>
-          <button className={`${styles.reqDetailBeatBtn} ${styles.reqDetailBeatBtnActive}`}>10 ⚡</button>
-          <button className={styles.reqDetailBeatBtn}>20 ⚡</button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -204,12 +316,53 @@ export default function Home() {
 
   const [demoStep, setDemoStep] = useState(0);
 
+  // Shared demo state — request app feeds the controller mock
+  const [pending, setPending] = useState([
+    { id: 2, name: 'Tush Push',        diff: 'Intermediate', count: 4 },
+    { id: 3, name: 'Copperhead Road',  diff: 'Advanced',     count: 2 },
+    { id: 6, name: 'Cowboy Cha Cha',   diff: 'Intermediate', count: 1 },
+  ]);
+  const [queue, setQueue] = useState([
+    { id: 4, name: 'Watermelon Crawl',     diff: 'Beginner', count: 1 },
+    { id: 5, name: "Boot Scootin' Boogie", diff: 'Beginner', count: 1 },
+  ]);
+  const [playing, setPlaying] = useState(
+    { id: 1, name: 'Electric Slide', diff: 'Beginner', count: 1 }
+  );
+
   useEffect(() => {
     const t = setTimeout(() => setDemoStep(s => (s + 1) % DEMO_STEPS.length), STEP_MS);
     return () => clearTimeout(t);
   }, [demoStep]);
 
   function pickStep(i) { setDemoStep(i); }
+
+  function handleRequest(dance) {
+    setPending(p => {
+      const existing = p.find(r => r.id === dance.id);
+      if (existing) return p.map(r => r.id === dance.id ? { ...r, count: r.count + 1 } : r);
+      return [...p, { ...dance, count: 1 }];
+    });
+  }
+
+  function handleApprove(item) {
+    setPending(p => p.filter(d => d.id !== item.id));
+    if (!playing) {
+      setPlaying(item);
+    } else {
+      setQueue(q => [...q, item]);
+    }
+  }
+
+  function handleMarkPlayed() {
+    const next = queue[0] ?? null;
+    setPlaying(next);
+    setQueue(q => q.slice(1));
+  }
+
+  function handleRemove(item) {
+    setQueue(q => q.filter(d => d.id !== item.id));
+  }
 
   return (
     <>
@@ -243,11 +396,9 @@ export default function Home() {
           )}
         </section>
 
-        {/* ── How it works (interactive demo) ── */}
+        {/* ── How it works ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>How it works</h2>
-
-          {/* Step pills */}
           <div className={styles.demoPills}>
             {DEMO_STEPS.map((s, i) => (
               <button
@@ -261,8 +412,6 @@ export default function Home() {
               </button>
             ))}
           </div>
-
-          {/* Demo stage */}
           <div className={styles.demoStage}>
             <div key={demoStep} className={styles.demoMockupWrap}>
               {demoStep === 0 && <FeedMockup />}
@@ -270,49 +419,20 @@ export default function Home() {
               {demoStep === 2 && <ControllerMockup />}
             </div>
           </div>
-
-          {/* Step description */}
           <p key={demoStep} className={styles.demoDesc}>{DEMO_STEPS[demoStep].desc}</p>
         </section>
 
         {/* ── Using the Controller ── */}
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionWide}`}>
           <h2 className={styles.sectionTitle}>Using the controller</h2>
-          <div className={styles.featureSplit}>
-            <div className={styles.featureSplitVisual}>
-              <CtrlDetailMockup />
-            </div>
-            <ul className={styles.featureList}>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>📥</span>
-                <div>
-                  <strong>Requests grouped by dance</strong>
-                  <p>See which dances have the most support and who&apos;s asking. Smart weighting balances regulars against newcomers.</p>
-                </div>
-              </li>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>✓</span>
-                <div>
-                  <strong>One-tap approve</strong>
-                  <p>Approve a request and it lands in your queue instantly. Reject or ignore — your call, every time.</p>
-                </div>
-              </li>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>↕</span>
-                <div>
-                  <strong>Drag to reorder</strong>
-                  <p>Shuffle the queue on the fly. Promote a crowd favourite or push something back — the feed updates live.</p>
-                </div>
-              </li>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>📢</span>
-                <div>
-                  <strong>Announcements</strong>
-                  <p>Push a message to the feed screen — break time, raffle winners, or anything the room needs to see.</p>
-                </div>
-              </li>
-            </ul>
-          </div>
+          <ControllerMock
+            pending={pending}
+            queue={queue}
+            playing={playing}
+            onApprove={handleApprove}
+            onMarkPlayed={handleMarkPlayed}
+            onRemove={handleRemove}
+          />
         </section>
 
         {/* ── Using the Request App ── */}
@@ -320,7 +440,7 @@ export default function Home() {
           <h2 className={styles.sectionTitle}>Using the request app</h2>
           <div className={`${styles.featureSplit} ${styles.featureSplitReverse}`}>
             <div className={styles.featureSplitVisual}>
-              <RequestDetailMockup />
+              <RequestAppMock onRequest={handleRequest} />
             </div>
             <ul className={styles.featureList}>
               <li className={styles.featureItem}>
@@ -391,7 +511,6 @@ export default function Home() {
         <footer className={styles.footer}>
           © 2026 DanceCard · Beyond Line Dance
         </footer>
-
       </div>
     </>
   );
