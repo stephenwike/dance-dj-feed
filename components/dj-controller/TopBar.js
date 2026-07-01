@@ -5,7 +5,7 @@ export default function TopBar({ activeSession, closeSession, timeState, countdo
   return (
     <header className={styles.topBar}>
       <span className={styles.appName}>
-        <span className={styles.appNameFull}>🎛️ DanceCard</span>
+        <span className={styles.appNameFull}>🎛️ DanceFeed</span>
         <span className={styles.appNameShort}>🎛️</span>
       </span>
 

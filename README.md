@@ -2,7 +2,7 @@
 
 A real-time dance request platform for line dance DJs. Attendees scan a QR code to request dances; the DJ manages the queue, plays tracks via Spotify, and collects tips. The feed page shows the now-playing card and upcoming queue on a TV or projector.
 
-Extracted from [dance-folly-website](../dance-folly-website) when the DJ tooling outgrew the instructor site. Working product name: **DanceCard**.
+Extracted from [dance-folly-website](../dance-folly-website) when the DJ tooling outgrew the instructor site. Working product name: **DanceFeed**.
 
 ---
 

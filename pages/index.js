@@ -315,7 +315,7 @@ function TippingExplainer() {
             </div>
             <div className={styles.tipText}>
               <h3 className={styles.tipTextTitle}>You keep the tips</h3>
-              <p className={styles.tipTextBody}>Tips go directly to your connected Stripe account. DanceCard takes no cut — you keep everything after Stripe&apos;s payment processing fee.</p>
+              <p className={styles.tipTextBody}>Tips go directly to your connected Stripe account. DanceFeed takes no cut — you keep everything after Stripe&apos;s payment processing fee.</p>
               <p className={styles.tipTextBody}>Request a payout any time from your wallet. Most DJs earn well above their session cost back from just a handful of tippers.</p>
             </div>
           </div>
@@ -502,7 +502,7 @@ function RequestAppMock({ onRequest }) {
     <div className={styles.reqApp}>
       <div className={styles.reqAppPhone}>
         <div className={styles.reqAppNotch} />
-        <div className={styles.reqAppUrl}>dancecard.app/request/dance-night</div>
+        <div className={styles.reqAppUrl}>dancefeed.app/request/dance-night</div>
 
         {view === 'list' && (
           <>
@@ -598,13 +598,13 @@ export default function Home() {
 
   return (
     <>
-      <Head><title>DanceCard — Live Request Platform for Line Dance DJs</title></Head>
+      <Head><title>DanceFeed — Live Request Platform for Line Dance DJs</title></Head>
       <div className={styles.page}>
 
         {/* ── Hero ── */}
         <section className={styles.hero}>
           <div className={styles.logo}>🎛️</div>
-          <h1 className={styles.title}>DanceCard</h1>
+          <h1 className={styles.title}>DanceFeed</h1>
           <p className={styles.tagline}>The live request platform for line dance DJs.</p>
           <p className={styles.heroDesc}>
             Attendees scan a QR code from their phone and submit dance requests in real time —
@@ -740,7 +740,7 @@ export default function Home() {
         </section>
 
         <footer className={styles.footer}>
-          © 2026 DanceCard · Beyond Line Dance
+          © 2026 DanceFeed · Beyond Line Dance
         </footer>
       </div>
     </>
