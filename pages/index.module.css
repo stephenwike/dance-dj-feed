@@ -1438,11 +1438,187 @@
   text-align: center;
 }
 
+/* ── Request app 3-column layout ── */
+.reqAppRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.reqAppRowSide {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── TV feed mock ── */
+.tvFeed {
+  height: 320px;
+  width: 100%;
+  background: #06060f;
+  border: 4px solid #181828;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    inset 0 0 60px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 8px 32px rgba(0,0,0,0.5);
+}
+
+.tvFeed::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.07) 3px,
+    rgba(0,0,0,0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tvFeedTopBar {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.3);
+  position: relative;
+  z-index: 1;
+}
+
+.tvFeedLive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #22c55e;
+  letter-spacing: 0.14em;
+}
+
+@keyframes tvFeedDotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.tvFeedDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  animation: tvFeedDotPulse 1.8s ease-in-out infinite;
+}
+
+.tvFeedBody {
+  flex: 1;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.tvFeedNowLabel {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: rgba(138,92,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.tvFeedDanceName {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-top: 8px;
+  text-shadow: 0 0 40px rgba(138,92,255,0.3);
+}
+
+.tvFeedDiff {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-top: 5px;
+  letter-spacing: 0.04em;
+}
+
+.tvFeedDivider {
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+  margin: 20px 0;
+}
+
+.tvFeedUpNextLabel {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 12px;
+}
+
+.tvFeedQueueRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.tvFeedQueueRow:last-child { border-bottom: none; }
+
+.tvFeedQueueNum {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: rgba(138,92,255,0.45);
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tvFeedQueueName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tvFeedEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.12);
+}
+
+@media (max-width: 860px) {
+  .reqAppRow { flex-wrap: wrap; }
+  .reqAppRowSide { min-width: 200px; }
+}
+
 @media (max-width: 700px) {
   .ctrlFullSidebar { display: none; }
   .ctrlFullBody { flex-direction: column; min-height: auto; }
   .ctrlFullPanel { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
   .ctrlFullPanel:last-child { border-bottom: none; }
+  .reqAppRow { flex-direction: column; align-items: center; }
+  .reqAppRowSide { width: 100%; max-width: 400px; }
+  .tvFeed { max-width: 100%; }
 }
 
 /* ── Pricing ── */
@@ -1455,7 +1631,7 @@
 
 .pricingGrid {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
@@ -1466,14 +1642,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 24px 28px 20px;
+  gap: 3px;
+  padding: 22px 16px 18px;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   flex: 1;
   min-width: 110px;
-  max-width: 160px;
+  max-width: 180px;
 }
 
 .priceTilePopular {
@@ -1499,22 +1675,445 @@
   text-transform: uppercase;
 }
 
+.priceBenefit {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  line-height: 1.2;
+}
+.priceTilePopular .priceBenefit { color: #a78bfa; }
+
+.priceLabel {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.75);
+  margin-top: 2px;
+  letter-spacing: -0.01em;
+}
+
 .priceAmount {
-  font-size: 2.4rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-top: 4px;
+}
+.priceTilePopular .priceAmount { color: rgba(167,139,250,0.7); }
+
+/* ── ROI banner ── */
+.tipROIBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: rgba(34,197,94,0.06);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 14px;
+  padding: 18px 22px;
+  width: 100%;
+}
+
+.tipROIIcon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.tipROITitle {
+  font-size: 1rem;
   font-weight: 800;
   color: #fff;
-  letter-spacing: -0.04em;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tipROISub {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Tipping explainer ── */
+.tipExplainer {
+  width: 100%;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.tipTabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.tipTab {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 12px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  transition: color 0.15s, background 0.15s;
+}
+.tipTab:last-child { border-right: none; }
+.tipTab:hover { color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.02); }
+
+.tipTabActive {
+  color: #fff !important;
+  background: rgba(138,92,255,0.08) !important;
+}
+
+.tipTabIcon { font-size: 1rem; }
+
+@keyframes tipTabFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+.tipTabBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #8A5CFF, #a78bfa);
+  animation: tipTabFill 4.2s linear forwards;
+}
+
+.tipPanel {
+  padding: 28px 28px;
+}
+
+.tipSplit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  align-items: center;
+}
+
+.tipVisual {
+  display: flex;
+  justify-content: center;
+}
+
+.tipText {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tipTextTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.tipTextBody {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ── Beats visual ── */
+.tipBeatsCard {
+  width: 100%;
+  max-width: 300px;
+  background: #0e0e1e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tipBeatsCardTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.tipBeatsCardSub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  margin-top: -8px;
+}
+
+.tipBeatsPkgs {
+  display: flex;
+  gap: 8px;
+}
+
+.tipBeatsPkg {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  position: relative;
+}
+
+.tipBeatsPkgFeatured {
+  background: rgba(138,92,255,0.08);
+  border-color: rgba(138,92,255,0.3);
+}
+
+.tipBeatsPkgTag {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #a78bfa;
+  background: #0e0e1e;
+  border: 1px solid rgba(138,92,255,0.35);
+  border-radius: 20px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.tipBeatsCount {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
   line-height: 1;
 }
 
-.priceTilePopular .priceAmount {
-  color: #a78bfa;
+.tipBeatsIcon { color: #fbbf24; }
+
+.tipBeatsBonus {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #22c55e;
 }
 
-.priceLabel {
+.tipBeatsPrice {
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 700;
   color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+/* ── Tipping visual ── */
+.tipDemoCard {
+  width: 100%;
+  max-width: 300px;
+  background: #0e0e1e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tipDemoName {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.tipDemoMeta {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  margin-top: -6px;
+}
+
+.tipDemoPrompt {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.tipDemoBtns {
+  display: flex;
+  gap: 7px;
+}
+
+.tipDemoBtn {
+  flex: 1;
+  padding: 9px 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tipDemoBtn:hover { background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.25); color: #fbbf24; }
+
+.tipDemoBtnSel {
+  background: rgba(251,191,36,0.12) !important;
+  border-color: rgba(251,191,36,0.45) !important;
+  color: #fbbf24 !important;
+}
+
+.tipDemoSendBtn {
+  background: #8A5CFF;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tipDemoSendBtn:hover { background: #7c3aed; }
+
+@keyframes tipSuccessIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.tipDemoSuccess {
+  width: 100%;
+  max-width: 300px;
+  background: #0e0e1e;
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 14px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: tipSuccessIn 0.3s ease both;
+}
+
+.tipDemoSuccessIcon { font-size: 2rem; line-height: 1; color: #fbbf24; }
+
+.tipDemoSuccessTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.tipDemoSuccessSub {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.38);
+  text-align: center;
+  line-height: 1.45;
+}
+
+.tipDemoResetBtn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  margin-top: 4px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tipDemoResetBtn:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.25); }
+
+/* ── Payout visual ── */
+.tipPayoutCard {
+  width: 100%;
+  max-width: 300px;
+  background: #0e0e1e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tipPayoutCardTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.tipPayoutRows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.tipPayoutRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.8rem;
+}
+.tipPayoutRow:last-child { border-bottom: none; }
+
+.tipPayoutRowLabel { color: rgba(255,255,255,0.45); }
+
+.tipPayoutRowTotal {
+  background: rgba(255,255,255,0.02);
+  font-weight: 700;
+}
+.tipPayoutRowTotal .tipPayoutRowLabel { color: rgba(255,255,255,0.7); }
+
+.tipPayoutNeg {
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+}
+
+.tipPayoutPos {
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.tipPayoutBtn {
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.3);
+  color: #6ee7b7;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tipPayoutBtn:hover { background: rgba(34,197,94,0.16); }
+
+.tipPayoutNote {
+  font-size: 0.66rem;
+  color: rgba(255,255,255,0.2);
+  text-align: center;
+  margin-top: -6px;
+}
+
+@media (max-width: 660px) {
+  .tipSplit { grid-template-columns: 1fr; }
+  .tipPanel { padding: 20px 16px; }
 }
 
 .pricingIncludes {

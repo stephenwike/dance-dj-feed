@@ -124,6 +124,208 @@ function ControllerMockup() {
   );
 }
 
+const TIER_BENEFITS = [
+  'Warm-up or class',
+  'Evening session',
+  'Full night out',
+  'Long event',
+  'All-day event',
+];
+
+// ── How it works (tabbed explainer) ──────────────────────────────────────────
+const STEP_ICONS = ['📺', '📱', '🎛️'];
+
+function HowItWorksExplainer() {
+  const [tab, setTab] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => setTab(s => (s + 1) % DEMO_STEPS.length), STEP_MS);
+    return () => clearTimeout(t);
+  }, [tab]);
+
+  const mockups = [
+    <FeedMockup key="feed" />,
+    <PhoneMockup key="phone" />,
+    <ControllerMockup key="ctrl" />,
+  ];
+
+  return (
+    <div className={styles.tipExplainer}>
+      <div className={styles.tipTabs}>
+        {DEMO_STEPS.map((s, i) => (
+          <button
+            key={i}
+            className={`${styles.tipTab} ${tab === i ? styles.tipTabActive : ''}`}
+            onClick={() => setTab(i)}
+          >
+            <span className={styles.tipTabIcon}>{STEP_ICONS[i]}</span>
+            {s.pill}
+            {tab === i && <div key={tab} className={styles.tipTabBar} />}
+          </button>
+        ))}
+      </div>
+      <div className={styles.tipPanel}>
+        <div className={styles.tipSplit}>
+          <div className={styles.tipVisual}>
+            <div key={tab} className={styles.demoMockupWrap}>
+              {mockups[tab]}
+            </div>
+          </div>
+          <div className={styles.tipText}>
+            <h3 className={styles.tipTextTitle}>{DEMO_STEPS[tab].pill}</h3>
+            <p className={styles.tipTextBody}>{DEMO_STEPS[tab].desc}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Tipping explainer ─────────────────────────────────────────────────────────
+function TippingExplainer() {
+  const [tab, setTab] = useState(0);
+  const [tipAmount, setTipAmount] = useState(null);
+  const [tipped, setTipped] = useState(false);
+
+  function changeTab(i) { setTab(i); setTipAmount(null); setTipped(false); }
+
+  useEffect(() => {
+    const next = (tab + 1) % 3;
+    const t = setTimeout(() => changeTab(next), STEP_MS);
+    return () => clearTimeout(t);
+  }, [tab]);
+
+  return (
+    <div className={styles.tipExplainer}>
+      <div className={styles.tipTabs}>
+        {[['♫', 'Beats'], ['¢', 'Tipping'], ['💸', 'Payouts']].map(([icon, label], i) => (
+          <button
+            key={label}
+            className={`${styles.tipTab} ${tab === i ? styles.tipTabActive : ''}`}
+            onClick={() => changeTab(i)}
+          >
+            <span className={styles.tipTabIcon} style={i === 0 ? { color: '#fbbf24' } : i === 1 ? { color: '#22c55e' } : undefined}>{icon}</span>
+            {label}
+            {tab === i && <div key={tab} className={styles.tipTabBar} />}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.tipPanel}>
+
+        {/* ── Beats ── */}
+        {tab === 0 && (
+          <div className={styles.tipSplit}>
+            <div className={styles.tipVisual}>
+              <div className={styles.tipBeatsCard}>
+                <div className={styles.tipBeatsCardTitle}>Get Beats</div>
+                <div className={styles.tipBeatsCardSub}>Tip on your favourite dances</div>
+                <div className={styles.tipBeatsPkgs}>
+                  {[
+                    { price: '$5',  beats: '50',  bonus: null,     tag: null },
+                    { price: '$10', beats: '120', bonus: '+20',    tag: 'Popular' },
+                    { price: '$20', beats: '250', bonus: '+50',    tag: 'Best value' },
+                  ].map(pkg => (
+                    <div key={pkg.price} className={`${styles.tipBeatsPkg} ${pkg.tag ? styles.tipBeatsPkgFeatured : ''}`}>
+                      {pkg.tag && <span className={styles.tipBeatsPkgTag}>{pkg.tag}</span>}
+                      <span className={styles.tipBeatsCount}>{pkg.beats} <span className={styles.tipBeatsIcon}>♫</span></span>
+                      {pkg.bonus && <span className={styles.tipBeatsBonus}>{pkg.bonus} bonus</span>}
+                      <span className={styles.tipBeatsPrice}>{pkg.price}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className={styles.tipText}>
+              <h3 className={styles.tipTextTitle}>In-app currency for tipping</h3>
+              <p className={styles.tipTextBody}>Attendees buy Beats with a card or Apple/Google Pay — no account needed. One Beat = $0.10 of real value going directly to you.</p>
+              <p className={styles.tipTextBody}>Higher packages include bonus Beats, giving attendees more to tip with and more earnings for you.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Tipping ── */}
+        {tab === 1 && (
+          <div className={styles.tipSplit}>
+            <div className={styles.tipVisual}>
+              {!tipped ? (
+                <div className={styles.tipDemoCard}>
+                  <div className={styles.tipDemoName}>Tush Push</div>
+                  <div className={styles.tipDemoMeta}>3 requests · Intermediate</div>
+                  <div className={styles.tipDemoPrompt}>Tip to move it up:</div>
+                  <div className={styles.tipDemoBtns}>
+                    {[5, 10, 20].map(n => (
+                      <button
+                        key={n}
+                        className={`${styles.tipDemoBtn} ${tipAmount === n ? styles.tipDemoBtnSel : ''}`}
+                        onClick={() => setTipAmount(n)}
+                      >
+                        {n} <span style={{ color: '#fbbf24' }}>♫</span>
+                      </button>
+                    ))}
+                  </div>
+                  {tipAmount && (
+                    <button className={styles.tipDemoSendBtn} onClick={() => setTipped(true)}>
+                      Send {tipAmount} <span style={{ color: '#fbbf24' }}>♫</span> →
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.tipDemoSuccess}>
+                  <div className={styles.tipDemoSuccessIcon}>♫</div>
+                  <div className={styles.tipDemoSuccessTitle}>Tip sent!</div>
+                  <div className={styles.tipDemoSuccessSub}>Your request is now prioritised in the DJ&apos;s view</div>
+                  <button className={styles.tipDemoResetBtn} onClick={() => { setTipAmount(null); setTipped(false); }}>
+                    Try again
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className={styles.tipText}>
+              <h3 className={styles.tipTextTitle}>Tips make requests stand out</h3>
+              <p className={styles.tipTextBody}>When someone really wants to see a dance, they add Beats to their request. The tip shows up alongside the request in your controller.</p>
+              <p className={styles.tipTextBody}>You&apos;re still in control — tips are a signal, not an override. You always decide what gets approved.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Payouts ── */}
+        {tab === 2 && (
+          <div className={styles.tipSplit}>
+            <div className={styles.tipVisual}>
+              <div className={styles.tipPayoutCard}>
+                <div className={styles.tipPayoutCardTitle}>Your Wallet</div>
+                <div className={styles.tipPayoutRows}>
+                  <div className={styles.tipPayoutRow}>
+                    <span className={styles.tipPayoutRowLabel}>Session cost (8 hrs)</span>
+                    <span className={styles.tipPayoutNeg}>−$6.00</span>
+                  </div>
+                  <div className={styles.tipPayoutRow}>
+                    <span className={styles.tipPayoutRowLabel}>Tips collected</span>
+                    <span className={styles.tipPayoutPos}>+$34.50</span>
+                  </div>
+                  <div className={`${styles.tipPayoutRow} ${styles.tipPayoutRowTotal}`}>
+                    <span className={styles.tipPayoutRowLabel}>Take-home</span>
+                    <span className={styles.tipPayoutPos}>+$28.50</span>
+                  </div>
+                </div>
+                <button className={styles.tipPayoutBtn}>Payout to bank →</button>
+                <div className={styles.tipPayoutNote}>Via Stripe · 2–3 business days</div>
+              </div>
+            </div>
+            <div className={styles.tipText}>
+              <h3 className={styles.tipTextTitle}>You keep the tips</h3>
+              <p className={styles.tipTextBody}>Tips go directly to your connected Stripe account. DanceCard takes no cut — you keep everything after Stripe&apos;s payment processing fee.</p>
+              <p className={styles.tipTextBody}>Request a payout any time from your wallet. Most DJs earn well above their session cost back from just a handful of tippers.</p>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
 // ── Interactive: DJ Controller ────────────────────────────────────────────────
 function ControllerMock({ pending, queue, playing, onApprove, onMarkPlayed, onRemove }) {
   return (
@@ -229,6 +431,45 @@ function ControllerMock({ pending, queue, playing, onApprove, onMarkPlayed, onRe
   );
 }
 
+// ── Interactive: Mini Feed ────────────────────────────────────────────────────
+function MiniFeedMock({ playing, queue }) {
+  return (
+    <div className={styles.tvFeed}>
+      <div className={styles.tvFeedTopBar}>
+        <div className={styles.tvFeedLive}>
+          <span className={styles.tvFeedDot} />
+          LIVE
+        </div>
+      </div>
+      <div className={styles.tvFeedBody}>
+        {playing ? (
+          <>
+            <div className={styles.tvFeedNowLabel}>Now Playing</div>
+            <div className={styles.tvFeedDanceName}>{playing.name}</div>
+            <div className={styles.tvFeedDiff} style={{ color: DIFF_COLORS[playing.diff] }}>
+              {playing.diff}
+            </div>
+            {queue.length > 0 && (
+              <>
+                <div className={styles.tvFeedDivider} />
+                <div className={styles.tvFeedUpNextLabel}>Up Next</div>
+                {queue.slice(0, 3).map((item, i) => (
+                  <div key={item.id} className={styles.tvFeedQueueRow}>
+                    <span className={styles.tvFeedQueueNum}>{i + 1}</span>
+                    <span className={styles.tvFeedQueueName}>{item.name}</span>
+                  </div>
+                ))}
+              </>
+            )}
+          </>
+        ) : (
+          <div className={styles.tvFeedEmpty}>No dances queued yet</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Interactive: Request App ──────────────────────────────────────────────────
 function RequestAppMock({ onRequest }) {
   const [view, setView] = useState('list'); // 'list' | 'detail' | 'success'
@@ -314,8 +555,6 @@ export default function Home() {
   const isLoaded = status !== 'loading';
   const isSignedIn = !!session;
 
-  const [demoStep, setDemoStep] = useState(0);
-
   // Shared demo state — request app feeds the controller mock
   const [pending, setPending] = useState([
     { id: 2, name: 'Tush Push',        diff: 'Intermediate', count: 4 },
@@ -329,13 +568,6 @@ export default function Home() {
   const [playing, setPlaying] = useState(
     { id: 1, name: 'Electric Slide', diff: 'Beginner', count: 1 }
   );
-
-  useEffect(() => {
-    const t = setTimeout(() => setDemoStep(s => (s + 1) % DEMO_STEPS.length), STEP_MS);
-    return () => clearTimeout(t);
-  }, [demoStep]);
-
-  function pickStep(i) { setDemoStep(i); }
 
   function handleRequest(dance) {
     setPending(p => {
@@ -397,29 +629,9 @@ export default function Home() {
         </section>
 
         {/* ── How it works ── */}
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionWide}`}>
           <h2 className={styles.sectionTitle}>How it works</h2>
-          <div className={styles.demoPills}>
-            {DEMO_STEPS.map((s, i) => (
-              <button
-                key={i}
-                className={`${styles.demoPill} ${demoStep === i ? styles.demoPillActive : ''} ${demoStep > i ? styles.demoPillDone : ''}`}
-                onClick={() => pickStep(i)}
-              >
-                <span className={styles.demoPillNum}>{i + 1}</span>
-                <span className={styles.demoPillLabel}>{s.pill}</span>
-                {demoStep === i && <div key={demoStep} className={styles.demoPillBar} />}
-              </button>
-            ))}
-          </div>
-          <div className={styles.demoStage}>
-            <div key={demoStep} className={styles.demoMockupWrap}>
-              {demoStep === 0 && <FeedMockup />}
-              {demoStep === 1 && <PhoneMockup />}
-              {demoStep === 2 && <ControllerMockup />}
-            </div>
-          </div>
-          <p key={demoStep} className={styles.demoDesc}>{DEMO_STEPS[demoStep].desc}</p>
+          <HowItWorksExplainer />
         </section>
 
         {/* ── Using the Controller ── */}
@@ -436,63 +648,82 @@ export default function Home() {
         </section>
 
         {/* ── Using the Request App ── */}
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionWide}`}>
           <h2 className={styles.sectionTitle}>Using the request app</h2>
-          <div className={`${styles.featureSplit} ${styles.featureSplitReverse}`}>
-            <div className={styles.featureSplitVisual}>
-              <RequestAppMock onRequest={handleRequest} />
+          <div className={styles.reqAppRow}>
+            <div className={styles.reqAppRowSide}>
+              <ul className={styles.featureList}>
+                <li className={styles.featureItem}>
+                  <span className={styles.featureItemIcon}>📱</span>
+                  <div>
+                    <strong>No download required</strong>
+                    <p>Attendees scan the QR code with their phone camera and the app opens in their browser — nothing to install.</p>
+                  </div>
+                </li>
+                <li className={styles.featureItem}>
+                  <span className={styles.featureItemIcon}>🔍</span>
+                  <div>
+                    <strong>Search any dance</strong>
+                    <p>Type a dance name and submit in seconds. Results pull from the same library you use to run your sessions.</p>
+                  </div>
+                </li>
+                <li className={styles.featureItem}>
+                  <span className={styles.featureItemIcon}>⚡</span>
+                  <div>
+                    <strong>Beat tipping</strong>
+                    <p>Attendees can buy Beats to tip on requests they want to see sooner. You keep the proceeds after payment processing.</p>
+                  </div>
+                </li>
+                <li className={styles.featureItem}>
+                  <span className={styles.featureItemIcon}>📺</span>
+                  <div>
+                    <strong>Watch the queue</strong>
+                    <p>The feed screen shows what&apos;s playing and what&apos;s coming up, keeping the whole room in the loop.</p>
+                  </div>
+                </li>
+              </ul>
             </div>
-            <ul className={styles.featureList}>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>📱</span>
-                <div>
-                  <strong>No download required</strong>
-                  <p>Attendees scan the QR code with their phone camera and the app opens in their browser — nothing to install.</p>
-                </div>
-              </li>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>🔍</span>
-                <div>
-                  <strong>Search any dance</strong>
-                  <p>Type a dance name and submit in seconds. Results pull from the same library you use to run your sessions.</p>
-                </div>
-              </li>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>⚡</span>
-                <div>
-                  <strong>Beat tipping</strong>
-                  <p>Attendees can buy Beats to tip on requests they want to see sooner. You keep the proceeds after payment processing.</p>
-                </div>
-              </li>
-              <li className={styles.featureItem}>
-                <span className={styles.featureItemIcon}>📺</span>
-                <div>
-                  <strong>Watch the queue</strong>
-                  <p>The feed screen shows what&apos;s playing and what&apos;s coming up, keeping the whole room in the loop.</p>
-                </div>
-              </li>
-            </ul>
+            <RequestAppMock onRequest={handleRequest} />
+            <div className={styles.reqAppRowSide}>
+              <MiniFeedMock playing={playing} queue={queue} />
+            </div>
           </div>
         </section>
 
         {/* ── Pricing ── */}
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionWide}`}>
           <h2 className={styles.sectionTitle}>Simple pricing</h2>
-          <p className={styles.pricingDesc}>Pay per session — no subscription, no hidden fees.</p>
+          <p className={styles.pricingDesc}>
+            A flat fee per session covers hosting and API costs. Pick the length that fits your event.
+          </p>
           <div className={styles.pricingGrid}>
             {SESSION_DURATIONS.map((tier, i) => (
-              <div key={tier.minutes} className={`${styles.priceTile} ${i === 1 ? styles.priceTilePopular : ''}`}>
-                {i === 1 && <span className={styles.popularBadge}>Most popular</span>}
-                <span className={styles.priceAmount}>${(tier.priceCents / 100).toFixed(0)}</span>
+              <div key={tier.minutes} className={`${styles.priceTile} ${i === 2 ? styles.priceTilePopular : ''}`}>
+                {i === 2 && <span className={styles.popularBadge}>Most popular</span>}
+                <span className={styles.priceBenefit}>{TIER_BENEFITS[i]}</span>
                 <span className={styles.priceLabel}>{tier.label}</span>
+                <span className={styles.priceAmount}>${(tier.priceCents / 100).toFixed(0)}</span>
               </div>
             ))}
           </div>
+
+          <div className={styles.tipROIBanner}>
+            <span className={styles.tipROIIcon}>💡</span>
+            <div>
+              <strong className={styles.tipROITitle}>You can make it all back</strong>
+              <p className={styles.tipROISub}>
+                Most DJs earn more than their session cost through Beat tips. One tipper covers an 8-hour session — a few more and you&apos;re ahead for the night.
+              </p>
+            </div>
+          </div>
+
+          <TippingExplainer />
+
           <ul className={styles.pricingIncludes}>
             <li>All features included — requests, queue, history, announcements</li>
-            <li>Beat tipping enabled — you keep the proceeds after payment processing</li>
-            <li>Extend by the hour for $1 if you need more time</li>
-            <li>No subscription, cancel anytime</li>
+            <li>Beat tipping enabled — you keep everything after payment processing</li>
+            <li>Add hours as needed for $1/hour if your event runs long</li>
+            <li>No subscription — pay only when you run a session</li>
           </ul>
         </section>
 
