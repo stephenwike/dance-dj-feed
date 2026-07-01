@@ -9,6 +9,7 @@ import { SESSION_DURATIONS } from '../lib/dj/sessionPricing';
 // Standard is the only available music source for now. Spotify, Apple Music,
 // and other source integrations are noted in the UI as future paid add-ons.
 const CONTROLLER_PATH = '/dj-controller';
+const SETUP_PATH = (sessionId) => `/dj-setup?sessionId=${sessionId}`;
 
 export default function StartPage() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function StartPage() {
           ? sessions.find(s => s.status === 'active' && new Date(s.startedAt).getTime() >= startedAt - 5000)
           : null;
         if (active) {
-          router.push(CONTROLLER_PATH);
+          router.push(SETUP_PATH(active._id));
           return;
         }
       } catch { /* retry */ }
@@ -94,7 +95,7 @@ export default function StartPage() {
         return;
       }
       if (data.session) {
-        router.push(CONTROLLER_PATH);
+        router.push(SETUP_PATH(data.session._id));
         return;
       }
       setError('Unexpected response from server');
@@ -117,6 +118,21 @@ export default function StartPage() {
           <div className={styles.logo}>🎛️</div>
           <h1 className={styles.title}>Start an Event</h1>
           <p className={styles.sub}>Name your session and choose how long it runs.</p>
+
+          <div className={styles.howItWorks}>
+            <div className={styles.howStep}>
+              <span className={styles.howIcon}>🖥️</span>
+              <span className={styles.howLabel}>Open the feed on a projector — attendees see the QR code and live queue</span>
+            </div>
+            <div className={styles.howStep}>
+              <span className={styles.howIcon}>📱</span>
+              <span className={styles.howLabel}>Attendees scan with their phone to request dances — no app needed</span>
+            </div>
+            <div className={styles.howStep}>
+              <span className={styles.howIcon}>🎛️</span>
+              <span className={styles.howLabel}>You approve requests and manage the queue from your controller</span>
+            </div>
+          </div>
 
           {finishing ? (
             <div className={styles.finishing}>

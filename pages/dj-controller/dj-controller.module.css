@@ -6,6 +6,10 @@
   padding: 6px 16px;
   text-align: center;
   letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 .stripeBanner code {
   background: rgba(0,0,0,0.3);
@@ -13,6 +17,18 @@
   padding: 1px 5px;
   font-family: monospace;
 }
+.stripeBannerDismiss {
+  background: none;
+  border: none;
+  color: #ffd580;
+  opacity: 0.6;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.stripeBannerDismiss:hover { opacity: 1; }
 
 /* ── Session Time Warning Banners ── */
 .sessionWarning,
@@ -168,6 +184,595 @@
   color: #e2e2f0;
   font-family: 'Montserrat', system-ui, sans-serif;
   overflow: hidden;
+}
+
+/* ── Body (sidebar + content) ── */
+.body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #090912;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  padding: 12px 0 8px;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.sidebarDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  margin-bottom: 4px;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.sidebarDotActive {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34,197,94,0.6);
+}
+
+.sidebarDivider {
+  width: 32px;
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 4px 0;
+  flex-shrink: 0;
+}
+
+.sidebarSpacer { flex: 1; }
+
+.sidebarBtn {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-family: inherit;
+  color: rgba(255,255,255,0.38);
+  text-decoration: none;
+  transition: background 0.13s, color 0.13s;
+  flex-shrink: 0;
+}
+.sidebarBtn:hover {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.75);
+}
+
+.sidebarBtnActive {
+  color: #a78bfa;
+  background: rgba(138,92,255,0.12);
+}
+.sidebarBtnActive:hover {
+  background: rgba(138,92,255,0.18);
+  color: #c4b5fd;
+}
+
+.sidebarBtnAlert {
+  color: #fbbf24;
+}
+.sidebarBtnAlert:hover { color: #fde68a; background: rgba(251,191,36,0.08); }
+
+.sidebarBtnSpotify { color: #1db954; }
+.sidebarBtnSpotifyOff { color: rgba(255,255,255,0.25); text-decoration: none; }
+
+.sidebarIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+  display: block;
+  position: relative;
+}
+
+.sidebarLabel {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  display: block;
+  white-space: nowrap;
+}
+
+/* ── Left / Right panels ── */
+.leftPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.rightPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Generic panel wrapper (used by left + right panels) ── */
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panelHead {
+  padding: 10px 14px;
+  background: #13132a;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.panelTitle {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.4);
+}
+
+.panelNewSessionBtn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #a78bfa;
+  background: rgba(138,92,255,0.1);
+  border: 1px solid rgba(138,92,255,0.25);
+  border-radius: 6px;
+  padding: 3px 9px;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: background 0.13s;
+}
+.panelNewSessionBtn:hover { background: rgba(138,92,255,0.2); }
+
+.panelBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: rgba(138,92,255,0.8);
+  background: rgba(138,92,255,0.1);
+  border: 1px solid rgba(138,92,255,0.25);
+  border-radius: 10px;
+  padding: 1px 7px;
+  letter-spacing: 0.04em;
+}
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Sidebar pending count badge ── */
+.sidebarBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  background: #8A5CFF;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0 4px;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+}
+
+/* ── Feed Config panel ── */
+.ratioButtons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ratioBtn {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.13s, border-color 0.13s, background 0.13s;
+}
+.ratioBtn:hover { color: rgba(255,255,255,0.75); border-color: rgba(255,255,255,0.2); }
+.ratioBtnActive {
+  background: rgba(138,92,255,0.15);
+  border-color: rgba(138,92,255,0.4);
+  color: #a78bfa;
+}
+
+.feedPreviewWrap {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  flex-shrink: 0;
+}
+
+.feedPreviewEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 100px;
+  color: rgba(255,255,255,0.25);
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.feedConfigOptions {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.feedConfigOptionsLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px;
+}
+
+.feedConfigItems {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feedConfigItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 7px;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.35);
+}
+
+.feedConfigItemIcon { font-size: 0.95rem; flex-shrink: 0; }
+
+/* ── Wallet panel ── */
+.walletBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.walletCard {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px;
+  flex-shrink: 0;
+}
+
+.walletNotice {
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.35);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #c4b5fd;
+  flex-shrink: 0;
+}
+
+/* ── Flyout panels (settings + messages) ── */
+.flyoutBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0,0,0,0.3);
+}
+
+.flyout {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 300px;
+  height: 100%;
+  background: #13132a;
+  border-right: 1px solid rgba(138,92,255,0.18);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 12px 0 40px rgba(0,0,0,0.6);
+  overflow: hidden;
+}
+
+.flyoutHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+
+.flyoutTitle {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.flyoutClose {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: rgba(255,255,255,0.07);
+  border-radius: 50%;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.7rem;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.13s;
+}
+.flyoutClose:hover { background: rgba(255,255,255,0.13); color: #fff; }
+
+.flyoutBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Settings panel ── */
+.settingRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.settingRow:last-child { border-bottom: none; }
+.settingRowNoBottom { border-bottom: 1px solid rgba(239,68,68,0.18); }
+
+.settingSubRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: -6px 0 8px;
+  background: rgba(239,68,68,0.07);
+  border: 1px solid rgba(239,68,68,0.18);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+.settingSubName {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,200,200,0.6);
+}
+
+.settingInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settingName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e2f0;
+}
+
+.settingDesc {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.4;
+}
+
+/* iOS-style toggle */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+  padding: 0;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  top: 3px;
+  left: 3px;
+  transition: left 0.2s, background 0.2s;
+}
+.toggleOn {
+  background: #8A5CFF;
+}
+.toggleOn::after {
+  left: 23px;
+  background: #fff;
+}
+
+/* Cycle button (for decay setting) */
+.cycleBtn {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.13s;
+}
+.cycleBtn:hover { color: #a78bfa; border-color: rgba(138,92,255,0.4); background: rgba(138,92,255,0.08); }
+
+/* ── Now Playing (upgraded RemoteControl) ── */
+.nowPlaying {
+  background: linear-gradient(135deg, rgba(138,92,255,0.1) 0%, rgba(138,92,255,0.04) 100%);
+  border: 1px solid rgba(138,92,255,0.22);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.nowPlayingStatus {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.nowPlayingDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nowPlayingDotPlaying {
+  background: #22c55e;
+  box-shadow: 0 0 5px rgba(34,197,94,0.7);
+  animation: playingPulse 2s ease-in-out infinite;
+}
+.nowPlayingDotPaused {
+  background: #f59e0b;
+}
+@keyframes playingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.nowPlayingStatusLabel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8A5CFF;
+  flex: 1;
+}
+
+.nowPlayingCountdown {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.nowPlayingTrack {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.nowPlayingButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.nowPlayingBtn {
+  flex: 1;
+  padding: 8px 6px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.02em;
+}
+
+.nowPlayingBtnPause  { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.nowPlayingBtnPause:hover  { background: rgba(59,130,246,0.25); }
+.nowPlayingBtnResume { background: rgba(34,197,94,0.15); color: #4ade80; }
+.nowPlayingBtnResume:hover { background: rgba(34,197,94,0.25); }
+.nowPlayingBtnSkip   { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.nowPlayingBtnSkip:hover   { background: rgba(245,158,11,0.25); }
+.nowPlayingBtnStop   { background: rgba(239,68,68,0.08); color: rgba(239,68,68,0.6); }
+.nowPlayingBtnStop:hover   { background: rgba(239,68,68,0.18); color: #ef4444; }
+
+.nowPlayingStart {
+  width: 100%;
+  padding: 11px;
+  background: rgba(138,92,255,0.15);
+  border: 1px solid rgba(138,92,255,0.3);
+  border-radius: 8px;
+  color: #a78bfa;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s;
+}
+.nowPlayingStart:hover { background: rgba(138,92,255,0.25); }
+
+.nowPlayingEmpty {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.25);
+  font-style: italic;
+  margin: 0;
+  text-align: center;
+  padding: 8px 0;
 }
 
 /* ── Top bar ── */
@@ -359,6 +964,33 @@
 }
 .topBarNavBtn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.22); }
 
+.topBarQuickLinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.topBarQuickBtn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.13s, border-color 0.13s, background 0.13s;
+}
+.topBarQuickBtn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.22);
+}
+
 .topBarNavLink {
   font-size: 0.7rem;
   font-weight: 700;
@@ -476,6 +1108,7 @@
   grid-template-columns: 1fr 1fr;
   overflow: hidden;
   min-height: 0;
+  /* mainArea is the flex column container */
 }
 
 .column {
@@ -1235,6 +1868,17 @@
 .histDot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
 .histDotSkip { width: 6px; height: 6px; border-radius: 50%; background: #4b5563; flex-shrink: 0; }
 
+.histSectionLabel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.2);
+  padding: 10px 14px 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 4px;
+}
+
 .histName { flex: 1; font-size: 0.78rem; color: rgba(255,255,255,0.4); }
 .histAge  { font-size: 0.65rem; color: rgba(255,255,255,0.2); }
 
@@ -1614,6 +2258,20 @@
 }
 .btnContinue:hover { background: rgba(34,197,94,0.22); }
 
+.btnCloseSession {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 6px;
+  color: rgba(239,68,68,0.7);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.btnCloseSession:hover { background: rgba(239,68,68,0.18); color: #f87171; }
+
 .btnExpand {
   font-size: 0.6rem;
   width: 26px;
@@ -1933,6 +2591,28 @@
 .modalFoot .customSaveBtn { flex: 1; padding: 11px; font-size: 0.9rem; }
 .modalFoot .customCancelBtn { padding: 11px 18px; font-size: 0.85rem; }
 
+/* ── Queue empty state ── */
+.queueEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 20px;
+  text-align: center;
+}
+.queueEmptyIcon { font-size: 2rem; opacity: 0.25; }
+.queueEmptyTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+}
+.queueEmptyHint {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.2);
+  line-height: 1.5;
+  max-width: 200px;
+}
+
 /* ── Misc ── */
 .empty {
   font-size: 0.8rem;
@@ -1945,33 +2625,30 @@
 
 /* ── Responsive ── */
 
-/* Below 1100px: hide secondary nav → hamburger appears */
-@media (max-width: 1100px) {
-  .topBarNavSecondary { display: none; }
-  .hamburgerWrap { display: flex; }
-  .topBarSession { max-width: 50%; }
-}
-
-/* Below 900px: shorten app name, hide primary nav too → hamburger has everything */
+/* Below 900px: shorten app name */
 @media (max-width: 900px) {
   .appNameFull { display: none; }
   .appNameShort { display: inline; }
-  .topBarNavPrimary { display: none; }
-  .topBarSession { max-width: 60%; }
   .topBar { gap: 6px; padding: 0 10px; }
 }
 
-/* Below 768px: single-column layout */
+/* Below 768px: stack panels vertically, compact sidebar */
 @media (max-width: 768px) {
-  .layout { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-  .column { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .body { flex-direction: column; }
+  .sidebar { width: 100%; flex-direction: row; height: 52px; padding: 0 8px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); overflow-x: auto; }
+  .sidebarDivider { width: 1px; height: 24px; margin: 0 4px; }
+  .sidebarSpacer { flex: 1; }
+  .sidebarLabel { display: none; }
+  .sidebarBtn { padding: 8px 10px; flex-direction: row; }
+  .leftPanel { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); max-height: 50%; }
+  .rightPanel { flex: 1; }
   .topBarSession { max-width: 70%; }
+  .topBarQuickLinks { display: none; }
 }
 
 /* Below 640px: very compact */
 @media (max-width: 640px) {
   .topBarEndBtn, .topBarNewBtn { padding: 3px 7px; font-size: 0.65rem; }
-  .topBarNavBtn { padding: 3px 7px; font-size: 0.65rem; }
   .topBarSessionName { font-size: 0.75rem; }
 }
 
@@ -2105,7 +2782,7 @@
 .msgTabs {
   display: flex;
   gap: 4px;
-  margin-bottom: 2px;
+  flex: 1;
 }
 
 .msgTab {

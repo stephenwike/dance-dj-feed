@@ -516,6 +516,15 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     return (
       <div className={styles.directTipSection}>
         <p className={styles.directTipLabel}>Tip the DJ</p>
+        {sessionActive && tippingEnabled && (
+          <div className={styles.directTipBeatsNudge}>
+            <span>💡 Beats tip your specific request with no processing fee — 100% goes to the DJ and boosts your dance in the queue.</span>
+            {isSignedIn
+              ? <button className={styles.directTipBeatsLink} onClick={() => setShowBeatShop(true)}>Get Beats →</button>
+              : <button className={styles.directTipBeatsLink} onClick={() => signIn('ldco', { callbackUrl: window.location.href })}>Sign in to use Beats →</button>
+            }
+          </div>
+        )}
         <div className={styles.directTipPresets}>
           {PRESETS.map(c => (
             <button
@@ -679,21 +688,24 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                           </span>
                         </button>
                       ))}
-                      <p className={styles.beatShopDisclaimer}>
-                        Beats increase the likelihood your request gets played — they do not guarantee it.
-                      </p>
+                      <ul className={styles.beatShopValueProps}>
+                        <li>✓ No processing fee — 100% goes to the DJ</li>
+                        <li>✓ Tip a specific dance request to boost its priority</li>
+                        <li>✓ More beats = higher in the DJ&apos;s queue</li>
+                        <li>✓ Doesn&apos;t guarantee play, but it helps</li>
+                      </ul>
                     </div>
                   )}
                 </>
               ) : tippingEnabled ? (
                 <div className={styles.beatsSignInPrompt}>
-                  <p className={styles.beatsSignInHeading}>Tip with Beats to boost your request</p>
-                  <p className={styles.beatsSignInSub}>Sign in to buy Beats and increase the chances your dance gets played.</p>
+                  <p className={styles.beatsSignInHeading}>Get more from your tip with Beats</p>
+                  <p className={styles.beatsSignInSub}>No processing fees — 100% goes to the DJ. Tip a specific dance to boost it in the queue.</p>
                   <button
                     className={styles.beatsSignInBtn}
                     onClick={() => signIn('ldco', { callbackUrl: window.location.href })}
                   >
-                    Sign in to buy Beats
+                    Sign in to use Beats
                   </button>
                 </div>
               ) : null}

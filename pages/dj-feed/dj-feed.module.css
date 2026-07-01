@@ -114,7 +114,27 @@
   color: rgba(255,255,255,0.12);
   font-style: italic;
   margin: auto;
+}
+
+.feedEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 1.5vh, 20px);
+  margin: auto;
   text-align: center;
+}
+.feedEmptyTitle {
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: -0.02em;
+}
+.feedEmptyHint {
+  font-size: clamp(1rem, 2.2vw, 1.8rem);
+  color: rgba(255,255,255,0.3);
+  font-weight: 600;
 }
 
 /* ── List ── */
@@ -484,7 +504,7 @@
 /* ── Payment link QR codes ── */
 .paymentSection {
   width: 100%;
-  padding-top: 20px;
+  padding-top: 32px;
   border-top: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;

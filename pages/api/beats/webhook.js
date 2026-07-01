@@ -56,6 +56,8 @@ export default async function handler(req, res) {
         amountCents: parseInt(amountCents, 10),
         attendeeId: null,
         stripeSessionId: session.id,
+        senderName: session.customer_details?.name ?? null,
+        senderEmail: session.customer_details?.email ?? session.customer_email ?? null,
         createdAt: new Date(),
       });
       return res.status(200).json({ received: true });

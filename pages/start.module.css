@@ -71,6 +71,32 @@
   line-height: 1.5;
 }
 
+/* ── How it works strip ── */
+.howItWorks {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0 4px;
+}
+
+.howStep {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.5;
+}
+
+.howIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.howLabel { flex: 1; }
+
 /* ── Active session resume banner ── */
 .resumeNotice {
   width: 100%;

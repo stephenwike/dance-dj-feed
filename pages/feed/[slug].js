@@ -163,7 +163,7 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
                 {paymentLinks.map((link, idx) => (
                   <div key={idx} className={styles.paymentLink}>
                     <div className={styles.paymentQrWrap}>
-                      <QRCodeSVG value={link.url} size={90} bgColor="#ffffff" fgColor="#1a1033" level="M" />
+                      <QRCodeSVG value={link.url} size={120} bgColor="#ffffff" fgColor="#1a1033" level="M" />
                     </div>
                     <span className={styles.paymentLabel}>{link.label}</span>
                   </div>
@@ -185,7 +185,10 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
             </div>
           )}
           {!first ? (
-            <p className={styles.empty}>No requests yet — scan the QR code to add one!</p>
+            <div className={styles.feedEmpty}>
+              <span className={styles.feedEmptyTitle}>No requests yet</span>
+              <span className={styles.feedEmptyHint}>Scan the QR code to request a dance</span>
+            </div>
           ) : (
             <>
               {(() => {

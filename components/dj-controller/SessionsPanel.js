@@ -3,7 +3,7 @@ import Link from 'next/link';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { formatDuration, formatTimestamp } from './utils';
 
-function SessionRow({ session, onContinue, onClose }) {
+export function SessionRow({ session, onContinue, onClose }) {
   const [expanded, setExpanded] = useState(false);
   const [played, setPlayed] = useState(null);
 
@@ -64,23 +64,18 @@ function SessionRow({ session, onContinue, onClose }) {
   );
 }
 
-export default function SessionsPanel({ sessions, onClose, onContinue, onCloseSession }) {
+export default function SessionsPanel({ sessions, onContinue, onCloseSession }) {
   return (
-    <div className={styles.sessionsOverlay}>
-      <div className={styles.sessionsPanel}>
-        <div className={styles.sessionsPanelHead}>
-          <span className={styles.sessionsPanelTitle}>Sessions</span>
-          <button className={styles.btnClosePanel} onClick={onClose}>✕</button>
-        </div>
-
-        <Link href="/start" className={styles.btnNewSession} onClick={onClose}>
-          + Start New Session
-        </Link>
-
+    <div className={styles.panel}>
+      <div className={styles.panelHead}>
+        <span className={styles.panelTitle}>Sessions</span>
+        <Link href="/start" className={styles.panelNewSessionBtn}>+ New</Link>
+      </div>
+      <div className={styles.panelBody} style={{ padding: 0 }}>
+        {sessions.length === 0 && (
+          <p className={styles.sessionEmpty} style={{ padding: '16px 20px' }}>No sessions yet.</p>
+        )}
         <div className={styles.sessionsList}>
-          {sessions.length === 0 && (
-            <p className={styles.sessionEmpty}>No sessions yet.</p>
-          )}
           {sessions.map(s => (
             <SessionRow key={s._id} session={s} onContinue={onContinue} onClose={onCloseSession} />
           ))}

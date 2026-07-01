@@ -17,12 +17,14 @@ import SortableQueueItem from '../../components/dj-controller/SortableQueueItem'
 import RemoteControl from '../../components/dj-controller/RemoteControl';
 import QueueCard from '../../components/dj-controller/QueueCard';
 import { timeAgo } from '../../components/dj-controller/utils';
-import PendingCard from '../../components/dj-controller/PendingCard';
 import SessionsPanel from '../../components/dj-controller/SessionsPanel';
 import CustomEditModal from '../../components/dj-controller/CustomEditModal';
 import TopBar from '../../components/dj-controller/TopBar';
-import ControlStrip from '../../components/dj-controller/ControlStrip';
+import Sidebar from '../../components/dj-controller/Sidebar';
+import SettingsPanel from '../../components/dj-controller/SettingsPanel';
 import MessagePanel from '../../components/dj-controller/MessagePanel';
+import FeedConfigPanel from '../../components/dj-controller/FeedConfigPanel';
+import WalletPanel from '../../components/dj-controller/WalletPanel';
 import PendingDanceGroup from '../../components/dj-controller/PendingDanceGroup';
 import PendingRequesterGroup from '../../components/dj-controller/PendingRequesterGroup';
 import SessionWarningBanner from '../../components/dj-controller/SessionWarningBanner';
@@ -35,15 +37,16 @@ const fetcher = url => fetch(url).then(r => r.json());
 function Controller() {
   const router = useRouter();
   const [pendingTab, setPendingTab] = useState('dances');
-  const [showSessions, setShowSessions] = useState(false);
   const [editingGroup, setEditingGroup] = useState(null);
   const [showExtendModal, setShowExtendModal] = useState(false);
+  const [activePanel, setActivePanel] = useState('requests');
+  const [connectNotice, setConnectNotice] = useState('');
 
   const {
     sessions, activeSession, isSpotify, mutateSessions,
-    openNewSession, closeSession: closeSessionBase, continueSession: continueSessionBase,
-    togglePartnerDances, toggleTipping, cycleDecay,
-    tippingEnabled, partnerDancesEnabled, decayEnabled, halfLifeMinutes, currentDecayLabel,
+    closeSession: closeSessionBase, continueSession: continueSessionBase,
+    togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
+    tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
   } = useSessionManager();
 
   const requestsUrl = activeSession?._id ? `/api/dj/requests?sessionId=${activeSession._id}` : '/api/dj/requests';
@@ -53,14 +56,13 @@ function Controller() {
 
   const {
     activeMsg,
-    showMessagePanel, setShowMessagePanel,
+    showMessagePanel: _showMsg, setShowMessagePanel,
     msgTab, setMsgTab,
     msgText, setMsgText,
     msgDuration, setMsgDuration,
     postMessage, clearMessage, addQueueMessage,
   } = useAnnouncements({ activeSession, mutateRequests: mutate });
 
-  // ── Spotify plugin ────────────────────────────────────────────────────────────
   const spotify = useSpotifyPlugin({ isActive: isSpotify, rawRequests, mutate });
 
   const { timeState, countdown, isGrace } = useSessionTimeState(activeSession);
@@ -70,12 +72,24 @@ function Controller() {
       window.history.replaceState({}, '', '/dj-controller');
       mutateSessions();
     }
-  }, [router.query.extension_success]);
+    if (router.query.connect_success) {
+      window.history.replaceState({}, '', '/dj-controller');
+      setConnectNotice('Payout account connected! It may take a moment to verify.');
+      setActivePanel('wallet');
+    }
+    if (router.query.connect_refresh) {
+      window.history.replaceState({}, '', '/dj-controller');
+      setConnectNotice('Please complete your payout account setup.');
+      setActivePanel('wallet');
+    }
+  }, [router.query.extension_success, router.query.connect_success, router.query.connect_refresh]);
 
+  const [stripeDismissed, setStripeDismissed] = useState(false);
   const { data: stripeStatus } = useSWR('/api/dev/stripe-status', fetcher, {
     refreshInterval: 10000, shouldRetryOnError: false,
+    onSuccess: (data) => { if (data?.active) setStripeDismissed(false); },
   });
-  const stripeWarning = stripeStatus && !stripeStatus.active;
+  const stripeWarning = stripeStatus && !stripeStatus.active && !stripeDismissed;
 
   async function closeSession() {
     await closeSessionBase(isSpotify ? () => spotify.onCloseSession() : undefined);
@@ -83,14 +97,14 @@ function Controller() {
   }
 
   async function continueSession(id) {
-    await continueSessionBase(id, async () => { mutate(); setShowSessions(false); });
+    await continueSessionBase(id, async () => { mutate(); setActivePanel('requests'); });
   }
 
   const {
-    pending, playing, queue, history,
-    repeatClientIds, resolvedNames, lastPlayedAt, danceRequestCounts,
+    playing, queue, history,
+    resolvedNames, danceRequestCounts,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
-  } = useRequestGroups({ rawRequests, decayEnabled, halfLifeMinutes });
+  } = useRequestGroups({ rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
 
   const playingItem = playing[0] ?? null;
   useStandardAutoAdvance({ isSpotify, playingItem, mutate });
@@ -101,225 +115,255 @@ function Controller() {
     rawRequests, queue, nextQueuePos, history, isSpotify, spotify, mutate,
   });
 
+  const pendingCount = danceGroups.length;
+
   return (
     <>
-    {showSessions && (
-      <SessionsPanel
-        sessions={sessions}
-        activeSession={activeSession}
-        onClose={() => setShowSessions(false)}
-        onContinue={continueSession}
-        onCloseSession={async (id) => { await closeSession(); setShowSessions(false); }}
-      />
-    )}
-    {editingGroup && (
-      <CustomEditModal
-        group={editingGroup}
-        onClose={() => setEditingGroup(null)}
-        onSave={saveGroupEdit}
-      />
-    )}
-    <div className={styles.page}>
-      {stripeWarning && (
-        <div className={styles.stripeBanner}>
-          ⚡ Stripe listener not running — payments won&apos;t confirm. Run <code>npm run stripe</code> in a separate terminal.
-        </div>
-      )}
-      <TopBar
-        activeSession={activeSession}
-        closeSession={closeSession}
-        isSpotify={isSpotify}
-        spotifyConnected={spotify.connected}
-        onShowSessions={() => setShowSessions(true)}
-        timeState={timeState}
-        countdown={countdown}
-      />
-      <SessionWarningBanner
-        timeState={timeState}
-        countdown={countdown}
-        onExtend={() => setShowExtendModal(true)}
-      />
-      {showExtendModal && activeSession && (
-        <ExtendSessionModal
-          sessionId={activeSession._id}
-          onClose={() => setShowExtendModal(false)}
-          onExtended={() => mutateSessions()}
+      {editingGroup && (
+        <CustomEditModal
+          group={editingGroup}
+          onClose={() => setEditingGroup(null)}
+          onSave={saveGroupEdit}
         />
       )}
 
-      <ControlStrip
-        activeSession={activeSession}
-        partnerDancesEnabled={partnerDancesEnabled}
-        togglePartnerDances={togglePartnerDances}
-        tippingEnabled={tippingEnabled}
-        toggleTipping={toggleTipping}
-        decayEnabled={decayEnabled}
-        cycleDecay={cycleDecay}
-        currentDecayLabel={currentDecayLabel}
-        activeMsg={activeMsg}
-        clearMessage={clearMessage}
-        showMessagePanel={showMessagePanel}
-        msgTab={msgTab}
-        setShowMessagePanel={setShowMessagePanel}
-        setMsgTab={setMsgTab}
-        setMsgText={setMsgText}
-        setMsgDuration={setMsgDuration}
-      />
-
-      <MessagePanel
-        activeSession={activeSession}
-        showMessagePanel={showMessagePanel}
-        msgTab={msgTab}
-        msgText={msgText}
-        setMsgText={setMsgText}
-        msgDuration={msgDuration}
-        setMsgDuration={setMsgDuration}
-        activeMsg={activeMsg}
-        clearMessage={clearMessage}
-        postMessage={postMessage}
-        addQueueMessage={addQueueMessage}
-      />
-
-      <div className={styles.layout}>
-        {/* ── Queue column ── */}
-        <section className={`${styles.column} ${isGrace ? styles.frozen : ''}`}>
-          <div className={styles.colHead}>
-            <span className={styles.colLabel}>Queue</span>
-            <span className={styles.colCount}>{queue.length}</span>
+      <div className={styles.page}>
+        {stripeWarning && (
+          <div className={styles.stripeBanner}>
+            ⚡ Stripe listener not running — payments won&apos;t confirm. Run <code>npm run stripe</code> in a separate terminal.
+            <button className={styles.stripeBannerDismiss} onClick={() => setStripeDismissed(true)}>✕</button>
           </div>
+        )}
+        <TopBar
+          activeSession={activeSession}
+          closeSession={closeSession}
+          timeState={timeState}
+          countdown={countdown}
+        />
+        <SessionWarningBanner
+          timeState={timeState}
+          countdown={countdown}
+          onExtend={() => setShowExtendModal(true)}
+        />
+        {showExtendModal && activeSession && (
+          <ExtendSessionModal
+            sessionId={activeSession._id}
+            onClose={() => setShowExtendModal(false)}
+            onExtended={() => mutateSessions()}
+          />
+        )}
 
-          <div className={styles.colBody}>
-            {isSpotify ? (
-              <SpotifyPanel
-                data={spotify.data}
-                onControl={spotify.handleControl}
-                connected={spotify.connected}
-                error={spotify.error}
-                onRetry={spotify.retry}
-              />
-            ) : (
-              <RemoteControl playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession} />
-            )}
+        <div className={styles.body}>
+          <Sidebar
+            activeSession={activeSession}
+            activePanel={activePanel}
+            onSetPanel={setActivePanel}
+            activeMsg={activeMsg}
+            pendingCount={pendingCount}
+            isSpotify={isSpotify}
+            spotifyConnected={spotify.connected}
+          />
 
-            {isSpotify && playing.length === 0 && queue.length > 0 && (
-              <button className={styles.remoteBtnStart} onClick={() => handleAction(queue[0]._id, 'startQueue')}>
-                ▶ Start Queue
-              </button>
-            )}
-
-            {isSpotify && playing.map(r => (
-              <div key={r._id} className={styles.qCard} style={{ borderColor: 'rgba(138,92,255,0.4)' }}>
-                <div className={styles.qInfo}>
-                  <div className={styles.qName}>{r.danceName} <span className={styles.nowBadge}>NOW PLAYING</span></div>
-                  {r.songName && <div className={styles.qSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</div>}
+          {/* ── Left panel (swappable) ── */}
+          <div className={`${styles.leftPanel} ${isGrace ? styles.frozen : ''}`}>
+            {activePanel === 'requests' && (
+              <div className={styles.panel}>
+                <div className={styles.panelHead}>
+                  <div className={styles.segControl}>
+                    <button
+                      className={`${styles.seg} ${pendingTab === 'dances' ? styles.segActive : ''}`}
+                      onClick={() => setPendingTab('dances')}
+                    >
+                      By Dance {danceGroups.length > 0 && <span className={styles.segBadge}>{danceGroups.length}</span>}
+                    </button>
+                    <button
+                      className={`${styles.seg} ${pendingTab === 'requesters' ? styles.segActive : ''}`}
+                      onClick={() => setPendingTab('requesters')}
+                    >
+                      By Requester
+                    </button>
+                  </div>
                 </div>
-                <div className={styles.qActions}>
-                  <button className={styles.btnPlayed} onClick={() => handleAction(r._id, 'played')}>✓ Played</button>
-                  <button className={styles.btnRemove} onClick={() => handleAction(r._id, 'remove')}>✕</button>
+                <div className={styles.panelBody}>
+                  {pendingTab === 'dances' && (
+                    danceGroups.length === 0
+                      ? <p className={styles.empty}>No pending requests yet.</p>
+                      : danceGroups.map(group => (
+                          <PendingDanceGroup
+                            key={group.danceId || group.danceName}
+                            group={group}
+                            playsPerClient={playsPerClient}
+                            resolvedNames={resolvedNames}
+                            onAction={handleAction}
+                            onEdit={setEditingGroup}
+                          />
+                        ))
+                  )}
+                  {pendingTab === 'requesters' && (
+                    requesterGroups.length === 0
+                      ? <p className={styles.empty}>No requests yet.</p>
+                      : requesterGroups.map(group => (
+                          <PendingRequesterGroup
+                            key={group.key}
+                            group={group}
+                            playsPerClient={playsPerClient}
+                          />
+                        ))
+                  )}
                 </div>
               </div>
-            ))}
-
-            {!isSpotify && playing.length === 0 && queue.length === 0 && (
-              <p className={styles.empty}>Queue is empty. Approve requests to add dances.</p>
-            )}
-            {isSpotify && playing.length === 0 && queue.length === 0 && (
-              <p className={styles.empty}>Queue is empty.</p>
             )}
 
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={queue.map(r => r._id)} strategy={verticalListSortingStrategy}>
-                {queue.map(r => (
-                  <SortableQueueItem key={r._id} id={r._id}>
-                    {(dragHandleProps) => (
-                      <QueueCard
-                        request={r}
-                        onAction={handleAction}
-                        resolvedName={resolvedNames[r.clientId]}
-                        dragHandleProps={dragHandleProps}
-                        requesterCount={danceRequestCounts[r.danceId || r.danceName] ?? 1}
-                      />
-                    )}
-                  </SortableQueueItem>
-                ))}
-              </SortableContext>
-            </DndContext>
+            {activePanel === 'messages' && (
+              <MessagePanel
+                activeSession={activeSession}
+                msgTab={msgTab}
+                setMsgTab={setMsgTab}
+                msgText={msgText}
+                setMsgText={setMsgText}
+                msgDuration={msgDuration}
+                setMsgDuration={setMsgDuration}
+                activeMsg={activeMsg}
+                clearMessage={clearMessage}
+                postMessage={postMessage}
+                addQueueMessage={addQueueMessage}
+              />
+            )}
 
-            {isSpotify && <SpotifySearch onAdd={(track) => spotify.handleAdd(track, nextQueuePos)} />}
+            {activePanel === 'settings' && (
+              <SettingsPanel
+                activeSession={activeSession}
+                partnerDancesEnabled={partnerDancesEnabled}
+                togglePartnerDances={togglePartnerDances}
+                tippingEnabled={tippingEnabled}
+                toggleTipping={toggleTipping}
+                fairnessScoringEnabled={fairnessScoringEnabled}
+                toggleWeighting={toggleWeighting}
+                cycleDecay={cycleDecay}
+                decayLabel={decayLabel}
+              />
+            )}
 
-            {history.length > 0 && (
-              <details className={styles.historyDetails}>
-                <summary className={styles.historySummary}>
-                  History ({history.length})
-                  <button className={styles.clearHistBtn} onClick={e => { e.preventDefault(); clearHistory(); }}>
-                    Clear
+            {activePanel === 'feed-config' && (
+              <FeedConfigPanel activeSession={activeSession} />
+            )}
+
+            {activePanel === 'wallet' && (
+              <WalletPanel connectNotice={connectNotice} />
+            )}
+
+            {activePanel === 'sessions' && (
+              <SessionsPanel
+                sessions={sessions}
+                onContinue={continueSession}
+                onCloseSession={async (id) => { await closeSession(); setActivePanel('requests'); }}
+              />
+            )}
+
+            {activePanel === 'history' && (
+              <div className={styles.panel}>
+                <div className={styles.panelHead}>
+                  <span className={styles.panelTitle}>Track History</span>
+                  {history.length > 0 && <span className={styles.colCount}>{history.length}</span>}
+                  {history.length > 0 && (
+                    <button className={styles.clearHistBtn} style={{ marginLeft: 'auto' }} onClick={clearHistory}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className={styles.panelBody} style={{ padding: 0 }}>
+                  {/* Current session tracks */}
+                  {history.length === 0 ? (
+                    <p className={styles.empty} style={{ padding: '12px 14px' }}>No tracks played yet this session.</p>
+                  ) : (
+                    history.map(r => (
+                      <div key={r._id} className={styles.histRow} style={{ padding: '6px 14px' }}>
+                        <span className={r.status === 'played' ? styles.histDot : styles.histDotSkip} />
+                        <span className={styles.histName}>{r.danceName}</span>
+                        <span className={styles.histAge}>{timeAgo(r.updatedAt)} ago</span>
+                      </div>
+                    ))
+                  )}
+
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Right panel (permanent queue) ── */}
+          <div className={`${styles.rightPanel} ${isGrace ? styles.frozen : ''}`}>
+            <div className={styles.panel}>
+              <div className={styles.panelHead}>
+                <span className={styles.panelTitle}>Queue</span>
+                {queue.length > 0 && <span className={styles.colCount}>{queue.length}</span>}
+              </div>
+              <div className={styles.panelBody}>
+                {isSpotify ? (
+                  <SpotifyPanel
+                    data={spotify.data}
+                    onControl={spotify.handleControl}
+                    connected={spotify.connected}
+                    error={spotify.error}
+                    onRetry={spotify.retry}
+                  />
+                ) : (
+                  <RemoteControl playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession} />
+                )}
+
+                {isSpotify && playing.length === 0 && queue.length > 0 && (
+                  <button className={styles.remoteBtnStart} onClick={() => handleAction(queue[0]._id, 'startQueue')}>
+                    ▶ Start Queue
                   </button>
-                </summary>
-                {history.map(r => (
-                  <div key={r._id} className={styles.histRow}>
-                    <span className={r.status === 'played' ? styles.histDot : styles.histDotSkip} />
-                    <span className={styles.histName}>{r.danceName}</span>
-                    <span className={styles.histAge}>{timeAgo(r.updatedAt)} ago</span>
+                )}
+
+                {isSpotify && playing.map(r => (
+                  <div key={r._id} className={styles.qCard} style={{ borderColor: 'rgba(138,92,255,0.4)' }}>
+                    <div className={styles.qInfo}>
+                      <div className={styles.qName}>{r.danceName} <span className={styles.nowBadge}>NOW PLAYING</span></div>
+                      {r.songName && <div className={styles.qSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</div>}
+                    </div>
+                    <div className={styles.qActions}>
+                      <button className={styles.btnPlayed} onClick={() => handleAction(r._id, 'played')}>✓ Played</button>
+                      <button className={styles.btnRemove} onClick={() => handleAction(r._id, 'remove')}>✕</button>
+                    </div>
                   </div>
                 ))}
-              </details>
-            )}
-          </div>
-        </section>
 
-        {/* ── Pending column ── */}
-        <section className={`${styles.column} ${isGrace ? styles.frozen : ''}`}>
-          <div className={styles.colHead}>
-            <div className={styles.segControl}>
-              <button
-                className={`${styles.seg} ${pendingTab === 'dances' ? styles.segActive : ''}`}
-                onClick={() => setPendingTab('dances')}
-              >
-                By Dance {danceGroups.length > 0 && <span className={styles.segBadge}>{danceGroups.length}</span>}
-              </button>
-              <button
-                className={`${styles.seg} ${pendingTab === 'requesters' ? styles.segActive : ''}`}
-                onClick={() => setPendingTab('requesters')}
-              >
-                By Requester
-              </button>
+                {!isSpotify && playing.length === 0 && queue.length === 0 && (
+                  <div className={styles.queueEmpty}>
+                    <span className={styles.queueEmptyIcon}>🎵</span>
+                    <span className={styles.queueEmptyTitle}>Queue is empty</span>
+                    <span className={styles.queueEmptyHint}>Approve requests from the Requests panel to add dances</span>
+                  </div>
+                )}
+                {isSpotify && playing.length === 0 && queue.length === 0 && (
+                  <p className={styles.empty}>Queue is empty.</p>
+                )}
+
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={queue.map(r => r._id)} strategy={verticalListSortingStrategy}>
+                    {queue.map(r => (
+                      <SortableQueueItem key={r._id} id={r._id}>
+                        {(dragHandleProps) => (
+                          <QueueCard
+                            request={r}
+                            onAction={handleAction}
+                            resolvedName={resolvedNames[r.clientId]}
+                            dragHandleProps={dragHandleProps}
+                            requesterCount={danceRequestCounts[r.danceId || r.danceName] ?? 1}
+                          />
+                        )}
+                      </SortableQueueItem>
+                    ))}
+                  </SortableContext>
+                </DndContext>
+
+                {isSpotify && <SpotifySearch onAdd={(track) => spotify.handleAdd(track, nextQueuePos)} />}
+              </div>
             </div>
           </div>
-
-          <div className={styles.colBody}>
-            {/* By Dance */}
-            {pendingTab === 'dances' && (
-              danceGroups.length === 0
-                ? <p className={styles.empty}>No pending requests yet.</p>
-                : danceGroups.map(group => (
-                    <PendingDanceGroup
-                      key={group.danceId || group.danceName}
-                      group={group}
-                      playsPerClient={playsPerClient}
-                      resolvedNames={resolvedNames}
-                      onAction={handleAction}
-                      onEdit={setEditingGroup}
-                    />
-                  ))
-            )}
-
-            {/* By Requester */}
-            {pendingTab === 'requesters' && (
-              requesterGroups.length === 0
-                ? <p className={styles.empty}>No requests yet.</p>
-                : requesterGroups.map(group => (
-                    <PendingRequesterGroup
-                      key={group.key}
-                      group={group}
-                      playsPerClient={playsPerClient}
-                    />
-                  ))
-            )}
-
-          </div>
-        </section>
+        </div>
       </div>
-    </div>
     </>
   );
 }

@@ -36,8 +36,8 @@ export default async function handler(req, res) {
   const base = process.env.NEXT_PUBLIC_BASE_URL;
   const accountLink = await stripe.accountLinks.create({
     account: stripeAccountId,
-    refresh_url: `${base}/dj-profile?connect_refresh=1`,
-    return_url:  `${base}/dj-profile?connect_success=1`,
+    refresh_url: `${base}/dj-controller?connect_refresh=1`,
+    return_url:  `${base}/dj-controller?connect_success=1`,
     type: 'account_onboarding',
   });
 

@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
+import { useState } from 'react';
 import useSWR from 'swr';
-import styles from './dj-profile.module.css';
+import styles from '../../pages/dj-controller/dj-controller.module.css';
+import ws from '../../pages/dj-profile.module.css';
 
 const fetcher = url => fetch(url).then(r => r.json());
 
@@ -13,10 +11,10 @@ function formatCents(cents) {
 
 function txLabel(type) {
   switch (type) {
-    case 'beat_tip':    return 'Beat tip';
-    case 'direct_tip':  return 'Direct tip';
-    case 'withdrawal':  return 'Withdrawal';
-    case 'session_payment': return 'Session payment';
+    case 'beat_tip':         return 'Beat tip';
+    case 'direct_tip':       return 'Direct tip';
+    case 'withdrawal':       return 'Withdrawal';
+    case 'session_payment':  return 'Session payment';
     default: return type;
   }
 }
@@ -29,14 +27,12 @@ function timeAgo(date) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export default function DJProfilePage() {
-  const router = useRouter();
+export default function WalletPanel({ connectNotice }) {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState('');
   const [withdrawSuccess, setWithdrawSuccess] = useState(false);
   const [onboarding, setOnboarding] = useState(false);
-  const [connectNotice, setConnectNotice] = useState('');
   const [linkLabel, setLinkLabel] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [linkError, setLinkError] = useState('');
@@ -54,20 +50,6 @@ export default function DJProfilePage() {
   const payoutsEnabled = connectStatus?.payoutsEnabled ?? false;
   const detailsSubmitted = connectStatus?.detailsSubmitted ?? false;
   const paymentLinks = profileData?.paymentLinks ?? [];
-
-  // Handle returns from Stripe Connect onboarding
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('connect_success')) {
-      setConnectNotice('Payout account connected! It may take a moment to verify.');
-      mutateConnect();
-      router.replace('/dj-profile', undefined, { shallow: true });
-    }
-    if (params.get('connect_refresh')) {
-      setConnectNotice('Please complete your payout account setup.');
-      router.replace('/dj-profile', undefined, { shallow: true });
-    }
-  }, []);
 
   async function startOnboarding() {
     setOnboarding(true);
@@ -88,7 +70,10 @@ export default function DJProfilePage() {
     setSavingLinks(true);
     try {
       const next = [...paymentLinks, { label: linkLabel.trim(), url: linkUrl.trim() }];
-      const res = await fetch('/api/dj/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentLinks: next }) });
+      const res = await fetch('/api/dj/profile', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentLinks: next }),
+      });
       const body = await res.json();
       if (!res.ok) { setLinkError(body.error || 'Failed to save'); return; }
       mutateProfile();
@@ -100,7 +85,10 @@ export default function DJProfilePage() {
     setSavingLinks(true);
     try {
       const next = paymentLinks.filter((_, i) => i !== idx);
-      await fetch('/api/dj/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentLinks: next }) });
+      await fetch('/api/dj/profile', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentLinks: next }),
+      });
       mutateProfile();
     } finally { setSavingLinks(false); }
   }
@@ -113,8 +101,7 @@ export default function DJProfilePage() {
     setWithdrawError('');
     try {
       const res = await fetch('/api/dj/withdraw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amountCents: cents }),
       });
       const body = await res.json();
@@ -123,116 +110,110 @@ export default function DJProfilePage() {
       setWithdrawAmount('');
       mutateWallet();
       setTimeout(() => setWithdrawSuccess(false), 5000);
-    } finally {
-      setWithdrawing(false);
-    }
+    } finally { setWithdrawing(false); }
   }
 
   return (
-    <>
-      <Head><title>DJ Profile</title></Head>
-      <div className={styles.page}>
-        <div className={styles.header}>
-          <Link href="/dj-controller" className={styles.back}>← Controller</Link>
-          <h1 className={styles.title}>Wallet & Payouts</h1>
-        </div>
+    <div className={styles.panel}>
+      <div className={styles.panelHead}>
+        <span className={styles.panelTitle}>Wallet &amp; Payouts</span>
+      </div>
+      <div className={`${styles.panelBody} ${styles.walletBody}`}>
 
-        {/* ── Balance ── */}
-        <div className={styles.card}>
-          <p className={styles.balanceLabel}>Total earnings</p>
-          <p className={styles.balanceAmount}>{formatCents(balance)}</p>
+        {/* Connect notice from Stripe redirect */}
+        {connectNotice && (
+          <div className={styles.walletNotice}>{connectNotice}</div>
+        )}
+
+        {/* Balance */}
+        <div className={styles.walletCard}>
+          <p className={ws.balanceLabel}>Total earnings</p>
+          <p className={ws.balanceAmount}>{formatCents(balance)}</p>
           {payoutsEnabled && stripeAvailable > 0 && (
-            <div className={styles.balanceBreakdown}>
-              <span className={styles.balanceDetail}>Available to withdraw: {formatCents(withdrawable)}</span>
+            <div className={ws.balanceBreakdown}>
+              <span className={ws.balanceDetail}>Available to withdraw: {formatCents(withdrawable)}</span>
             </div>
           )}
         </div>
 
-        {/* ── Connect notice ── */}
-        {connectNotice && (
-          <div className={styles.notice}>{connectNotice}</div>
-        )}
-
-        {/* ── Payout setup ── */}
-        <div className={styles.card}>
-          <h2 className={styles.sectionTitle}>Payout account</h2>
+        {/* Payout account */}
+        <div className={styles.walletCard}>
+          <h2 className={ws.sectionTitle}>Payout account</h2>
           {payoutsEnabled ? (
-            <p className={styles.connectedMsg}>✓ Connected — payouts enabled</p>
+            <p className={ws.connectedMsg}>✓ Connected — payouts enabled</p>
           ) : detailsSubmitted ? (
             <>
-              <p className={styles.pendingMsg}>Account submitted — Stripe is verifying your details. This can take 1–2 business days.</p>
-              <button className={styles.btn} onClick={startOnboarding} disabled={onboarding}>
+              <p className={ws.pendingMsg}>Account submitted — Stripe is verifying your details. This can take 1–2 business days.</p>
+              <button className={ws.btn} onClick={startOnboarding} disabled={onboarding}>
                 {onboarding ? 'Redirecting…' : 'Continue setup'}
               </button>
             </>
           ) : (
             <>
-              <p className={styles.setupMsg}>Connect a bank account to withdraw your earnings.</p>
-              <button className={styles.btn} onClick={startOnboarding} disabled={onboarding}>
+              <p className={ws.setupMsg}>Connect a bank account to withdraw your earnings.</p>
+              <button className={ws.btn} onClick={startOnboarding} disabled={onboarding}>
                 {onboarding ? 'Redirecting…' : 'Set up payouts'}
               </button>
             </>
           )}
         </div>
 
-        {/* ── Payment Links ── */}
-        <div className={styles.card}>
-          <h2 className={styles.sectionTitle}>Payment links</h2>
-          <p className={styles.setupMsg}>Add up to 3 links (Venmo, PayPal, CashApp, etc.) — attendees can scan them as QR codes on the feed screen to tip you directly.</p>
-
+        {/* Payment links */}
+        <div className={styles.walletCard}>
+          <h2 className={ws.sectionTitle}>Payment links</h2>
+          <p className={ws.setupMsg}>Add up to 3 links (Venmo, PayPal, CashApp, etc.) — attendees can scan them as QR codes on the feed screen.</p>
           {paymentLinks.length > 0 && (
-            <ul className={styles.linkList}>
+            <ul className={ws.linkList}>
               {paymentLinks.map((link, idx) => (
-                <li key={idx} className={styles.linkRow}>
-                  <span className={styles.linkLabel}>{link.label}</span>
-                  <span className={styles.linkUrl}>{link.url}</span>
-                  <button className={styles.linkRemove} onClick={() => removePaymentLink(idx)} disabled={savingLinks}>✕</button>
+                <li key={idx} className={ws.linkRow}>
+                  <span className={ws.linkLabel}>{link.label}</span>
+                  <span className={ws.linkUrl}>{link.url}</span>
+                  <button className={ws.linkRemove} onClick={() => removePaymentLink(idx)} disabled={savingLinks}>✕</button>
                 </li>
               ))}
             </ul>
           )}
-
           {paymentLinks.length < 3 && (
-            <div className={styles.linkForm}>
+            <div className={ws.linkForm}>
               <input
-                className={styles.linkInput}
+                className={ws.linkInput}
                 placeholder="Label (e.g. Venmo)"
                 value={linkLabel}
                 onChange={e => { setLinkLabel(e.target.value); setLinkError(''); }}
                 disabled={savingLinks}
               />
               <input
-                className={`${styles.linkInput} ${styles.linkInputUrl}`}
-                placeholder="https://venmo.com/u/your-username"
+                className={`${ws.linkInput} ${ws.linkInputUrl}`}
+                placeholder="https://venmo.com/u/username"
                 value={linkUrl}
                 onChange={e => { setLinkUrl(e.target.value); setLinkError(''); }}
                 disabled={savingLinks}
               />
-              <button className={styles.btn} onClick={addPaymentLink} disabled={savingLinks || !linkLabel || !linkUrl}>
+              <button className={ws.btn} onClick={addPaymentLink} disabled={savingLinks || !linkLabel || !linkUrl}>
                 {savingLinks ? 'Saving…' : 'Add'}
               </button>
             </div>
           )}
-          {linkError && <p className={styles.withdrawError}>{linkError}</p>}
+          {linkError && <p className={ws.withdrawError}>{linkError}</p>}
         </div>
 
-        {/* ── Withdraw ── */}
+        {/* Withdraw */}
         {payoutsEnabled && (
-          <div className={styles.card}>
-            <h2 className={styles.sectionTitle}>Withdraw</h2>
+          <div className={styles.walletCard}>
+            <h2 className={ws.sectionTitle}>Withdraw</h2>
             {withdrawable < 100 ? (
-              <p className={styles.withdrawHint}>
+              <p className={ws.withdrawHint}>
                 {balance >= 100 && stripePending > 0
                   ? `You have ${formatCents(balance)} in earnings, but funds are still settling with Stripe. Payments typically take 2–3 business days to become available.`
                   : `Minimum withdrawal is $1.00. Your current available balance is ${formatCents(withdrawable)}.`}
               </p>
             ) : (
               <>
-                <p className={styles.withdrawHint}>Min $1.00 · Max {formatCents(withdrawable)}</p>
-                <div className={styles.withdrawRow}>
-                  <span className={styles.withdrawDollar}>$</span>
+                <p className={ws.withdrawHint}>Min $1.00 · Max {formatCents(withdrawable)}</p>
+                <div className={ws.withdrawRow}>
+                  <span className={ws.withdrawDollar}>$</span>
                   <input
-                    className={styles.withdrawInput}
+                    className={ws.withdrawInput}
                     type="number"
                     min="1"
                     step="0.01"
@@ -240,37 +221,30 @@ export default function DJProfilePage() {
                     value={withdrawAmount}
                     onChange={e => { setWithdrawAmount(e.target.value); setWithdrawError(''); }}
                   />
-                  <button
-                    className={styles.withdrawAllBtn}
-                    onClick={() => { setWithdrawAmount((withdrawable / 100).toFixed(2)); setWithdrawError(''); }}
-                  >
+                  <button className={ws.withdrawAllBtn} onClick={() => { setWithdrawAmount((withdrawable / 100).toFixed(2)); setWithdrawError(''); }}>
                     Max
                   </button>
-                  <button
-                    className={styles.withdrawBtn}
-                    onClick={handleWithdraw}
-                    disabled={withdrawing || !withdrawAmount}
-                  >
+                  <button className={ws.withdrawBtn} onClick={handleWithdraw} disabled={withdrawing || !withdrawAmount}>
                     {withdrawing ? 'Processing…' : 'Withdraw'}
                   </button>
                 </div>
               </>
             )}
-            {withdrawError && <p className={styles.withdrawError}>{withdrawError}</p>}
-            {withdrawSuccess && <p className={styles.withdrawSuccess}>Transfer initiated — funds arrive in 1–3 business days.</p>}
+            {withdrawError && <p className={ws.withdrawError}>{withdrawError}</p>}
+            {withdrawSuccess && <p className={ws.withdrawSuccess}>Transfer initiated — funds arrive in 1–3 business days.</p>}
           </div>
         )}
 
-        {/* ── Transaction history ── */}
+        {/* Transaction history */}
         {transactions.length > 0 && (
-          <div className={styles.card}>
-            <h2 className={styles.sectionTitle}>Recent transactions</h2>
-            <ul className={styles.txList}>
+          <div className={styles.walletCard}>
+            <h2 className={ws.sectionTitle}>Recent transactions</h2>
+            <ul className={ws.txList}>
               {transactions.map(t => (
-                <li key={t._id} className={styles.txRow}>
-                  <span className={styles.txType}>{txLabel(t.type)}</span>
-                  <span className={styles.txAge}>{timeAgo(t.createdAt)}</span>
-                  <span className={`${styles.txAmount} ${t.amountCents < 0 ? styles.txDebit : styles.txCredit}`}>
+                <li key={t._id} className={ws.txRow}>
+                  <span className={ws.txType}>{txLabel(t.type)}</span>
+                  <span className={ws.txAge}>{timeAgo(t.createdAt)}</span>
+                  <span className={`${ws.txAmount} ${t.amountCents < 0 ? ws.txDebit : ws.txCredit}`}>
                     {t.amountCents < 0 ? '−' : '+'}{formatCents(Math.abs(t.amountCents))}
                   </span>
                 </li>
@@ -278,7 +252,8 @@ export default function DJProfilePage() {
             </ul>
           </div>
         )}
+
       </div>
-    </>
+    </div>
   );
 }

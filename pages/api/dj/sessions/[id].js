@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const { status, partnerDancesEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes } = req.body ?? {};
+    const { status, partnerDancesEnabled, tippingEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled } = req.body ?? {};
     const set = {};
 
     if (status === 'closed') {
@@ -55,8 +55,10 @@ export default async function handler(req, res) {
     }
 
     if (partnerDancesEnabled !== undefined) set.partnerDancesEnabled = partnerDancesEnabled;
+    if (tippingEnabled !== undefined) set.tippingEnabled = !!tippingEnabled;
     if (weightDecayEnabled !== undefined) set.weightDecayEnabled = !!weightDecayEnabled;
     if (weightDecayHalfLifeMinutes !== undefined) set.weightDecayHalfLifeMinutes = Number(weightDecayHalfLifeMinutes) || 60;
+    if (fairnessScoringEnabled !== undefined) set.fairnessScoringEnabled = !!fairnessScoringEnabled;
     await col.updateOne({ _id: objId, ownerId: userId }, { $set: set });
 
     if (status === 'closed') {
