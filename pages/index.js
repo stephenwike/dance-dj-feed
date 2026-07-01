@@ -598,7 +598,19 @@ export default function Home() {
 
   return (
     <>
-      <Head><title>DanceFeed — Live Request Platform for Line Dance DJs</title></Head>
+      <Head>
+        <title>DanceFeed — Live Request Platform for Line Dance DJs</title>
+        <meta name="description" content="Attendees scan a QR code to request dances in real time. You approve, queue, and play from your own screen. No app to download." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={process.env.NEXT_PUBLIC_BASE_URL ?? ''} />
+        <meta property="og:title" content="DanceFeed — Live Request Platform for Line Dance DJs" />
+        <meta property="og:description" content="Attendees scan a QR code to request dances in real time. You approve, queue, and play from your own screen. No app to download." />
+        <meta property="og:image" content={`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/og-image.png`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="DanceFeed — Live Request Platform for Line Dance DJs" />
+        <meta name="twitter:description" content="Attendees scan a QR code to request dances in real time. You approve, queue, and play from your own screen. No app to download." />
+        <meta name="twitter:image" content={`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/og-image.png`} />
+      </Head>
       <div className={styles.page}>
 
         {/* ── Hero ── */}
