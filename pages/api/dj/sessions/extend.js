@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   let skipPayment = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'true';
   if (!skipPayment) {
-    skipPayment = isFreeSessionEmail(authSession.user.email);
+    skipPayment = await isFreeSessionEmail(client, authSession.user.email);
   }
 
   if (skipPayment) {

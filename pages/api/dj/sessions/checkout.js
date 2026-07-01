@@ -26,19 +26,17 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid plugin' });
   }
 
-  let skipPayment = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'true';
-  if (!skipPayment) {
-    skipPayment = isFreeSessionEmail(authSession.user.email);
+  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
+
+  if (!paymentsEnabled) {
+    const client = await clientPromise;
+    const doc = await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
+    return res.status(201).json({ session: doc });
   }
 
-  if (skipPayment) {
-    const client = await clientPromise;
-    const doc = await createSession(client, {
-      ownerId: userId,
-      name,
-      plugin: resolvedPlugin,
-      durationMinutes: tier.minutes,
-    });
+  const client = await clientPromise;
+  if (await isFreeSessionEmail(client, authSession.user.email)) {
+    const doc = await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
     return res.status(201).json({ session: doc });
   }
 

@@ -21,7 +21,10 @@ export default async function handler(req, res) {
 
   // Create a new Express account if one doesn't exist yet
   if (!stripeAccountId) {
-    const account = await stripe.accounts.create({ type: 'express' });
+    const account = await stripe.accounts.create({
+      type: 'express',
+      business_type: 'individual',
+    });
     stripeAccountId = account.id;
     await profiles.updateOne(
       { ownerId: userId },
