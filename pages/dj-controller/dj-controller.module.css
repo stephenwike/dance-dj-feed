@@ -2613,6 +2613,163 @@
   max-width: 200px;
 }
 
+/* ── DJ Add Panel ── */
+.djAddBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.djAddSearchWrap {
+  position: relative;
+  padding: 10px 14px 8px;
+  flex-shrink: 0;
+}
+
+.djAddSearch {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 7px 32px 7px 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: #fff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.djAddSearch::placeholder { color: rgba(255,255,255,0.25); }
+.djAddSearch:focus { border-color: rgba(138,92,255,0.5); }
+
+.djAddClear {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.djAddClear:hover { color: rgba(255,255,255,0.6); }
+
+.djAddSuccess {
+  margin: 0 14px 8px;
+  padding: 8px 12px;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.25);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6ee7b7;
+  flex-shrink: 0;
+}
+
+.djAddConfirm {
+  margin: 0 14px 8px;
+  padding: 10px 12px;
+  background: rgba(138,92,255,0.08);
+  border: 1px solid rgba(138,92,255,0.25);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.djAddConfirmName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.djAddBtn {
+  background: #8A5CFF;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.djAddBtn:hover:not(:disabled) { background: #7c3aed; }
+.djAddBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.djAddList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+}
+
+.djAddItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s;
+}
+.djAddItem:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.07); }
+
+.djAddItemActive {
+  background: rgba(138,92,255,0.08) !important;
+  border-color: rgba(138,92,255,0.3) !important;
+}
+
+.djAddItemMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.djAddItemName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.djAddDiff {
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.djAddItemMeta {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Misc ── */
 .empty {
   font-size: 0.8rem;

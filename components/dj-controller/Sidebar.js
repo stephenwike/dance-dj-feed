@@ -48,6 +48,7 @@ export default function Sidebar({
         <span className={styles.sidebarLabel}>Requests</span>
       </button>
 
+      {btn('dj-add', '➕', 'Add to Queue')}
       {btn('messages', '💬', 'Messages', activeMsg && activePanel !== 'messages' ? styles.sidebarBtnAlert : '')}
       {btn('settings', '⚙️', 'Settings')}
       {btn('history', '📋', 'History')}

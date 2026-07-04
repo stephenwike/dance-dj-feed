@@ -18,6 +18,7 @@ import RemoteControl from '../../components/dj-controller/RemoteControl';
 import QueueCard from '../../components/dj-controller/QueueCard';
 import { timeAgo } from '../../components/dj-controller/utils';
 import SessionsPanel from '../../components/dj-controller/SessionsPanel';
+import DJAddPanel from '../../components/dj-controller/DJAddPanel';
 import CustomEditModal from '../../components/dj-controller/CustomEditModal';
 import TopBar from '../../components/dj-controller/TopBar';
 import Sidebar from '../../components/dj-controller/Sidebar';
@@ -250,6 +251,14 @@ function Controller() {
 
             {activePanel === 'wallet' && (
               <WalletPanel connectNotice={connectNotice} />
+            )}
+
+            {activePanel === 'dj-add' && (
+              <DJAddPanel
+                activeSession={activeSession}
+                nextQueuePos={nextQueuePos}
+                mutate={mutate}
+              />
             )}
 
             {activePanel === 'sessions' && (
