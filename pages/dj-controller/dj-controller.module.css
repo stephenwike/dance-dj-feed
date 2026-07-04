@@ -2614,6 +2614,33 @@
 }
 
 /* ── DJ Add Panel ── */
+.djAddTabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+
+.djAddTab {
+  flex: 1;
+  padding: 9px 12px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s;
+}
+.djAddTab:hover { color: rgba(255,255,255,0.6); }
+
+.djAddTabActive {
+  color: #a78bfa !important;
+  border-bottom-color: #8A5CFF;
+}
+
 .djAddBody {
   flex: 1;
   display: flex;
@@ -2769,6 +2796,85 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.djAddPartnerForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.djAddPartnerHint {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+
+.djAddLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.djAddOptional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(255,255,255,0.25);
+}
+
+.djAddFieldWrap {
+  position: relative;
+}
+
+.djAddSuggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #1a1a30;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.djAddSuggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.djAddSuggestion:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+.djAddBtnFull {
+  background: #8A5CFF;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.15s;
+}
+.djAddBtnFull:hover:not(:disabled) { background: #7c3aed; }
+.djAddBtnFull:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Misc ── */
 .empty {
