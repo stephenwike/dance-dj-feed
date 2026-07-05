@@ -17,6 +17,10 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [partnerSong, setPartnerSong] = useState('');
   const [partnerArtist, setPartnerArtist] = useState('');
 
+  // Shared duration (minutes)
+  const DEFAULT_DURATION_MIN = 3;
+  const [durationMin, setDurationMin] = useState(DEFAULT_DURATION_MIN);
+
   const [adding, setAdding] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState(null);
 
@@ -41,6 +45,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
     setSelected(null);
     setQuery('');
     setRecentlyAdded(null);
+    setDurationMin(DEFAULT_DURATION_MIN);
   }
 
   async function postRequest(body) {
@@ -77,7 +82,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       artist:      selected.artist     ?? '',
       difficulty:  selected.difficulty ?? '',
       stepsheet:   selected.stepsheet  ?? '',
-      duration_ms: selected.duration_ms ?? null,
+      duration_ms: Math.max(1, durationMin) * 60_000,
       spotifyUri:  selected.spotifyUri  ?? null,
     });
     if (ok) {
@@ -98,6 +103,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       partnerStyle: styleTrimmed || null,
       songName:     partnerSong.trim(),
       artist:       partnerArtist.trim(),
+      duration_ms:  Math.max(1, durationMin) * 60_000,
     });
     if (ok) {
       const label = styleTrimmed ? `Partner — ${styleTrimmed}` : 'Partner Dance';
@@ -159,12 +165,24 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
             {selected && !recentlyAdded && (
               <div className={styles.djAddConfirm}>
                 <div className={styles.djAddConfirmName}>{selected.danceName}</div>
+                <div className={styles.djAddDurationWrap}>
+                  <input
+                    type="number"
+                    className={styles.djAddDuration}
+                    value={durationMin}
+                    min={1}
+                    max={60}
+                    onChange={e => setDurationMin(Number(e.target.value) || DEFAULT_DURATION_MIN)}
+                    title="Duration in minutes"
+                  />
+                  <span className={styles.djAddDurationLabel}>min</span>
+                </div>
                 <button
                   className={styles.djAddBtn}
                   onClick={handleAddLine}
                   disabled={adding || !activeSession}
                 >
-                  {adding ? 'Adding…' : '+ Add to Queue'}
+                  {adding ? 'Adding…' : '+ Add'}
                 </button>
               </div>
             )}
@@ -178,7 +196,12 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
                 <button
                   key={dance.id}
                   className={`${styles.djAddItem} ${selected?.id === dance.id ? styles.djAddItemActive : ''}`}
-                  onClick={() => setSelected(s => s?.id === dance.id ? null : dance)}
+                  onClick={() => {
+                const next = selected?.id === dance.id ? null : dance;
+                setSelected(next);
+                if (next?.duration_ms) setDurationMin(Math.round(next.duration_ms / 60000) || DEFAULT_DURATION_MIN);
+                else setDurationMin(DEFAULT_DURATION_MIN);
+              }}
                 >
                   <div className={styles.djAddItemMain}>
                     <span className={styles.djAddItemName}>{dance.danceName}</span>
@@ -250,6 +273,19 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
               maxLength={100}
               autoComplete="off"
             />
+
+            <label className={styles.djAddLabel}>Duration</label>
+            <div className={styles.djAddDurationRow}>
+              <input
+                type="number"
+                className={styles.djAddSearch}
+                value={durationMin}
+                min={1}
+                max={60}
+                onChange={e => setDurationMin(Number(e.target.value) || DEFAULT_DURATION_MIN)}
+              />
+              <span className={styles.djAddDurationUnit}>minutes</span>
+            </div>
 
             <button
               className={styles.djAddBtnFull}

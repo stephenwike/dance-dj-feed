@@ -2705,9 +2705,51 @@
   border-radius: 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.djAddDurationWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.djAddDuration {
+  width: 44px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  outline: none;
+}
+.djAddDuration::-webkit-inner-spin-button,
+.djAddDuration::-webkit-outer-spin-button { opacity: 0.4; }
+
+.djAddDurationLabel {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.35);
+  font-weight: 600;
+}
+
+.djAddDurationRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.djAddDurationUnit {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.35);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .djAddConfirmName {
@@ -2715,10 +2757,11 @@
   font-weight: 700;
   color: #fff;
   flex: 1;
-  min-width: 0;
+  min-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-right: auto;
 }
 
 .djAddBtn {
