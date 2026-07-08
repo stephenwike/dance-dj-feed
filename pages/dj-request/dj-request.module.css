@@ -653,6 +653,23 @@
   text-overflow: ellipsis;
 }
 
+.tabRowStatusPlaying {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.tabRowStatusQueued {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7c3aed;
+}
+
+.tabRowStatusPending {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
 .tabRowActions {
   display: flex;
   align-items: center;

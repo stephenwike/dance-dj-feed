@@ -1,7 +1,7 @@
 import styles from '../../pages/dj-controller/dj-controller.module.css';
-import { diffColor, timeAgo } from './utils';
+import { diffColor, formatTimestamp } from './utils';
 
-export default function QueueCard({ request, onAction, resolvedName, dragHandleProps, requesterCount }) {
+export default function QueueCard({ request, onAction, resolvedName, dragHandleProps, requesterCount, estimatedPlayAt }) {
   const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, duration_ms } = request;
   const isMessage = danceType === 'message';
   const displayName = resolvedName || clientId || '';
@@ -45,7 +45,9 @@ export default function QueueCard({ request, onAction, resolvedName, dragHandleP
               )}
             </>
           )}
-          <span className={styles.qAge}>{timeAgo(createdAt)}</span>
+          {estimatedPlayAt
+            ? <span className={styles.qAge}>~{formatTimestamp(estimatedPlayAt)}</span>
+            : null}
         </div>
         {!isMessage && notes && <div className={styles.qNote}>&ldquo;{notes}&rdquo;</div>}
       </div>

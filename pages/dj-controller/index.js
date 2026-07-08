@@ -16,7 +16,7 @@ import { SpotifyPanel, SpotifySearch } from '../../components/dj-controller/Spot
 import SortableQueueItem from '../../components/dj-controller/SortableQueueItem';
 import RemoteControl from '../../components/dj-controller/RemoteControl';
 import QueueCard from '../../components/dj-controller/QueueCard';
-import { timeAgo } from '../../components/dj-controller/utils';
+import { timeAgo, estimateQueueTimes } from '../../components/dj-controller/utils';
 import SessionsPanel from '../../components/dj-controller/SessionsPanel';
 import DJAddPanel from '../../components/dj-controller/DJAddPanel';
 import CustomEditModal from '../../components/dj-controller/CustomEditModal';
@@ -108,6 +108,7 @@ function Controller() {
   } = useRequestGroups({ rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
 
   const playingItem = playing[0] ?? null;
+  const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
   useStandardAutoAdvance({ isSpotify, playingItem, mutate });
 
   const { sensors, handleDragEnd } = useQueueReorder({ queue, mutate });
@@ -291,7 +292,7 @@ function Controller() {
                       <div key={r._id} className={styles.histRow} style={{ padding: '6px 14px' }}>
                         <span className={r.status === 'played' ? styles.histDot : styles.histDotSkip} />
                         <span className={styles.histName}>{r.danceName}</span>
-                        <span className={styles.histAge}>{timeAgo(r.updatedAt)} ago</span>
+                        <span className={styles.histAge}>{(() => { const t = timeAgo(r.updatedAt); return t === 'just now' ? t : `${t} ago`; })()}</span>
                       </div>
                     ))
                   )}
@@ -362,6 +363,7 @@ function Controller() {
                             resolvedName={resolvedNames[r.clientId]}
                             dragHandleProps={dragHandleProps}
                             requesterCount={danceRequestCounts[r.danceId || r.danceName] ?? 1}
+                            estimatedPlayAt={queueTimes[r._id]}
                           />
                         )}
                       </SortableQueueItem>

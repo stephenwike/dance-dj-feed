@@ -5,6 +5,7 @@ import { Pencil, Check } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import styles from './dj-request.module.css';
 import { filterAvailableDances } from '../../lib/client/dj/availableDances';
+import { estimateQueueTimes, timeAgo } from '../../components/dj-controller/utils';
 import { BEAT_PACKAGES } from '../../lib/beats/packages';
 import BeatTipper from '../../components/BeatTipper';
 import BeatBooster from '../../components/BeatBooster';
@@ -34,6 +35,27 @@ function getOrCreateClientId() {
 
 function formatPlayTime(date) {
   return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function getRowStatus(requests, queueTimes) {
+  if (requests.find(r => r.status === 'playing')) {
+    return { label: 'Now playing', type: 'Playing' };
+  }
+  const approved = requests
+    .filter(r => r.status === 'approved')
+    .sort((a, b) => (a.queuePosition ?? 999) - (b.queuePosition ?? 999))[0];
+  if (approved) {
+    const est = queueTimes[approved._id];
+    return { label: est ? `In queue · ~${formatPlayTime(est)}` : 'In queue', type: 'Queued' };
+  }
+  const pending = requests
+    .filter(r => r.status === 'pending')
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
+  if (pending) {
+    const ago = timeAgo(pending.createdAt);
+    return { label: ago === 'just now' ? 'Requested just now' : `Requested ${ago} ago`, type: 'Pending' };
+  }
+  return null;
 }
 
 export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, tippingEnabled: tippingEnabledProp = null }) {
@@ -239,6 +261,14 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     return Object.values(map)
       .map(g => ({ ...g, swaps: Object.values(g.swaps) }))
       .sort((a, b) => a.danceName.localeCompare(b.danceName));
+  }, [allRequests]);
+
+  const queueTimes = useMemo(() => {
+    const playing = allRequests.filter(r => r.status === 'playing');
+    const queued = allRequests
+      .filter(r => r.status === 'approved')
+      .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0));
+    return estimateQueueTimes(playing, queued);
   }, [allRequests]);
 
   const playedHistory = useMemo(() => {
@@ -1004,6 +1034,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                                 {group.songName}{group.artist ? ` — ${group.artist}` : ''}
                               </span>
                             )}
+                            {(() => { const s = getRowStatus(group.originals, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
                           </div>
                           <div className={styles.tabRowActions}>
                             {myOriginal ? (
@@ -1079,6 +1110,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                             <div className={styles.tabRowInfo}>
                               <span className={styles.tabRowSwapLabel}>↪ {swap.swapSongName}</span>
                               {swap.swapArtist && <span className={styles.tabRowSong}>{swap.swapArtist}</span>}
+                              {(() => { const s = getRowStatus(swap.requests, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
                             </div>
                             <div className={styles.tabRowActions}>
                               {mySwap ? (

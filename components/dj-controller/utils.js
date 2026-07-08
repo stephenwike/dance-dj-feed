@@ -29,7 +29,34 @@ export function diffColor(d = '') {
 
 export function timeAgo(date) {
   const s = Math.floor((Date.now() - new Date(date)) / 1000);
-  if (s < 60) return `${s}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  return `${Math.floor(s / 3600)}h`;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  return `${Math.floor(s / 3600)} hr`;
+}
+
+const DEFAULT_DURATION_MS = 3 * 60 * 1000;
+
+/**
+ * Returns a map of { [requestId]: estimatedPlayTimestamp } for each item in
+ * queue (approved, sorted by queuePosition). The estimate accounts for
+ * remaining time in the currently playing song (if any).
+ */
+export function estimateQueueTimes(playing, queue, now = Date.now()) {
+  let cursor = now;
+  const playingItem = playing[0];
+  if (playingItem) {
+    if (playingItem.playStartedAt) {
+      const started = new Date(playingItem.playStartedAt).getTime();
+      const duration = playingItem.duration_ms ?? DEFAULT_DURATION_MS;
+      cursor += Math.max(0, started + duration - now);
+    } else {
+      cursor += playingItem.duration_ms ?? DEFAULT_DURATION_MS;
+    }
+  }
+  const times = {};
+  for (const item of queue) {
+    times[item._id] = cursor;
+    cursor += item.duration_ms ?? DEFAULT_DURATION_MS;
+  }
+  return times;
 }
