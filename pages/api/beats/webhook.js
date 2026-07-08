@@ -1,7 +1,7 @@
 ﻿import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { markWebhookReceived } from '../../../lib/server/stripeHealth';
-import { createSession } from '../../../lib/server/dj/sessionLogic';
+import { createSession, activateDraftSession } from '../../../lib/server/dj/sessionLogic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -90,14 +90,18 @@ export default async function handler(req, res) {
     }
 
     if (metadata.type === 'dj_session') {
-      const { ownerId, name, plugin, durationMinutes } = metadata;
+      const { ownerId, name, plugin, durationMinutes, draftSessionId } = metadata;
       if (!ownerId || !durationMinutes) {
         console.error('Missing dj_session metadata on checkout session', session.id);
         return res.status(400).end();
       }
-      await createSession(client, {
-        ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
-      });
+      if (draftSessionId) {
+        await activateDraftSession(client, draftSessionId, { durationMinutes: Number(durationMinutes) });
+      } else {
+        await createSession(client, {
+          ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
+        });
+      }
       return res.status(200).json({ received: true });
     }
 

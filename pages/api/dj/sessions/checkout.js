@@ -67,6 +67,7 @@ export default async function handler(req, res) {
       name: name || '',
       plugin: resolvedPlugin,
       durationMinutes: String(tier.minutes),
+      draftSessionId: draftSessionId || '',
     },
     success_url: `${safeReturn}?session_started=1`,
     cancel_url: safeReturn,
