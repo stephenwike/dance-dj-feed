@@ -64,7 +64,8 @@ export default async function handler(req, res) {
     const filter = userId ? { _id: objId, ownerId: userId } : { _id: objId };
     await col.updateOne(filter, { $set: set });
 
-    if (status === 'played' && thisReq) {
+    // Partner dances are each unique — no sibling concept.
+    if (status === 'played' && thisReq && thisReq.danceType !== 'partner') {
       await markSiblingsPlayed(col, objId, buildSiblingDanceMatch(thisReq), thisReq.sessionId);
     }
 

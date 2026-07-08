@@ -21,8 +21,8 @@ function makeCol(existingDocs) {
 
 function matchesFilter(doc, filter) {
   for (const [k, v] of Object.entries(filter)) {
-    if (k === '_id' && typeof v === 'object' && '$ne' in v) {
-      if (doc._id === v.$ne) return false;
+    if (typeof v === 'object' && '$ne' in v) {
+      if (doc[k] === v.$ne) return false;
       continue;
     }
     if (typeof v === 'object' && '$in' in v) {
@@ -176,5 +176,24 @@ describe('buildSiblingDanceMatch', () => {
     expect(match.isSongSwap).toBe(true);
     expect(match.swapSongName).toBe('Country Roads');
     expect(match.isSongSwap).not.toEqual({ $ne: true });
+  });
+});
+
+// ── Partner dances are unique — PATCH handler skips markSiblingsPlayed ────────
+// These tests document the expected DB state IF markSiblingsPlayed were called
+// for partner dances (i.e. verifying the filter itself), but the handler never
+// calls it for danceType === 'partner'. This documents what NOT to rely on.
+describe('markSiblingsPlayed — partner dances are treated as unique', () => {
+  test('two partner dance requests with the same name are independent (no automatic sibling marking)', async () => {
+    // Demonstrates WHY the PATCH handler skips this for partner dances:
+    // without the guard, p2 would be wiped out.
+    const col = makeCol([
+      { _id: 'p1', sessionId: SESSION, danceName: 'Partner — Waltz', status: 'playing', isSongSwap: false },
+      { _id: 'p2', sessionId: SESSION, danceName: 'Partner — Waltz', status: 'approved', isSongSwap: false },
+    ]);
+    const match = buildSiblingDanceMatch({ danceId: null, danceName: 'Partner — Waltz', isSongSwap: false });
+    await markSiblingsPlayed(col, 'p1', match, SESSION);
+    // If called, p2 WOULD be marked played — this is why the handler skips it.
+    expect(col._docs.find(d => d._id === 'p2').status).toBe('played');
   });
 });
