@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import styles from './reports.module.css';
@@ -183,6 +184,7 @@ export default function ReportsPage() {
       <div className={styles.page}>
         <header className={styles.header}>
           <h1 className={styles.appName}>📊 Session Reports</h1>
+          <Link href="/dj-controller" className={styles.backLink}>← Controller</Link>
         </header>
 
         <div className={styles.layout}>

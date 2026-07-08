@@ -13,6 +13,9 @@
   background: #13132a;
   border-bottom: 1px solid rgba(138,92,255,0.18);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .appName {
@@ -21,7 +24,21 @@
   color: #fff;
   margin: 0;
   letter-spacing: -0.01em;
+  flex: 1;
 }
+
+.backLink {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.backLink:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.25); }
 
 /* ── Layout ── */
 .layout {
