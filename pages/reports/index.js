@@ -66,6 +66,14 @@ function SessionDetail({ sessionId }) {
 
   // Deduplicate by dance, keeping the earliest play time and counting requesters
   const played = (() => {
+    if (data.report?.playedTracks) {
+      // Already deduplicated — normalize shape to match live fields
+      return data.report.playedTracks.map(t => ({
+        ...t,
+        updatedAt: t.playedAt,
+        requesters: t.requesterCount,
+      }));
+    }
     const map = {};
     for (const r of data.played ?? []) {
       const key = r.danceId || r.danceName;
