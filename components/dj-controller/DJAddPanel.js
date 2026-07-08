@@ -17,6 +17,10 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [partnerSong, setPartnerSong] = useState('');
   const [partnerArtist, setPartnerArtist] = useState('');
 
+  // Custom line dance fields (used when selected.custom is true)
+  const [customSong, setCustomSong] = useState('');
+  const [customArtist, setCustomArtist] = useState('');
+
   // Shared duration (minutes)
   const DEFAULT_DURATION_MIN = 3;
   const [durationMin, setDurationMin] = useState(DEFAULT_DURATION_MIN);
@@ -46,6 +50,8 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
     setQuery('');
     setRecentlyAdded(null);
     setDurationMin(DEFAULT_DURATION_MIN);
+    setCustomSong('');
+    setCustomArtist('');
   }
 
   async function postRequest(body) {
@@ -76,10 +82,10 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   async function handleAddLine() {
     if (!selected || !activeSession || adding) return;
     const ok = await postRequest({
-      danceId:     selected.id,
+      danceId:     selected.id ?? null,
       danceName:   selected.danceName,
-      songName:    selected.songName   ?? '',
-      artist:      selected.artist     ?? '',
+      songName:    selected.custom ? customSong.trim() : (selected.songName   ?? ''),
+      artist:      selected.custom ? customArtist.trim() : (selected.artist   ?? ''),
       difficulty:  selected.difficulty ?? '',
       stepsheet:   selected.stepsheet  ?? '',
       duration_ms: Math.max(1, durationMin) * 60_000,
@@ -88,6 +94,8 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
     if (ok) {
       setRecentlyAdded(selected.danceName);
       setSelected(null);
+      setCustomSong('');
+      setCustomArtist('');
       setTimeout(() => setRecentlyAdded(null), 2500);
       mutate();
     }
@@ -163,8 +171,31 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
             </div>
 
             {selected && !recentlyAdded && (
-              <div className={styles.djAddConfirm}>
-                <div className={styles.djAddConfirmName}>{selected.danceName}</div>
+              <div className={`${styles.djAddConfirm} ${selected.custom ? styles.djAddConfirmCustom : ''}`}>
+                <div className={styles.djAddConfirmName}>
+                  {selected.danceName}
+                  {selected.custom && <span className={styles.djAddCustomTag}>custom</span>}
+                </div>
+                {selected.custom && (
+                  <>
+                    <input
+                      className={styles.djAddSearch}
+                      placeholder="Song (optional)"
+                      value={customSong}
+                      onChange={e => setCustomSong(e.target.value)}
+                      maxLength={100}
+                      autoComplete="off"
+                    />
+                    <input
+                      className={styles.djAddSearch}
+                      placeholder="Artist (optional)"
+                      value={customArtist}
+                      onChange={e => setCustomArtist(e.target.value)}
+                      maxLength={100}
+                      autoComplete="off"
+                    />
+                  </>
+                )}
                 <div className={styles.djAddDurationWrap}>
                   <input
                     type="number"
@@ -190,7 +221,22 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
             <div className={styles.djAddList}>
               {isLoading && <p className={styles.empty}>Loading dances…</p>}
               {!isLoading && filtered.length === 0 && (
-                <p className={styles.empty}>No dances match &ldquo;{query}&rdquo;</p>
+                <>
+                  <p className={styles.empty}>No dances match &ldquo;{query}&rdquo;</p>
+                  {query.trim() && (
+                    <button
+                      className={styles.djAddCustomBtn}
+                      onClick={() => {
+                        setSelected({ id: null, danceName: query.trim(), custom: true });
+                        setDurationMin(DEFAULT_DURATION_MIN);
+                        setCustomSong('');
+                        setCustomArtist('');
+                      }}
+                    >
+                      + Add &ldquo;{query.trim()}&rdquo; as custom line dance
+                    </button>
+                  )}
+                </>
               )}
               {filtered.map(dance => (
                 <button
