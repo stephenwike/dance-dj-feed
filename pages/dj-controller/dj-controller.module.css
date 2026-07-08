@@ -2343,7 +2343,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 20px;
+  padding: 5px 20px;
 }
 
 .sessionTrack:hover { background: rgba(255,255,255,0.02); }
@@ -2358,10 +2358,28 @@
   font-variant-numeric: tabular-nums;
 }
 
-.sessionTrackName {
+.sessionTrackInfo {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sessionTrackName {
   font-size: 0.82rem;
   color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sessionTrackSub {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sessionTrackTime {
@@ -2370,6 +2388,21 @@
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
+
+.btnReportLink {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btnReportLink:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.7); }
 
 /* ── Custom request edit ── */
 .customTypeBadge {

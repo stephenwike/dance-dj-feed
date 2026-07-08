@@ -10,7 +10,25 @@ export function SessionRow({ session, onContinue, onClose }) {
   async function toggle() {
     if (!expanded && played === null) {
       const data = await fetch(`/api/dj/sessions/${session._id}`).then(r => r.json());
-      setPlayed(data.played ?? []);
+      if (data.report?.playedTracks) {
+        setPlayed(data.report.playedTracks.map(t => ({
+          _id: t.danceId || t.danceName,
+          danceName: t.danceName,
+          songName: t.songName,
+          artist: t.artist,
+          difficulty: t.difficulty,
+          requesterCount: t.requesterCount,
+          updatedAt: t.playedAt,
+        })));
+      } else {
+        const deduped = {};
+        for (const r of data.played ?? []) {
+          const key = r.danceId || r.danceName;
+          if (!deduped[key]) { deduped[key] = { ...r, requesterCount: 1 }; }
+          else { deduped[key].requesterCount += 1; }
+        }
+        setPlayed(Object.values(deduped).sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt)));
+      }
     }
     setExpanded(v => !v);
   }
@@ -37,9 +55,14 @@ export function SessionRow({ session, onContinue, onClose }) {
             </button>
           )}
           {session.status === 'closed' && (
-            <button className={styles.btnContinue} onClick={() => onContinue(session._id)}>
-              Continue
-            </button>
+            <>
+              <Link href={`/reports?session=${session._id}`} className={styles.btnReportLink}>
+                Report
+              </Link>
+              <button className={styles.btnContinue} onClick={() => onContinue(session._id)}>
+                Continue
+              </button>
+            </>
           )}
           <button className={styles.btnExpand} onClick={toggle}>
             {expanded ? '▲' : '▼'}
@@ -52,9 +75,17 @@ export function SessionRow({ session, onContinue, onClose }) {
           {played === null && <p className={styles.sessionLoading}>Loading…</p>}
           {played?.length === 0 && <p className={styles.sessionEmpty}>No tracks played.</p>}
           {played?.map((r, i) => (
-            <div key={r._id} className={styles.sessionTrack}>
+            <div key={r._id ?? i} className={styles.sessionTrack}>
               <span className={styles.sessionTrackNum}>{i + 1}</span>
-              <span className={styles.sessionTrackName}>{r.danceName}</span>
+              <div className={styles.sessionTrackInfo}>
+                <span className={styles.sessionTrackName}>{r.danceName}</span>
+                {(r.songName || r.artist) && (
+                  <span className={styles.sessionTrackSub}>
+                    {r.songName}{r.artist ? ` — ${r.artist}` : ''}
+                    {r.requesterCount > 1 && ` · ${r.requesterCount} req`}
+                  </span>
+                )}
+              </div>
               <span className={styles.sessionTrackTime}>{formatTimestamp(r.updatedAt)}</span>
             </div>
           ))}

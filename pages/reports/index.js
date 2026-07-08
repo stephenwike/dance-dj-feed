@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import styles from './reports.module.css';
 
@@ -154,7 +155,12 @@ function SessionDetail({ sessionId }) {
 }
 
 export default function ReportsPage() {
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState(null);
+
+  useEffect(() => {
+    if (router.query.session) setSelectedId(router.query.session);
+  }, [router.query.session]);
 
   const { data: sessions = [], isLoading } = useSWR('/api/dj/sessions', fetcher, {
     revalidateOnFocus: false,
