@@ -81,6 +81,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   const quickTipRef = useRef({ id: null, count: 0, timer: null });
   const [quickTipDisplay, setQuickTipDisplay] = useState(null); // { id, count } for live display
   const [pendingRemoveId, setPendingRemoveId] = useState(null);
+  const [submittingPanel, setSubmittingPanel] = useState(false);
 
   const nameInputRef = useRef(null);
 
@@ -445,30 +446,40 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   }
 
   async function handlePanelRequest(group) {
-    if (!clientId) return;
-    await submitRequest({
-      danceId: group.danceId, danceName: group.danceName,
-      songName: group.songName, artist: group.artist,
-      difficulty: group.difficulty, stepsheet: group.stepsheet,
-      duration_ms: group.duration_ms, notes: '',
-    });
-    mutateRequests();
+    if (!clientId || submittingPanel) return;
+    setSubmittingPanel(true);
+    try {
+      await submitRequest({
+        danceId: group.danceId, danceName: group.danceName,
+        songName: group.songName, artist: group.artist,
+        difficulty: group.difficulty, stepsheet: group.stepsheet,
+        duration_ms: group.duration_ms, notes: '',
+      });
+      mutateRequests();
+    } finally {
+      setSubmittingPanel(false);
+    }
   }
 
   async function handlePanelRequestSwap(group, swap) {
-    if (!clientId) return;
-    await submitRequest({
-      danceId: group.danceId, danceName: group.danceName,
-      difficulty: group.difficulty, stepsheet: group.stepsheet,
-      duration_ms: group.duration_ms,
-      isSongSwap: true,
-      swapSongName: swap.swapSongName,
-      swapArtist: swap.swapArtist ?? null,
-      songName: swap.swapSongName,
-      artist: swap.swapArtist ?? '',
-      notes: '',
-    });
-    mutateRequests();
+    if (!clientId || submittingPanel) return;
+    setSubmittingPanel(true);
+    try {
+      await submitRequest({
+        danceId: group.danceId, danceName: group.danceName,
+        difficulty: group.difficulty, stepsheet: group.stepsheet,
+        duration_ms: group.duration_ms,
+        isSongSwap: true,
+        swapSongName: swap.swapSongName,
+        swapArtist: swap.swapArtist ?? null,
+        songName: swap.swapSongName,
+        artist: swap.swapArtist ?? '',
+        notes: '',
+      });
+      mutateRequests();
+    } finally {
+      setSubmittingPanel(false);
+    }
   }
 
   async function handlePanelRemove(requestId) {
@@ -1030,7 +1041,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                             ) : (
                               <>
                                 <span className={styles.reqCount}>{totalOriginals}</span>
-                                <button className={styles.plusBtn} onClick={() => handlePanelRequest(group)} title="Add your request">+</button>
+                                <button className={styles.plusBtn} onClick={() => handlePanelRequest(group)} disabled={submittingPanel} title="Add your request">+</button>
                               </>
                             )}
                           </div>
@@ -1105,7 +1116,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                               ) : (
                                 <>
                                   <span className={styles.reqCount}>{swap.requests.length}</span>
-                                  <button className={styles.plusBtn} onClick={() => handlePanelRequestSwap(group, swap)} title="Support this song swap">+</button>
+                                  <button className={styles.plusBtn} onClick={() => handlePanelRequestSwap(group, swap)} disabled={submittingPanel} title="Support this song swap">+</button>
                                 </>
                               )}
                             </div>

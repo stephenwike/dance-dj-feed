@@ -44,6 +44,7 @@ function matches(doc, filter) {
   return Object.entries(filter).every(([k, v]) => {
     if (v === null || v === undefined) return doc[k] == null;
     if (typeof v === 'object' && '$in' in v) return v.$in.includes(doc[k]);
+    if (typeof v === 'object' && '$ne' in v) return doc[k] !== v.$ne;
     if (typeof v === 'object' && '$regex' in v) return v.$regex.test(doc[k]);
     return doc[k] === v;
   });
@@ -133,5 +134,82 @@ describe('createRequest — duplicate queue prevention', () => {
     const doc = await createRequest(client, { danceName: 'Waterfall', status: 'approved', queuePosition: 1 });
     expect(doc.status).toBe('approved');
     expect(doc.queuePosition).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('createRequest — deduplication', () => {
+  test('returns existing request when same user already has a pending request for the same dance', async () => {
+    const existing = [
+      { _id: 'existing-id', sessionId: 'sess1', clientId: 'User_123', danceName: 'Waterfall',
+        status: 'pending', isSongSwap: false, queuePosition: 1 },
+    ];
+    const client = makeMockClient({ existing });
+    const doc = await createRequest(client, { danceName: 'Waterfall', clientId: 'User_123' });
+    expect(doc._id).toBe('existing-id');
+    expect(client._inserted.length).toBe(0);
+  });
+
+  test('creates a new request when the existing one belongs to a different user', async () => {
+    const existing = [
+      { _id: 'existing-id', sessionId: 'sess1', clientId: 'User_456', danceName: 'Waterfall',
+        status: 'pending', isSongSwap: false, queuePosition: 1 },
+    ];
+    const client = makeMockClient({ existing });
+    const doc = await createRequest(client, { danceName: 'Waterfall', clientId: 'User_123' });
+    expect(doc._id).not.toBe('existing-id');
+    expect(client._inserted.length).toBe(1);
+  });
+
+  test('creates a new request when the existing one is played (not active)', async () => {
+    const existing = [
+      { _id: 'existing-id', sessionId: 'sess1', clientId: 'User_123', danceName: 'Waterfall',
+        status: 'played', isSongSwap: false },
+    ];
+    const client = makeMockClient({ existing });
+    const doc = await createRequest(client, { danceName: 'Waterfall', clientId: 'User_123' });
+    expect(doc._id).not.toBe('existing-id');
+    expect(client._inserted.length).toBe(1);
+  });
+
+  test('returns existing swap request when same user already has a pending swap for the same song', async () => {
+    const existing = [
+      { _id: 'swap-id', sessionId: 'sess1', clientId: 'User_123', danceName: 'Electric Slide',
+        status: 'pending', isSongSwap: true, swapSongName: 'Boots On' },
+    ];
+    const client = makeMockClient({ existing });
+    const doc = await createRequest(client, {
+      danceName: 'Electric Slide', clientId: 'User_123',
+      isSongSwap: true, swapSongName: 'Boots On',
+    });
+    expect(doc._id).toBe('swap-id');
+    expect(client._inserted.length).toBe(0);
+  });
+
+  test('creates a new swap request when swap song differs', async () => {
+    const existing = [
+      { _id: 'swap-id', sessionId: 'sess1', clientId: 'User_123', danceName: 'Electric Slide',
+        status: 'pending', isSongSwap: true, swapSongName: 'Boots On' },
+    ];
+    const client = makeMockClient({ existing });
+    const doc = await createRequest(client, {
+      danceName: 'Electric Slide', clientId: 'User_123',
+      isSongSwap: true, swapSongName: 'Different Song',
+    });
+    expect(doc._id).not.toBe('swap-id');
+    expect(client._inserted.length).toBe(1);
+  });
+
+  test('skips dedup for DJ-direct-add (forcedStatus set)', async () => {
+    const existing = [
+      { _id: 'existing-id', sessionId: 'sess1', clientId: 'dj', danceName: 'Waterfall',
+        status: 'approved', isSongSwap: false, queuePosition: 1 },
+    ];
+    const client = makeMockClient({ existing });
+    const doc = await createRequest(client, {
+      danceName: 'Waterfall', clientId: 'dj', status: 'approved', queuePosition: 2,
+    });
+    expect(doc._id).not.toBe('existing-id');
+    expect(client._inserted.length).toBe(1);
   });
 });
