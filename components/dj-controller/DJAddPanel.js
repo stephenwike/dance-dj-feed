@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
-import { PARTNER_STYLES } from './utils';
+import { PARTNER_STYLES, diffColor } from './utils';
+
+const fetcher = url => fetch(url).then(r => r.json());
 
 export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [type, setType] = useState('line'); // 'line' | 'partner'
@@ -9,6 +12,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [lineName, setLineName] = useState('');
   const [lineSong, setLineSong] = useState('');
   const [lineArtist, setLineArtist] = useState('');
+  const [catalogSelected, setCatalogSelected] = useState(null);
 
   // Partner dance state
   const [partnerStyle, setPartnerStyle] = useState('');
@@ -21,6 +25,23 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
 
   const [adding, setAdding] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState(null);
+
+  // Catalog for line dance suggestions
+  const { data: catalogDances = [] } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
+
+  const lineSuggestions = useMemo(() => {
+    if (!lineName.trim() || catalogSelected) return [];
+    const q = lineName.toLowerCase();
+    return catalogDances.filter(d => d.danceName.toLowerCase().includes(q)).slice(0, 8);
+  }, [lineName, catalogSelected, catalogDances]);
+
+  function selectCatalogDance(d) {
+    setLineName(d.danceName);
+    setLineSong(d.songName ?? '');
+    setLineArtist(d.artist ?? '');
+    if (d.duration_ms) setDurationMin(Math.round(d.duration_ms / 60000) || DEFAULT_DURATION_MIN);
+    setCatalogSelected(d);
+  }
 
   // Style suggestions for partner dance
   const styleSuggestions = partnerStyle.trim()
@@ -37,6 +58,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
     setLineName('');
     setLineSong('');
     setLineArtist('');
+    setCatalogSelected(null);
   }
 
   async function postRequest(body) {
@@ -67,17 +89,20 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   async function handleAddLine() {
     if (!activeSession || adding || !lineName.trim()) return;
     const ok = await postRequest({
-      danceId:  null,
-      danceName: lineName.trim(),
-      songName:  lineSong.trim(),
-      artist:    lineArtist.trim(),
+      danceId:     catalogSelected?.id ?? null,
+      danceName:   lineName.trim(),
+      songName:    lineSong.trim(),
+      artist:      lineArtist.trim(),
       duration_ms: Math.max(1, durationMin) * 60_000,
+      ...(catalogSelected?.difficulty && { difficulty: catalogSelected.difficulty }),
+      ...(catalogSelected?.stepsheet && { stepsheet: catalogSelected.stepsheet }),
     });
     if (ok) {
       setRecentlyAdded(lineName.trim());
       setLineName('');
       setLineSong('');
       setLineArtist('');
+      setCatalogSelected(null);
       setTimeout(() => setRecentlyAdded(null), 2500);
       mutate();
     }
@@ -140,14 +165,49 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
         {type === 'line' && !recentlyAdded && (
           <div className={styles.djAddPartnerForm}>
             <label className={styles.djAddLabel}>Dance Name</label>
-            <input
-              className={styles.djAddSearch}
-              placeholder="e.g. Electric Slide, Waterfall…"
-              value={lineName}
-              onChange={e => setLineName(e.target.value)}
-              maxLength={100}
-              autoComplete="off"
-            />
+            <div className={styles.djAddFieldWrap}>
+              <input
+                className={styles.djAddSearch}
+                placeholder="Search catalog or type a name…"
+                value={lineName}
+                onChange={e => { setLineName(e.target.value); setCatalogSelected(null); }}
+                maxLength={100}
+                autoComplete="off"
+              />
+              {lineSuggestions.length > 0 && (
+                <div className={styles.djAddSuggestions}>
+                  {lineSuggestions.map(d => (
+                    <button
+                      key={d.id}
+                      className={styles.djAddSuggestion}
+                      onClick={() => selectCatalogDance(d)}
+                    >
+                      <span className={styles.djAddSuggName}>{d.danceName}</span>
+                      {(d.songName || d.difficulty) && (
+                        <span className={styles.djAddSuggMeta}>
+                          {d.songName}
+                          {d.difficulty && <span style={{ color: diffColor(d.difficulty) }}> · {d.difficulty}</span>}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {catalogSelected && (
+              <div className={styles.djAddCatalogTag}>
+                <span>From catalog</span>
+                {catalogSelected.difficulty && (
+                  <span style={{ color: diffColor(catalogSelected.difficulty) }}> · {catalogSelected.difficulty}</span>
+                )}
+                <button
+                  className={styles.djAddCatalogClear}
+                  onClick={() => { setCatalogSelected(null); setLineName(''); setLineSong(''); setLineArtist(''); setDurationMin(DEFAULT_DURATION_MIN); }}
+                >
+                  ✕ clear
+                </button>
+              </div>
+            )}
 
             <label className={styles.djAddLabel}>Song <span className={styles.djAddOptional}>(optional)</span></label>
             <input

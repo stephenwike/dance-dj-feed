@@ -2926,7 +2926,8 @@
 }
 
 .djAddSuggestion {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   text-align: left;
   background: transparent;
@@ -2939,6 +2940,42 @@
   transition: background 0.12s;
 }
 .djAddSuggestion:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+.djAddSuggName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.djAddSuggMeta {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.djAddCatalogTag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 2px;
+}
+
+.djAddCatalogClear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  padding: 0;
+}
+.djAddCatalogClear:hover { color: rgba(255,255,255,0.6); }
 
 .djAddBtnFull {
   background: #8A5CFF;
