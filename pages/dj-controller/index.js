@@ -44,13 +44,13 @@ function Controller() {
   const [connectNotice, setConnectNotice] = useState('');
 
   const {
-    sessions, activeSession, isSpotify, mutateSessions,
-    closeSession: closeSessionBase, continueSession: continueSessionBase,
+    sessions, activeSession, draftSession, workingSession, isSpotify, mutateSessions,
+    closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
     tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
   } = useSessionManager();
 
-  const requestsUrl = activeSession?._id ? `/api/dj/requests?sessionId=${activeSession._id}` : '/api/dj/requests';
+  const requestsUrl = workingSession?._id ? `/api/dj/requests?sessionId=${workingSession._id}` : '/api/dj/requests';
   const { data: rawRequests = [], mutate } = useSWR(requestsUrl, fetcher, {
     refreshInterval: 5000, revalidateOnFocus: true, dedupingInterval: 2000,
   });
@@ -137,7 +137,9 @@ function Controller() {
         )}
         <TopBar
           activeSession={activeSession}
+          draftSession={draftSession}
           closeSession={closeSession}
+          discardDraft={discardDraft}
           timeState={timeState}
           countdown={countdown}
         />
@@ -255,7 +257,7 @@ function Controller() {
 
             {activePanel === 'dj-add' && (
               <DJAddPanel
-                activeSession={activeSession}
+                activeSession={workingSession}
                 nextQueuePos={nextQueuePos}
                 mutate={mutate}
               />

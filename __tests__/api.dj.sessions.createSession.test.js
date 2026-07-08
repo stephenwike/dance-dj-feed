@@ -60,12 +60,12 @@ describe('createSession', () => {
     expect(diffMinutes).toBe(120);
   });
 
-  test('closes other active sessions for the same ownerId before creating the new one', async () => {
+  test('closes other active and draft sessions for the same ownerId before creating the new one', async () => {
     const client = makeMockClient();
     await createSession(client, { ownerId: 'dj1', name: 'Test', durationMinutes: 120 });
 
     expect(client._col.updateMany).toHaveBeenCalledWith(
-      { status: 'active', ownerId: 'dj1' },
+      { status: { $in: ['active', 'draft'] }, ownerId: 'dj1' },
       { $set: { status: 'closed', closedAt: expect.any(Date) } }
     );
   });

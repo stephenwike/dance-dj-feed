@@ -867,6 +867,43 @@
 }
 .topBarNewBtn:hover { background: rgba(138,92,255,0.2); }
 
+.topBarStartBtn {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border: 1px solid rgba(138,92,255,0.6);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  text-decoration: none;
+  transition: background 0.13s;
+}
+.topBarStartBtn:hover { background: #7c3aed; }
+
+.topBarDraftDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex-shrink: 0;
+}
+
+.topBarDraftBadge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
 .topBarNav {
   display: flex;
   align-items: center;

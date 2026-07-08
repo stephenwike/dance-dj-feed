@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import clientPromise from '../../../../lib/server/mongodb';
-import { createSession } from '../../../../lib/server/dj/sessionLogic';
+import { createSession, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
 import { isFreeSessionEmail } from '../../../../lib/server/dj/sessionAccess';
 import { safeReturnUrl } from '../../../../lib/server/safeReturnUrl';
 import { SESSION_DURATIONS_BY_MINUTES, SESSION_PLUGINS } from '../../../../lib/dj/sessionPricing';
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const userId = authSession?.user?.id ?? null;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { name, plugin, durationMinutes, returnUrl } = req.body ?? {};
+  const { name, plugin, durationMinutes, returnUrl, draftSessionId } = req.body ?? {};
 
   const tier = SESSION_DURATIONS_BY_MINUTES[Number(durationMinutes)];
   if (!tier) return res.status(400).json({ error: 'Invalid duration' });
@@ -28,15 +28,19 @@ export default async function handler(req, res) {
 
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
 
+  const client = await clientPromise;
+
   if (!paymentsEnabled) {
-    const client = await clientPromise;
-    const doc = await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
+    const doc = draftSessionId
+      ? await activateDraftSession(client, draftSessionId, { durationMinutes: tier.minutes })
+      : await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
     return res.status(201).json({ session: doc });
   }
 
-  const client = await clientPromise;
   if (await isFreeSessionEmail(client, authSession.user.email)) {
-    const doc = await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
+    const doc = draftSessionId
+      ? await activateDraftSession(client, draftSessionId, { durationMinutes: tier.minutes })
+      : await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
     return res.status(201).json({ session: doc });
   }
 

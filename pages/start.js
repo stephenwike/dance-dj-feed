@@ -18,17 +18,24 @@ export default function StartPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeSession, setActiveSession] = useState(undefined);
+  const [draftSession, setDraftSession] = useState(undefined);
   const [finishing, setFinishing] = useState(false);
+  const [settingUp, setSettingUp] = useState(false);
 
   useEffect(() => {
     fetch('/api/dj/sessions')
       .then(r => r.json())
       .then(sessions => {
-        const active = Array.isArray(sessions) ? sessions.find(s => s.status === 'active') : null;
-        setActiveSession(active ?? null);
+        const list = Array.isArray(sessions) ? sessions : [];
+        const active = list.find(s => s.status === 'active') ?? null;
+        const draft = list.find(s => s.status === 'draft') ?? null;
+        setActiveSession(active);
+        setDraftSession(draft);
+        // Pre-fill the name field from the draft so activation preserves the name
+        if (draft && !name) setName(draft.name);
       })
-      .catch(() => setActiveSession(null));
-  }, []);
+      .catch(() => { setActiveSession(null); setDraftSession(null); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect return from Stripe Checkout (real-payments branch) and poll for
   // the session created by the webhook.
@@ -70,6 +77,25 @@ export default function StartPage() {
     poll();
   }, [router]);
 
+  async function handleSetupFirst() {
+    setSettingUp(true);
+    setError('');
+    try {
+      const res = await fetch('/api/dj/sessions/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to create setup session'); return; }
+      router.push(CONTROLLER_PATH);
+    } catch {
+      setError('Something went wrong. Check your connection.');
+    } finally {
+      setSettingUp(false);
+    }
+  }
+
   async function handleStart(e) {
     e.preventDefault();
     setLoading(true);
@@ -82,6 +108,7 @@ export default function StartPage() {
           name: name.trim() || undefined,
           durationMinutes: duration,
           returnUrl: window.location.href,
+          draftSessionId: draftSession?._id ?? undefined,
         }),
       });
       const data = await res.json();
@@ -113,6 +140,7 @@ export default function StartPage() {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <Link href="/dj-profile" className={styles.profileLink}>Wallet &amp; Payouts</Link>
+            <Link href="/reports" className={styles.profileLink}>Reports</Link>
             <button className={styles.signOutBtn} onClick={() => signOut({ callbackUrl: '/' })}>Sign out</button>
           </div>
           <div className={styles.logo}>🎛️</div>
@@ -156,6 +184,25 @@ export default function StartPage() {
                 onClick={() => router.push(CONTROLLER_PATH)}
               >
                 Continue →
+              </button>
+            </div>
+          )}
+
+          {!activeSession && draftSession && (
+            <div className={styles.resumeNotice}>
+              <div className={styles.resumeLeft}>
+                <span className={styles.resumeDraftDot} />
+                <div className={styles.resumeText}>
+                  <span className={styles.resumeName}>{draftSession.name}</span>
+                  <span className={styles.resumeSub}>queue setup in progress</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className={styles.resumeBtn}
+                onClick={() => router.push(CONTROLLER_PATH)}
+              >
+                Back to controller →
               </button>
             </div>
           )}
@@ -204,8 +251,16 @@ export default function StartPage() {
 
             {error && <p className={styles.error}>{error}</p>}
 
-            <button type="submit" className={styles.btn} disabled={loading}>
+            <button type="submit" className={styles.btn} disabled={loading || settingUp}>
               {loading ? 'Starting…' : '▶ Start Event'}
+            </button>
+            <button
+              type="button"
+              className={styles.btnSetup}
+              disabled={loading || settingUp}
+              onClick={handleSetupFirst}
+            >
+              {settingUp ? 'Opening…' : '🎛️ Set up queue first'}
             </button>
           </form>
           </>

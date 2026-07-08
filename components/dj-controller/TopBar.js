@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 
-export default function TopBar({ activeSession, closeSession, timeState, countdown }) {
+export default function TopBar({ activeSession, draftSession, closeSession, discardDraft, timeState, countdown }) {
+  const isDraft = !activeSession && !!draftSession;
+
   return (
     <header className={styles.topBar}>
       <span className={styles.appName}>
@@ -22,6 +24,14 @@ export default function TopBar({ activeSession, closeSession, timeState, countdo
               </span>
             )}
             <button className={styles.topBarEndBtn} onClick={closeSession}>End</button>
+          </>
+        ) : isDraft ? (
+          <>
+            <span className={styles.topBarDraftDot} />
+            <span className={styles.topBarSessionName}>{draftSession.name}</span>
+            <span className={styles.topBarDraftBadge}>setup</span>
+            <Link href="/start" className={styles.topBarStartBtn}>▶ Start Event</Link>
+            <button className={styles.topBarEndBtn} onClick={discardDraft}>Discard</button>
           </>
         ) : (
           <>
