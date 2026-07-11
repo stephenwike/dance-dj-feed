@@ -195,7 +195,7 @@ export default function ReportsPage() {
             {!isLoading && sessions.length === 0 && (
               <p className={styles.empty}>No sessions yet.</p>
             )}
-            {sessions.map(s => {
+            {sessions.filter(s => s.startedAt).map(s => {
               const duration = s.closedAt
                 ? formatDuration(new Date(s.closedAt) - new Date(s.startedAt))
                 : null;

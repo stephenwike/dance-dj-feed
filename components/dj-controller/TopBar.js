@@ -41,22 +41,25 @@ export default function TopBar({ activeSession, draftSession, closeSession, disc
         )}
       </div>
 
-      {activeSession && (
-        <div className={styles.topBarQuickLinks}>
-          <button
-            className={styles.topBarQuickBtn}
-            onClick={() => window.open(`/feed/${activeSession.slug}`, '_blank')}
-          >
-            🖥️ Feed ↗
-          </button>
-          <button
-            className={styles.topBarQuickBtn}
-            onClick={() => window.open(`/request/${activeSession.slug}`, '_blank')}
-          >
-            📱 Requests ↗
-          </button>
-        </div>
-      )}
+      <div className={styles.topBarQuickLinks}>
+        {activeSession && (
+          <>
+            <button
+              className={styles.topBarQuickBtn}
+              onClick={() => window.open(`/feed/${activeSession.slug}`, '_blank')}
+            >
+              🖥️ Feed ↗
+            </button>
+            <button
+              className={styles.topBarQuickBtn}
+              onClick={() => window.open(`/request/${activeSession.slug}`, '_blank')}
+            >
+              📱 Requests ↗
+            </button>
+          </>
+        )}
+        <Link href="/reports" className={styles.topBarQuickBtn}>📊 Reports</Link>
+      </div>
     </header>
   );
 }
