@@ -235,7 +235,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     const active = allRequests.filter(r => r.danceType !== 'message' && ['pending', 'approved', 'playing'].includes(r.status));
     const map = {};
     for (const r of active) {
-      const danceKey = r.danceId || r.danceName;
+      const danceKey = (r.danceName || '').toLowerCase().trim();
       if (!map[danceKey]) {
         map[danceKey] = {
           danceKey, danceId: r.danceId, danceName: r.danceName,

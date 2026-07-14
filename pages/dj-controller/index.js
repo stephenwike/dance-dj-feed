@@ -194,7 +194,7 @@ function Controller() {
                       ? <p className={styles.empty}>No pending requests yet.</p>
                       : danceGroups.map(group => (
                           <PendingDanceGroup
-                            key={group.danceId || group.danceName}
+                            key={group.key}
                             group={group}
                             playsPerClient={playsPerClient}
                             resolvedNames={resolvedNames}
@@ -362,7 +362,7 @@ function Controller() {
                             onAction={handleAction}
                             resolvedName={resolvedNames[r.clientId]}
                             dragHandleProps={dragHandleProps}
-                            requesterCount={danceRequestCounts[r.danceId || r.danceName] ?? 1}
+                            requesterCount={danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1}
                             estimatedPlayAt={queueTimes[r._id]}
                           />
                         )}

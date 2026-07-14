@@ -244,7 +244,7 @@ function Controller({ spotifyConnected }) {
   const danceRequestCounts = useMemo(() => {
     const counts = {};
     for (const r of rawRequests.filter(r => ['pending', 'approved', 'playing'].includes(r.status))) {
-      const key = r.danceId || r.danceName;
+      const key = (r.danceName || '').toLowerCase().trim();
       counts[key] = (counts[key] || 0) + 1;
     }
     return counts;
@@ -571,7 +571,7 @@ function Controller({ spotifyConnected }) {
               <SortableContext items={queue.map(r => r._id)} strategy={verticalListSortingStrategy}>
                 {queue.map(r => (
                   <SortableQueueCard key={r._id} request={r} onPlayed={markPlayed} onRemove={remove}
-                    requesterCount={danceRequestCounts[r.danceId || r.danceName] ?? 1} />
+                    requesterCount={danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1} />
                 ))}
               </SortableContext>
             </DndContext>

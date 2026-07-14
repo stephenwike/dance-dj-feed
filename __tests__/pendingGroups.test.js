@@ -88,7 +88,7 @@ describe('buildPendingGroups — re-request vote count', () => {
       makeReq({ danceName: 'Waterfall', createdAt: t(700) }),
     ];
     const queue = [];
-    const lastPlayedAt = { Waterfall: t(400) }; // dance was played at t(400)
+    const lastPlayedAt = { waterfall: t(400) }; // dance was played at t(400) — key is normalized lowercase
 
     const groups = buildPendingGroups(pending, queue, lastPlayedAt);
 
@@ -107,7 +107,7 @@ describe('buildPendingGroups — re-request vote count', () => {
       makeReq({ danceName: 'Waterfall', createdAt: t(600) }), // after play ✓
     ];
     const queue = [];
-    const lastPlayedAt = { Waterfall: t(400) };
+    const lastPlayedAt = { waterfall: t(400) }; // normalized lowercase key
 
     const groups = buildPendingGroups(pending, queue, lastPlayedAt);
 
