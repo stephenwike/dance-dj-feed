@@ -339,3 +339,59 @@
 }
 .btnSetup:hover:not(:disabled) { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.28); }
 .btnSetup:disabled { opacity: 0.4; cursor: default; }
+
+.recentSessions {
+  width: 100%;
+  margin-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 16px;
+}
+
+.recentSessionsLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.25);
+  margin: 0 0 10px;
+}
+
+.recentSessionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.recentSessionRow:last-child { border-bottom: none; }
+
+.recentSessionInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recentSessionName {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recentSessionMeta {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.28);
+}
+
+.recentSessionLink {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(138,92,255,0.7);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.recentSessionLink:hover { color: #8A5CFF; }

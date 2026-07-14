@@ -19,6 +19,7 @@ export default function StartPage() {
   const [error, setError] = useState('');
   const [activeSession, setActiveSession] = useState(undefined);
   const [draftSession, setDraftSession] = useState(undefined);
+  const [recentSessions, setRecentSessions] = useState([]);
   const [finishing, setFinishing] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
 
@@ -31,6 +32,7 @@ export default function StartPage() {
         const draft = list.find(s => s.status === 'draft') ?? null;
         setActiveSession(active);
         setDraftSession(draft);
+        setRecentSessions(list.filter(s => s.status === 'closed' && s.startedAt).slice(0, 5));
         // Pre-fill the name field from the draft so activation preserves the name
         if (draft && !name) setName(draft.name);
       })
@@ -263,6 +265,34 @@ export default function StartPage() {
               {settingUp ? 'Opening…' : '🎛️ Set up queue first'}
             </button>
           </form>
+
+          {recentSessions.length > 0 && (
+            <div className={styles.recentSessions}>
+              <p className={styles.recentSessionsLabel}>Recent sessions</p>
+              {recentSessions.map(s => {
+                const ms = s.closedAt ? new Date(s.closedAt) - new Date(s.startedAt) : null;
+                const dur = ms ? (() => {
+                  const h = Math.floor(ms / 3600000);
+                  const m = Math.floor((ms % 3600000) / 60000);
+                  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                })() : null;
+                return (
+                  <div key={s._id} className={styles.recentSessionRow}>
+                    <div className={styles.recentSessionInfo}>
+                      <span className={styles.recentSessionName}>{s.name}</span>
+                      <span className={styles.recentSessionMeta}>
+                        {new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {dur && ` · ${dur}`}
+                      </span>
+                    </div>
+                    <Link href={`/reports?session=${s._id}`} className={styles.recentSessionLink}>
+                      Report →
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           </>
           )}
         </div>
