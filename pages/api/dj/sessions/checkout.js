@@ -16,19 +16,29 @@ export default async function handler(req, res) {
   const userId = authSession?.user?.id ?? null;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { name, plugin, durationMinutes, returnUrl, draftSessionId } = req.body ?? {};
+  const { name, plugin, returnUrl, draftSessionId } = req.body ?? {};
+  let { durationMinutes } = req.body ?? {};
+
+  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
+  const client = await clientPromise;
+
+  // If launching a draft that has a configured duration, use it
+  if (!durationMinutes && draftSessionId) {
+    const { ObjectId } = require('mongodb');
+    try {
+      const draft = await client.db(process.env.MONGODB_DB || 'djfeed').collection('dj_sessions')
+        .findOne({ _id: new ObjectId(String(draftSessionId)) });
+      if (draft?.durationMinutes) durationMinutes = draft.durationMinutes;
+    } catch { /* bad id — will fail at tier check below */ }
+  }
 
   const tier = SESSION_DURATIONS_BY_MINUTES[Number(durationMinutes)];
-  if (!tier) return res.status(400).json({ error: 'Invalid duration' });
+  if (!tier) return res.status(400).json({ error: 'Invalid duration — configure a duration for this session first' });
 
   const resolvedPlugin = plugin ?? 'standard';
   if (!SESSION_PLUGINS.includes(resolvedPlugin)) {
     return res.status(400).json({ error: 'Invalid plugin' });
   }
-
-  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
-
-  const client = await clientPromise;
 
   if (!paymentsEnabled) {
     const doc = draftSessionId

@@ -1,0 +1,140 @@
+.logo {
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+.sub {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hint {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.25);
+}
+
+.input {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.input:focus { border-color: rgba(138,92,255,0.5); }
+.input::placeholder { color: rgba(255,255,255,0.2); }
+
+/* ── Duration picker ── */
+.durationRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.durationChip {
+  flex: 1;
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.13s, border-color 0.13s;
+}
+.durationChip:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+
+.durationChipActive {
+  background: rgba(138,92,255,0.15);
+  border-color: rgba(138,92,255,0.5);
+}
+
+.durationChipLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.durationChipPrice {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ── Buttons ── */
+.btn {
+  width: 100%;
+  padding: 13px;
+  background: #8A5CFF;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn:hover:not(:disabled) { background: #7c3aed; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+.btnSecondary {
+  width: 100%;
+  padding: 11px;
+  background: transparent;
+  color: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btnSecondary:hover:not(:disabled) { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.28); }
+.btnSecondary:disabled { opacity: 0.4; cursor: default; }
+
+.error {
+  font-size: 0.8rem;
+  color: #f87171;
+  margin: 0;
+}

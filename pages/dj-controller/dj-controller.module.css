@@ -800,16 +800,135 @@
 
 .appNameShort { display: none; }
 
-.topBarSession {
-  flex: 1 1 auto;
+.topBarSpacer {
+  flex: 1;
+}
+
+.topBarRight {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  max-width: 45%;
-  padding: 0 12px;
+  flex-shrink: 0;
+  padding-left: 12px;
   border-left: 1px solid rgba(255,255,255,0.07);
-  border-right: 1px solid rgba(255,255,255,0.07);
+}
+
+/* ── Session switcher dropdown ── */
+.sessionSwitchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,0.07);
+}
+
+.sessionSwitchTrigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 0;
+  flex: 1;
+}
+
+.sessionSwitchSep {
+  width: 1px;
+  height: 13px;
+  background: rgba(255,255,255,0.18);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+.sessionSwitchArrow {
+  font-size: 0.52rem;
+  color: rgba(255,255,255,0.45);
+  flex-shrink: 0;
+}
+.sessionSwitchTrigger:hover .sessionSwitchArrow { color: rgba(255,255,255,0.75); }
+.sessionSwitchTrigger:hover .sessionSwitchSep { background: rgba(255,255,255,0.3); }
+
+.sessionDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 300;
+  background: #1c1c30;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  min-width: 100%;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.sessionDropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.1s;
+}
+.sessionDropdownItem:hover { background: rgba(255,255,255,0.05); }
+.sessionDropdownItem + .sessionDropdownItem { border-top: 1px solid rgba(255,255,255,0.05); }
+
+.sessionDropdownItemSelected { background: rgba(138,92,255,0.1); }
+.sessionDropdownItemSelected:hover { background: rgba(138,92,255,0.15); }
+
+.sessionDropdownItemName {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sessionDropdownItemBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.35);
+  flex-shrink: 0;
+}
+
+.sessionDropdownItemCheck {
+  font-size: 0.72rem;
+  color: #a78bfa;
+  flex-shrink: 0;
+}
+
+.sessionDropdownCreate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #a78bfa;
+  transition: background 0.1s;
+  font-family: inherit;
+}
+.sessionDropdownCreate:hover { background: rgba(138,92,255,0.08); }
+
+.sessionDropdownCreatePlus {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .topBarSessionName {
@@ -3055,8 +3174,8 @@
   .sidebarBtn { padding: 8px 10px; flex-direction: row; }
   .leftPanel { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); max-height: 50%; }
   .rightPanel { flex: 1; }
-  .topBarSession { max-width: 70%; }
-  .topBarQuickLinks { display: none; }
+  .sessionSwitchWrap { max-width: 40%; }
+  .topBarRight .topBarQuickBtn { display: none; }
 }
 
 /* Below 640px: very compact */

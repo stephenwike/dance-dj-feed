@@ -44,8 +44,8 @@ function Controller() {
   const [connectNotice, setConnectNotice] = useState('');
 
   const {
-    sessions, activeSession, draftSession, workingSession, isSpotify, mutateSessions,
-    closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
+    sessions, liveSessions, activeSession, draftSession, workingSession, isSpotify, mutateSessions,
+    selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
     tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
   } = useSessionManager();
@@ -139,6 +139,9 @@ function Controller() {
         <TopBar
           activeSession={activeSession}
           draftSession={draftSession}
+          workingSession={workingSession}
+          liveSessions={liveSessions}
+          selectSession={selectSession}
           closeSession={closeSession}
           discardDraft={discardDraft}
           timeState={timeState}

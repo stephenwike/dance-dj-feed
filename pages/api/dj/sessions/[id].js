@@ -39,8 +39,23 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const { status, partnerDancesEnabled, tippingEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled } = req.body ?? {};
+    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled } = req.body ?? {};
     const set = {};
+
+    if (name !== undefined) {
+      const trimmed = String(name).trim();
+      if (!trimmed) return res.status(400).json({ error: 'Name cannot be empty' });
+      const { makeSlug } = require('../../../../lib/server/dj/sessionLogic');
+      const collision = await col.findOne({
+        ownerId: userId,
+        _id: { $ne: objId },
+        status: { $in: ['draft', 'active'] },
+        name: { $regex: `^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+      });
+      if (collision) return res.status(409).json({ error: `A session named "${trimmed}" already exists` });
+      set.name = trimmed;
+      set.slug = makeSlug(trimmed);
+    }
 
     if (status === 'closed') {
       set.status = 'closed';
@@ -54,6 +69,7 @@ export default async function handler(req, res) {
       set.closedAt = null;
     }
 
+    if (durationMinutes !== undefined) set.durationMinutes = Number(durationMinutes) || null;
     if (partnerDancesEnabled !== undefined) set.partnerDancesEnabled = partnerDancesEnabled;
     if (tippingEnabled !== undefined) set.tippingEnabled = !!tippingEnabled;
     if (weightDecayEnabled !== undefined) set.weightDecayEnabled = !!weightDecayEnabled;
