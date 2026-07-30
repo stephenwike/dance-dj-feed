@@ -99,9 +99,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   const [formTip, setFormTip] = useState(0);
   const [formTipReset, setFormTipReset] = useState(0);
   const [boosterOpenId, setBoosterOpenId] = useState(null);
-  // Quick-tip (+1) debounce: accumulates taps and fires one API call after 600ms idle
-  const quickTipRef = useRef({ id: null, count: 0, timer: null });
-  const [quickTipDisplay, setQuickTipDisplay] = useState(null); // { id, count } for live display
   const [pendingRemoveId, setPendingRemoveId] = useState(null);
   const [submittingPanel, setSubmittingPanel] = useState(false);
 
@@ -366,46 +363,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     mutateBalance();
     mutateRequests();
     return body;
-  }
-
-  function handleQuickBoost(request) {
-    const ref = quickTipRef.current;
-    // Switching to a different request — flush any pending first
-    if (ref.id && ref.id !== request._id && ref.count > 0) {
-      clearTimeout(ref.timer);
-      const id = ref.id; const count = ref.count;
-      ref.id = null; ref.count = 0; ref.timer = null;
-      setQuickTipDisplay(null);
-      tipRequest(id, count);
-    }
-    if (ref.id !== request._id) { ref.id = request._id; ref.count = 0; }
-
-    const existingBeats = Math.round((request.tipCents ?? 0) / 5);
-    const nextCount = ref.count + 1;
-    const nextTotal = existingBeats + nextCount;
-
-    // Open booster for confirm when a threshold would be crossed
-    if (nextTotal > 100 || (beatBalance > 0 && nextCount / beatBalance >= 0.5)) {
-      if (ref.count > 0) {
-        clearTimeout(ref.timer);
-        const id = ref.id; const count = ref.count;
-        ref.id = null; ref.count = 0; ref.timer = null;
-        setQuickTipDisplay(null);
-        tipRequest(id, count);
-      }
-      setBoosterOpenId(request._id);
-      return;
-    }
-
-    ref.count = nextCount;
-    setQuickTipDisplay({ id: request._id, count: nextCount });
-    clearTimeout(ref.timer);
-    ref.timer = setTimeout(() => {
-      const id = ref.id; const count = ref.count;
-      ref.id = null; ref.count = 0; ref.timer = null;
-      setQuickTipDisplay(null);
-      tipRequest(id, count);
-    }, 600);
   }
 
   const customName = !selected && search.trim() && filtered.length === 0 ? search.trim() : null;
@@ -1049,6 +1006,19 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
               }
               const limit = queueVisibleCount === 0 ? queued.length : Math.max(0, queueVisibleCount - playing.length);
               const visibleQueued = queued.slice(0, limit);
+              const queueBeats = {};
+              for (const r of allRequests) {
+                if (!['pending', 'approved', 'playing'].includes(r.status)) continue;
+                if (r.danceType === 'message') continue;
+                const key = r.danceType === 'partner'
+                  ? (r.partnerGroupId || r._id)
+                  : (r.danceId || (r.danceName || '').toLowerCase().trim());
+                queueBeats[key] = (queueBeats[key] ?? 0) + Math.round((r.tipCents ?? 0) / 5);
+              }
+              function beatsForItem(r) {
+                if (r.danceType === 'partner') return queueBeats[r.partnerGroupId || r._id] ?? 0;
+                return queueBeats[r.danceId || (r.danceName || '').toLowerCase().trim()] ?? 0;
+              }
               return (
                 <div className={styles.queueList}>
                   {playing.map((r, i) => (
@@ -1058,6 +1028,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
+                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}>♫ {beatsForItem(r)}</span>}
                       <span className={styles.queueItemStatus}>Now Playing</span>
                     </div>
                   ))}
@@ -1068,6 +1039,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
+                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}>♫ {beatsForItem(r)}</span>}
                     </div>
                   ))}
                 </div>
@@ -1079,17 +1051,27 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
               ) : requestGroups.map(group => {
                 const myOriginal = group.originals.find(r => r.clientId === clientId);
                 const totalOriginals = group.originals.length;
+                const totalBeats = [
+                  ...group.originals,
+                  ...group.swaps.flatMap(s => s.requests),
+                ].reduce((sum, r) => sum + Math.round((r.tipCents ?? 0) / 5), 0);
                 return (
                   <div key={group.danceKey} className={styles.tabGroup}>
                     {/* Dance name / partner song header */}
                     {group.danceType === 'partner' ? (
                       <div className={styles.tabGroupName}>
-                        {group.songName
-                          ? <>{group.songName}{group.artist ? <span className={styles.tabGroupNameArtist}> — {group.artist}</span> : ''}</>
-                          : group.partnerStyle || 'Partner Dance'}
+                        {totalBeats > 0 && <span className={styles.tabGroupBeats}>♫ {totalBeats}</span>}
+                        <span>
+                          {group.songName
+                            ? <>{group.songName}{group.artist ? <span className={styles.tabGroupNameArtist}> — {group.artist}</span> : ''}</>
+                            : group.partnerStyle || 'Partner Dance'}
+                        </span>
                       </div>
                     ) : (
-                      <div className={styles.tabGroupName}>{group.danceName}</div>
+                      <div className={styles.tabGroupName}>
+                        {totalBeats > 0 && <span className={styles.tabGroupBeats}>♫ {totalBeats}</span>}
+                        <span>{group.danceName}</span>
+                      </div>
                     )}
 
                     {/* Original version row (only if anyone requested it) */}
@@ -1112,28 +1094,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                             {myOriginal ? (
                               <>
                                 {tippingEnabled && isSignedIn && (() => {
-                                  const existingBeats = Math.round((myOriginal.tipCents ?? 0) / 5);
-                                  const pendingBeats = quickTipDisplay?.id === myOriginal._id ? quickTipDisplay.count : 0;
-                                  const displayBeats = existingBeats + pendingBeats;
+                                  const displayBeats = Math.round((myOriginal.tipCents ?? 0) / 5);
                                   const hasTip = displayBeats > 0;
                                   const isOpen = boosterOpenId === myOriginal._id;
                                   return (
                                     <div className={`${styles.splitBoostWrap} ${hasTip ? styles.splitBoostWrapTipped : ''} ${isOpen ? styles.splitBoostWrapOpen : ''}`}>
                                       <button
-                                        className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''} ${pendingBeats > 0 ? styles.splitBtnLeftPending : ''}`}
-                                        onClick={() => setBoosterOpenId(isOpen ? null : myOriginal._id)}
-                                        disabled={beatBalance === 0}
-                                        title="Boost options"
+                                        className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''}`}
+                                        onClick={() => beatBalance === 0 ? setShowBeatShop(true) : setBoosterOpenId(isOpen ? null : myOriginal._id)}
+                                        title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
                                       >
                                         ♫{hasTip ? ` ${displayBeats}` : ''}
-                                      </button>
-                                      <button
-                                        className={styles.splitBtnRight}
-                                        onClick={() => handleQuickBoost(myOriginal)}
-                                        disabled={beatBalance === 0}
-                                        title="+1 Beat"
-                                      >
-                                        +
                                       </button>
                                     </div>
                                   );
@@ -1188,28 +1159,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                               {mySwap ? (
                                 <>
                                   {tippingEnabled && isSignedIn && (() => {
-                                    const existingBeats = Math.round((mySwap.tipCents ?? 0) / 5);
-                                    const pendingBeats = quickTipDisplay?.id === mySwap._id ? quickTipDisplay.count : 0;
-                                    const displayBeats = existingBeats + pendingBeats;
+                                    const displayBeats = Math.round((mySwap.tipCents ?? 0) / 5);
                                     const hasTip = displayBeats > 0;
                                     const isOpen = boosterOpenId === mySwap._id;
                                     return (
                                       <div className={`${styles.splitBoostWrap} ${hasTip ? styles.splitBoostWrapTipped : ''} ${isOpen ? styles.splitBoostWrapOpen : ''}`}>
                                         <button
-                                          className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''} ${pendingBeats > 0 ? styles.splitBtnLeftPending : ''}`}
-                                          onClick={() => setBoosterOpenId(isOpen ? null : mySwap._id)}
-                                          disabled={beatBalance === 0}
-                                          title="Boost options"
+                                          className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''}`}
+                                          onClick={() => beatBalance === 0 ? setShowBeatShop(true) : setBoosterOpenId(isOpen ? null : mySwap._id)}
+                                          title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
                                         >
                                           ♫{hasTip ? ` ${displayBeats}` : ''}
-                                        </button>
-                                        <button
-                                          className={styles.splitBtnRight}
-                                          onClick={() => handleQuickBoost(mySwap)}
-                                          disabled={beatBalance === 0}
-                                          title="+1 Beat"
-                                        >
-                                          +
                                         </button>
                                       </div>
                                     );

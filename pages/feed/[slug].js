@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
@@ -69,6 +69,24 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
   }, [activeMessage?._id, activeMessage?.expiresAt, activeMessage?.duration]);
 
   const [progress, setProgress] = useState(100);
+
+  const danceBeats = useMemo(() => {
+    const map = {};
+    for (const r of requests) {
+      if (!['pending', 'approved', 'playing'].includes(r.status)) continue;
+      if (r.danceType === 'message') continue;
+      const key = r.danceType === 'partner'
+        ? (r.partnerGroupId || r._id)
+        : (r.danceId || (r.danceName || '').toLowerCase().trim());
+      map[key] = (map[key] ?? 0) + Math.round((r.tipCents ?? 0) / 5);
+    }
+    return map;
+  }, [requests]);
+
+  function beatsFor(r) {
+    if (r.danceType === 'partner') return danceBeats[r.partnerGroupId || r._id] ?? 0;
+    return danceBeats[r.danceId || (r.danceName || '').toLowerCase().trim()] ?? 0;
+  }
 
   const playing = requests.find(r => r.status === 'playing') ?? null;
   const upcoming = requests
@@ -239,6 +257,7 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
                     </div>
                     <div className={styles.queueDancePlaying}>
                       {isPartner ? (first.songName || first.danceName) : first.danceName}
+                      {beatsFor(first) > 0 && <span className={styles.beatsBadgeTitle}>♫ {beatsFor(first)}</span>}
                     </div>
                     {isPartner && first.artist && (
                       <div className={styles.partnerArtistLine}>
@@ -274,6 +293,7 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
                         <span className={styles.queueDanceCol}>
                           <span className={styles.queueDance}>
                             {r.danceType === 'partner' ? (r.songName || r.danceName) : r.danceName}
+                            {beatsFor(r) > 0 && <span className={styles.beatsBadgeSm}>♫ {beatsFor(r)}</span>}
                           </span>
                           {r.isSongSwap && r.swapSongName && <span className={styles.queueSwapRow}>↪ {r.swapSongName}</span>}
                           {r.danceType === 'partner' && r.artist && (

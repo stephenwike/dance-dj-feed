@@ -32,10 +32,11 @@
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chip {
+  flex: 1;
   font-size: 0.82rem;
   font-weight: 700;
   font-family: inherit;
@@ -43,9 +44,10 @@
   background: #fff;
   border: 1.5px solid #c4b5fd;
   border-radius: 20px;
-  padding: 5px 14px;
+  padding: 5px 10px;
   cursor: pointer;
   transition: border-color 0.13s, background 0.13s, color 0.13s;
+  text-align: center;
 }
 
 .chip:hover {
@@ -66,10 +68,47 @@
   color: #fff;
 }
 
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customInput {
+  flex: 1;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: #374151;
+  background: #fff;
+  border: 1.5px solid #c4b5fd;
+  border-radius: 8px;
+  padding: 5px 10px;
+  outline: none;
+  transition: border-color 0.13s;
+  min-width: 0;
+}
+
+.customInput:focus { border-color: #8A5CFF; }
+.customInputActive { border-color: #8A5CFF; }
+
+.customUnit {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #8A5CFF;
+  white-space: nowrap;
+}
+
 .actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.noRefund {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-right: auto;
 }
 
 .cancelBtn {

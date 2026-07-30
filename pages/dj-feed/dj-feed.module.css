@@ -362,6 +362,45 @@
   gap: 8px;
 }
 
+.beatsBadgeTitle {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: clamp(1.2rem, 2vw, 2.8rem);
+  font-weight: 800;
+  color: #a78bfa;
+  background: rgba(138, 92, 255, 0.18);
+  border: 1.5px solid rgba(138, 92, 255, 0.35);
+  border-radius: 20px;
+  padding: clamp(4px, 0.5vh, 10px) clamp(12px, 1.2vw, 24px);
+  margin-left: clamp(10px, 1vw, 20px);
+  white-space: nowrap;
+}
+
+.beatsBadge {
+  font-size: clamp(0.7rem, 1vw, 1.1rem);
+  font-weight: 800;
+  color: #a78bfa;
+  background: rgba(138, 92, 255, 0.18);
+  border: 1px solid rgba(138, 92, 255, 0.35);
+  border-radius: 20px;
+  padding: clamp(3px, 0.4vh, 6px) clamp(8px, 0.8vw, 14px);
+  white-space: nowrap;
+}
+
+.beatsBadgeSm {
+  display: inline-block;
+  vertical-align: middle;
+  font-size: clamp(0.65rem, 1vw, 1.2rem);
+  font-weight: 800;
+  color: #a78bfa;
+  background: rgba(138, 92, 255, 0.18);
+  border: 1px solid rgba(138, 92, 255, 0.3);
+  border-radius: 20px;
+  padding: clamp(2px, 0.35vh, 6px) clamp(7px, 0.8vw, 14px);
+  margin-left: clamp(8px, 0.8vw, 16px);
+  white-space: nowrap;
+}
+
 .swapChip {
   font-size: clamp(0.7rem, 1vw, 1.1rem);
   font-weight: 800;

@@ -107,7 +107,7 @@ function Controller() {
 
   const {
     playing, queue, history,
-    resolvedNames, danceRequestCounts, partnerUpvoteCounts,
+    resolvedNames, danceRequestCounts, danceBeats, partnerUpvoteCounts,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
   } = useRequestGroups({ rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
 
@@ -413,6 +413,7 @@ function Controller() {
                             resolvedName={resolvedNames[r.clientId]}
                             dragHandleProps={dragHandleProps}
                             requesterCount={r.danceType === 'partner' ? 1 + (partnerUpvoteCounts[r._id] ?? 0) : (danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1)}
+                            totalBeats={r.danceType === 'partner' ? (danceBeats[r._id] ?? 0) : (danceBeats[(r.danceName || '').toLowerCase().trim()] ?? 0)}
                             estimatedPlayAt={queueTimes[r._id]}
                           />
                         )}

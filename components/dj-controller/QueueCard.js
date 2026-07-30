@@ -1,7 +1,7 @@
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor, formatTimestamp } from './utils';
 
-export default function QueueCard({ request, onAction, resolvedName, dragHandleProps, requesterCount, estimatedPlayAt }) {
+export default function QueueCard({ request, onAction, resolvedName, dragHandleProps, requesterCount, totalBeats = 0, estimatedPlayAt }) {
   const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, partnerStyle, duration_ms } = request;
   const isMessage = danceType === 'message';
   const isPartner = danceType === 'partner';
@@ -48,8 +48,8 @@ export default function QueueCard({ request, onAction, resolvedName, dragHandleP
                   </span>
                 )
               }
-              {(tipCents ?? 0) > 0 && (
-                <span className={styles.qBeatChip}>♫ {Math.round(tipCents / 5)}</span>
+              {totalBeats > 0 && (
+                <span className={styles.qBeatChip}>♫ {totalBeats}</span>
               )}
             </>
           )}
