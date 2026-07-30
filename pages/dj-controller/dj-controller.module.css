@@ -317,12 +317,14 @@
 
 .panelHead {
   padding: 10px 14px;
+  min-height: 50px;
   background: #13132a;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .panelTitle {
@@ -561,6 +563,112 @@
   gap: 12px;
 }
 
+/* ── Pending panel sort/filter controls ── */
+.pendingControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 4px;
+  flex-wrap: wrap;
+}
+
+.filterGroup,
+.sortGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filterGroup { flex: 1; }
+
+.controlLabel {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.28);
+  flex-shrink: 0;
+}
+
+.filterChips {
+  display: flex;
+  gap: 4px;
+}
+
+.filterChip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.13s;
+}
+.filterChip:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
+.filterChipActive {
+  color: #a78bfa;
+  background: rgba(138,92,255,0.15);
+  border-color: rgba(138,92,255,0.4);
+}
+
+.sortBtn {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.13s;
+}
+.sortBtn:hover { color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.18); }
+.sortBtnActive { color: #a78bfa; border-color: rgba(138,92,255,0.35); background: rgba(138,92,255,0.1); }
+
+/* Purple variant of settingSubRow (for queue count) */
+.settingSubRowPurple {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: -6px 0 8px;
+  background: rgba(138,92,255,0.07);
+  border: 1px solid rgba(138,92,255,0.18);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+}
+
+/* Settings count chips (queue visible count) */
+.settingCountChips {
+  display: flex;
+  gap: 4px;
+}
+
+.countChip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(180,160,255,0.5);
+  background: rgba(138,92,255,0.04);
+  border: 1px solid rgba(138,92,255,0.15);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.13s;
+}
+.countChip:hover { color: rgba(180,160,255,0.85); border-color: rgba(138,92,255,0.3); }
+.countChipActive {
+  color: #a78bfa;
+  background: rgba(138,92,255,0.15);
+  border-color: rgba(138,92,255,0.4);
+}
+
 /* ── Settings panel ── */
 .settingRow {
   display: flex;
@@ -713,6 +821,11 @@
   color: rgba(255,255,255,0.4);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+}
+
+.nowPlayingArtist {
+  font-weight: 400;
+  color: rgba(255,255,255,0.45);
 }
 
 .nowPlayingTrack {
@@ -1709,6 +1822,22 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.partnerBadge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(138,92,255,0.22);
+  color: #a78bfa;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.danceGroupNameArtist {
+  font-weight: 400;
+  color: rgba(255,255,255,0.4);
 }
 
 .partnerStylePip {

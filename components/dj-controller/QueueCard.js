@@ -2,10 +2,15 @@ import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor, formatTimestamp } from './utils';
 
 export default function QueueCard({ request, onAction, resolvedName, dragHandleProps, requesterCount, estimatedPlayAt }) {
-  const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, duration_ms } = request;
+  const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, partnerStyle, duration_ms } = request;
   const isMessage = danceType === 'message';
+  const isPartner = danceType === 'partner';
   const displayName = resolvedName || clientId || '';
   const hasCustomName = displayName && displayName !== clientId;
+
+  const partnerPrimary = songName
+    ? <>{songName}{artist ? <span className={styles.danceGroupNameArtist}> — {artist}</span> : ''}</>
+    : (partnerStyle || 'Partner Dance');
 
   return (
     <div className={`${styles.qCard} ${isMessage ? styles.qCardMessage : ''}`}>
@@ -16,11 +21,13 @@ export default function QueueCard({ request, onAction, resolvedName, dragHandleP
         <div className={styles.qName}>
           {isMessage
             ? <><span className={styles.qMsgIcon}>💬</span>{danceName}</>
-            : stepsheet
-              ? <a href={stepsheet} target="_blank" rel="noopener noreferrer" className={styles.qNameLink}>{danceName}</a>
-              : danceName}
+            : isPartner
+              ? partnerPrimary
+              : stepsheet
+                ? <a href={stepsheet} target="_blank" rel="noopener noreferrer" className={styles.qNameLink}>{danceName}</a>
+                : danceName}
         </div>
-        {!isMessage && songName && <div className={styles.qSong}>{songName}{artist ? ` — ${artist}` : ''}</div>}
+        {!isMessage && !isPartner && songName && <div className={styles.qSong}>{songName}{artist ? ` — ${artist}` : ''}</div>}
         <div className={styles.qMeta}>
           {isMessage ? (
             <span className={styles.qMsgDuration}>
@@ -28,9 +35,10 @@ export default function QueueCard({ request, onAction, resolvedName, dragHandleP
             </span>
           ) : (
             <>
-              {difficulty && (
-                <span className={styles.diffPip} style={{ background: diffColor(difficulty) }}>{difficulty}</span>
-              )}
+              {isPartner
+                ? <span className={styles.partnerBadge}>Partner Dance</span>
+                : difficulty && <span className={styles.diffPip} style={{ background: diffColor(difficulty) }}>{difficulty}</span>
+              }
               {requesterCount > 1
                 ? <span className={styles.queueCountBadge}>{requesterCount}</span>
                 : displayName && (

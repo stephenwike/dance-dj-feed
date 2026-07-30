@@ -583,6 +583,88 @@
   flex-direction: column;
 }
 
+/* ── Queue tab ── */
+.queueList {
+  display: flex;
+  flex-direction: column;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 28px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.queueItem:last-child { border-bottom: none; }
+
+.queueItemPlaying {
+  background: rgba(138,92,255,0.04);
+  border-left: 3px solid #8A5CFF;
+  padding-left: 25px;
+}
+
+.queueItemPos {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9ca3af;
+  width: 20px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.queueItemPlaying .queueItemPos {
+  color: #8A5CFF;
+}
+
+.queueItemInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.queueItemName {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queueItemSong {
+  font-size: 0.73rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.queueItemStatus {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #8A5CFF;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.seeAllBtn {
+  margin: 8px 28px 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #8A5CFF;
+  background: rgba(138,92,255,0.06);
+  border: 1px solid rgba(138,92,255,0.18);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.13s;
+}
+.seeAllBtn:hover { background: rgba(138,92,255,0.1); }
+
 .tabEmpty {
   color: #9ca3af;
   font-size: 0.875rem;
@@ -604,6 +686,22 @@
   font-weight: 700;
   color: #111827;
   padding: 10px 28px 2px;
+}
+
+.tabGroupNameArtist {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.tabRowPartnerBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  background: #8A5CFF;
+  border-radius: 5px;
+  padding: 1px 7px;
+  letter-spacing: 0.02em;
 }
 
 /* ── Swap variant row ────────────────────────────────────────────────────── */

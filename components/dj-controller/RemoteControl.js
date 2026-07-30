@@ -27,7 +27,16 @@ export default function RemoteControl({ playing, queue, onAction, activeSession 
               />
             )}
           </div>
-          <div className={styles.nowPlayingTrack}>{track.danceName}</div>
+          <div className={styles.nowPlayingTrack}>
+            {track.danceType === 'partner'
+              ? (track.songName
+                  ? <>{track.songName}{track.artist ? <span className={styles.nowPlayingArtist}> — {track.artist}</span> : ''}</>
+                  : (track.partnerStyle || 'Partner Dance'))
+              : track.danceName}
+          </div>
+          {track.danceType === 'partner' && (
+            <span className={styles.partnerBadge} style={{ alignSelf: 'flex-start' }}>Partner Dance</span>
+          )}
           <div className={styles.nowPlayingButtons}>
             <button
               className={`${styles.nowPlayingBtn} ${isPaused ? styles.nowPlayingBtnResume : styles.nowPlayingBtnPause}`}

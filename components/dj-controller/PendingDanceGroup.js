@@ -11,9 +11,13 @@ export default function PendingDanceGroup({ group, playsPerClient, resolvedNames
       <div className={styles.danceGroupRow}>
         <div className={styles.danceGroupInfo}>
           <span className={styles.danceGroupName}>
-            {group.stepsheet
-              ? <a href={group.stepsheet} target="_blank" rel="noopener noreferrer" className={styles.pNameLink}>{group.danceName}</a>
-              : group.danceName}
+            {group.danceType === 'partner'
+              ? (group.songName
+                  ? <>{group.songName}{group.artist ? <span className={styles.danceGroupNameArtist}> — {group.artist}</span> : ''}</>
+                  : (group.partnerStyle || 'Partner Dance'))
+              : (group.stepsheet
+                  ? <a href={group.stepsheet} target="_blank" rel="noopener noreferrer" className={styles.pNameLink}>{group.danceName}</a>
+                  : group.danceName)}
             {group.isRepeat && <span className={styles.repeatBadge}>REPEAT</span>}
             {group.isSongSwap && <span className={styles.swapBadgePending}>↻ Swap</span>}
           </span>
@@ -23,11 +27,13 @@ export default function PendingDanceGroup({ group, playsPerClient, resolvedNames
             </div>
           )}
           <div className={styles.danceGroupSub}>
-            {group.difficulty && <span className={styles.diffPip} style={{ background: diffColor(group.difficulty) }}>{group.difficulty}</span>}
-            {group.danceType === 'partner' && group.partnerStyle && (
-              <span className={styles.partnerStylePip}>{group.partnerStyle}</span>
-            )}
-            {!group.isSongSwap && group.songName && <span className={styles.danceGroupSong}>{group.songName}{group.artist ? ` — ${group.artist}` : ''}</span>}
+            {group.danceType === 'partner'
+              ? <span className={styles.partnerBadge}>Partner Dance</span>
+              : <>
+                  {group.difficulty && <span className={styles.diffPip} style={{ background: diffColor(group.difficulty) }}>{group.difficulty}</span>}
+                  {!group.isSongSwap && group.songName && <span className={styles.danceGroupSong}>{group.songName}{group.artist ? ` — ${group.artist}` : ''}</span>}
+                </>
+            }
           </div>
         </div>
         <div className={styles.danceGroupRight}>

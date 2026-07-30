@@ -58,7 +58,7 @@ function getRowStatus(requests, queueTimes) {
   return null;
 }
 
-export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, tippingEnabled: tippingEnabledProp = null }) {
+export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, tippingEnabled: tippingEnabledProp = null, queueVisibleToRequesters = true, queueVisibleCount = 4 }) {
   const { data: authSession, status: authStatus } = useSession();
   const isLoaded = authStatus !== 'loading';
   const isSignedIn = !!authSession;
@@ -235,13 +235,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     const active = allRequests.filter(r => r.danceType !== 'message' && ['pending', 'approved', 'playing'].includes(r.status));
     const map = {};
     for (const r of active) {
-      const danceKey = (r.danceName || '').toLowerCase().trim();
+      const danceKey = r.danceType === 'partner'
+        ? (r.partnerGroupId || r._id)
+        : (r.danceName || '').toLowerCase().trim();
       if (!map[danceKey]) {
         map[danceKey] = {
           danceKey, danceId: r.danceId, danceName: r.danceName,
           songName: r.songName, artist: r.artist,
           difficulty: r.difficulty, stepsheet: r.stepsheet,
           duration_ms: r.duration_ms,
+          danceType: r.danceType ?? null,
+          partnerStyle: r.partnerStyle ?? null,
           originals: [],
           swaps: {},
         };
@@ -261,6 +265,14 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     return Object.values(map)
       .map(g => ({ ...g, swaps: Object.values(g.swaps) }))
       .sort((a, b) => a.danceName.localeCompare(b.danceName));
+  }, [allRequests]);
+
+  const queueItems = useMemo(() => {
+    const playing = allRequests.filter(r => r.status === 'playing' && r.danceType !== 'message');
+    const queued = allRequests
+      .filter(r => r.status === 'approved' && r.danceType !== 'message')
+      .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0));
+    return { playing, queued };
   }, [allRequests]);
 
   const queueTimes = useMemo(() => {
@@ -484,6 +496,11 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
         songName: group.songName, artist: group.artist,
         difficulty: group.difficulty, stepsheet: group.stepsheet,
         duration_ms: group.duration_ms, notes: '',
+        ...(group.danceType === 'partner' && {
+          danceType: 'partner',
+          partnerStyle: group.partnerStyle,
+          partnerGroupId: group.danceKey,
+        }),
       });
       mutateRequests();
     } finally {
@@ -1001,6 +1018,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                 <span className={styles.tabBadge}>{requestGroups.length}</span>
               )}
             </button>
+            {queueVisibleToRequesters && (
+              <button
+                className={`${styles.tab} ${activeTab === 'queue' ? styles.tabActive : ''}`}
+                onClick={() => setActiveTab('queue')}
+              >
+                Queue
+                {(queueItems.playing.length + queueItems.queued.length) > 0 && (
+                  <span className={styles.tabBadge}>{queueItems.playing.length + queueItems.queued.length}</span>
+                )}
+              </button>
+            )}
             <button
               className={`${styles.tab} ${activeTab === 'history' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('history')}
@@ -1013,6 +1041,38 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
           </div>
 
           <div className={styles.tabContent}>
+            {activeTab === 'queue' && (() => {
+              const { playing, queued } = queueItems;
+              const total = playing.length + queued.length;
+              if (total === 0) {
+                return <p className={styles.tabEmpty}>The queue is empty right now.</p>;
+              }
+              const limit = queueVisibleCount === 0 ? queued.length : Math.max(0, queueVisibleCount - playing.length);
+              const visibleQueued = queued.slice(0, limit);
+              return (
+                <div className={styles.queueList}>
+                  {playing.map((r, i) => (
+                    <div key={r._id} className={`${styles.queueItem} ${styles.queueItemPlaying}`}>
+                      <span className={styles.queueItemPos}>▶</span>
+                      <div className={styles.queueItemInfo}>
+                        <span className={styles.queueItemName}>{r.danceName}</span>
+                        {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
+                      </div>
+                      <span className={styles.queueItemStatus}>Now Playing</span>
+                    </div>
+                  ))}
+                  {visibleQueued.map((r, i) => (
+                    <div key={r._id} className={styles.queueItem}>
+                      <span className={styles.queueItemPos}>{playing.length + i + 1}</span>
+                      <div className={styles.queueItemInfo}>
+                        <span className={styles.queueItemName}>{r.danceName}</span>
+                        {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             {activeTab === 'requests' && (
               requestGroups.length === 0 ? (
                 <p className={styles.tabEmpty}>No active requests yet.</p>
@@ -1021,18 +1081,30 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                 const totalOriginals = group.originals.length;
                 return (
                   <div key={group.danceKey} className={styles.tabGroup}>
-                    {/* Dance name header */}
-                    <div className={styles.tabGroupName}>{group.danceName}</div>
+                    {/* Dance name / partner song header */}
+                    {group.danceType === 'partner' ? (
+                      <div className={styles.tabGroupName}>
+                        {group.songName
+                          ? <>{group.songName}{group.artist ? <span className={styles.tabGroupNameArtist}> — {group.artist}</span> : ''}</>
+                          : group.partnerStyle || 'Partner Dance'}
+                      </div>
+                    ) : (
+                      <div className={styles.tabGroupName}>{group.danceName}</div>
+                    )}
 
                     {/* Original version row (only if anyone requested it) */}
                     {totalOriginals > 0 && (
                       <>
                         <div className={styles.tabRow}>
                           <div className={styles.tabRowInfo}>
-                            {group.songName && (
-                              <span className={styles.tabRowSong}>
-                                {group.songName}{group.artist ? ` — ${group.artist}` : ''}
-                              </span>
+                            {group.danceType === 'partner' ? (
+                              <span className={styles.tabRowPartnerBadge}>Partner Dance</span>
+                            ) : (
+                              group.songName && (
+                                <span className={styles.tabRowSong}>
+                                  {group.songName}{group.artist ? ` — ${group.artist}` : ''}
+                                </span>
+                              )
                             )}
                             {(() => { const s = getRowStatus(group.originals, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
                           </div>

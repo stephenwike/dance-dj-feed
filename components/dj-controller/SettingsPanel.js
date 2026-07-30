@@ -1,11 +1,20 @@
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 
+const QUEUE_COUNT_OPTIONS = [
+  { label: '2', value: 2 },
+  { label: '4', value: 4 },
+  { label: '8', value: 8 },
+  { label: 'All', value: 0 },
+];
+
 export default function SettingsPanel({
   activeSession,
   partnerDancesEnabled, togglePartnerDances,
   tippingEnabled, toggleTipping,
   fairnessScoringEnabled, toggleWeighting,
   cycleDecay, decayLabel,
+  queueVisibleToRequesters, toggleQueueVisibility,
+  queueVisibleCount, setQueueVisibleCount,
 }) {
   return (
     <div className={styles.panel}>
@@ -57,6 +66,35 @@ export default function SettingsPanel({
                 <button className={styles.cycleBtn} onClick={cycleDecay}>
                   {decayLabel}
                 </button>
+              </div>
+            )}
+
+            <div className={`${styles.settingRow} ${queueVisibleToRequesters ? styles.settingRowNoBottom : ''}`}>
+              <div className={styles.settingInfo}>
+                <span className={styles.settingName}>Queue Visible to Attendees</span>
+                <span className={styles.settingDesc}>Let attendees see the upcoming dance queue in the request app</span>
+              </div>
+              <button
+                className={`${styles.toggle} ${queueVisibleToRequesters ? styles.toggleOn : ''}`}
+                onClick={toggleQueueVisibility}
+                aria-label={`Queue visibility ${queueVisibleToRequesters ? 'on' : 'off'}`}
+              />
+            </div>
+
+            {queueVisibleToRequesters && (
+              <div className={styles.settingSubRowPurple}>
+                <span className={styles.settingSubName} style={{ color: 'rgba(180,160,255,0.6)' }}>Items shown</span>
+                <div className={styles.settingCountChips}>
+                  {QUEUE_COUNT_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`${styles.countChip} ${queueVisibleCount === opt.value ? styles.countChipActive : ''}`}
+                      onClick={() => setQueueVisibleCount(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </>

@@ -38,6 +38,8 @@ const fetcher = url => fetch(url).then(r => r.json());
 function Controller() {
   const router = useRouter();
   const [pendingTab, setPendingTab] = useState('dances');
+  const [pendingSort, setPendingSort] = useState('score');
+  const [pendingFilter, setPendingFilter] = useState('all');
   const [editingGroup, setEditingGroup] = useState(null);
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [activePanel, setActivePanel] = useState('requests');
@@ -47,7 +49,9 @@ function Controller() {
     sessions, liveSessions, activeSession, draftSession, workingSession, isSpotify, mutateSessions,
     selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
+    toggleQueueVisibility, setQueueVisibleCount,
     tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
+    queueVisibleToRequesters, queueVisibleCount,
   } = useSessionManager();
 
   const requestsUrl = workingSession?._id ? `/api/dj/requests?sessionId=${workingSession._id}` : '/api/dj/requests';
@@ -103,7 +107,7 @@ function Controller() {
 
   const {
     playing, queue, history,
-    resolvedNames, danceRequestCounts,
+    resolvedNames, danceRequestCounts, partnerUpvoteCounts,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
   } = useRequestGroups({ rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
 
@@ -116,6 +120,16 @@ function Controller() {
   const { handleAction, clearHistory, saveGroupEdit } = useRequestActions({
     rawRequests, queue, nextQueuePos, history, isSpotify, spotify, mutate,
   });
+
+  const hasPartnerGroups = danceGroups.some(g => g.danceType === 'partner');
+
+  const filteredDanceGroups = useMemo(() => {
+    let groups = danceGroups;
+    if (pendingFilter === 'line') groups = groups.filter(g => g.danceType !== 'partner');
+    else if (pendingFilter === 'partner') groups = groups.filter(g => g.danceType === 'partner');
+    if (pendingSort === 'alpha') groups = [...groups].sort((a, b) => (a.danceName || '').localeCompare(b.danceName || ''));
+    return groups;
+  }, [danceGroups, pendingFilter, pendingSort]);
 
   const pendingCount = danceGroups.length;
 
@@ -192,10 +206,39 @@ function Controller() {
                   </div>
                 </div>
                 <div className={styles.panelBody}>
+                  {pendingTab === 'dances' && danceGroups.length > 0 && (
+                    <div className={styles.pendingControls}>
+                      {hasPartnerGroups && (
+                        <div className={styles.filterGroup}>
+                          <span className={styles.controlLabel}>Filter</span>
+                          <div className={styles.filterChips}>
+                            {['all', 'line', 'partner'].map(f => (
+                              <button
+                                key={f}
+                                className={`${styles.filterChip} ${pendingFilter === f ? styles.filterChipActive : ''}`}
+                                onClick={() => setPendingFilter(f)}
+                              >
+                                {f === 'all' ? 'All' : f === 'line' ? 'Line' : 'Partner'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className={styles.sortGroup}>
+                        <span className={styles.controlLabel}>Sort</span>
+                        <button
+                          className={`${styles.sortBtn} ${pendingSort === 'alpha' ? styles.sortBtnActive : ''}`}
+                          onClick={() => setPendingSort(s => s === 'score' ? 'alpha' : 'score')}
+                        >
+                          {pendingSort === 'alpha' ? 'A–Z' : 'Score'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {pendingTab === 'dances' && (
-                    danceGroups.length === 0
-                      ? <p className={styles.empty}>No pending requests yet.</p>
-                      : danceGroups.map(group => (
+                    filteredDanceGroups.length === 0
+                      ? <p className={styles.empty}>{danceGroups.length === 0 ? 'No pending requests yet.' : 'No requests match this filter.'}</p>
+                      : filteredDanceGroups.map(group => (
                           <PendingDanceGroup
                             key={group.key}
                             group={group}
@@ -248,6 +291,10 @@ function Controller() {
                 toggleWeighting={toggleWeighting}
                 cycleDecay={cycleDecay}
                 decayLabel={decayLabel}
+                queueVisibleToRequesters={queueVisibleToRequesters}
+                toggleQueueVisibility={toggleQueueVisibility}
+                queueVisibleCount={queueVisibleCount}
+                setQueueVisibleCount={setQueueVisibleCount}
               />
             )}
 
@@ -365,7 +412,7 @@ function Controller() {
                             onAction={handleAction}
                             resolvedName={resolvedNames[r.clientId]}
                             dragHandleProps={dragHandleProps}
-                            requesterCount={danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1}
+                            requesterCount={r.danceType === 'partner' ? 1 + (partnerUpvoteCounts[r._id] ?? 0) : (danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1)}
                             estimatedPlayAt={queueTimes[r._id]}
                           />
                         )}
