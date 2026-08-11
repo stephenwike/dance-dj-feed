@@ -44,7 +44,7 @@ export default function PendingDanceGroup({ group, playsPerClient, resolvedNames
             {group.score.toFixed(1)}
             <span className={styles.countRaw}> · {group.requests.length}</span>
             {group.totalTipCents > 0 && (
-              <span className={styles.countTip}> · ♫ {Math.round(group.totalTipCents / 5)}</span>
+              <span className={styles.countTip}> · <img src="/beats/coin_front.png" style={{width:'1.5em',height:'1.5em',verticalAlign:'middle',objectFit:'contain'}} alt="" aria-hidden="true" /> {Math.round(group.totalTipCents / 5)}</span>
             )}
             {' '}{expanded ? '▲' : '▼'}
           </button>
@@ -66,7 +66,7 @@ export default function PendingDanceGroup({ group, playsPerClient, resolvedNames
               <li key={r._id} className={styles.danceExpandedRow}>
                 <span className={styles.expandedWho}>{resolvedNames[r.clientId] || r.requesterName || r.clientId || 'Anonymous'}</span>
                 <span className={styles.weightChip} title={`${plays} dance${plays !== 1 ? 's' : ''} played this session`}>×{weight.toFixed(2)}</span>
-                {tip > 0 && <span className={styles.tipChip}>♫ {Math.round(tip / 5)}</span>}
+                {tip > 0 && <span className={styles.tipChip}><img src="/beats/coin_front.png" style={{width:'1.4em',height:'1.4em',verticalAlign:'middle',objectFit:'contain',marginRight:'2px'}} alt="" aria-hidden="true" />{Math.round(tip / 5)}</span>}
                 <span className={styles.qAge}>{timeAgo(r.createdAt)}</span>
                 <button className={styles.btnSkipSm} onClick={() => onAction(r._id, 'skip')}>Skip</button>
               </li>

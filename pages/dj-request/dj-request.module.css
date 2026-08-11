@@ -117,9 +117,9 @@
 .accountBarBtn {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #8A5CFF;
-  background: rgba(138, 92, 255, 0.08);
-  border: 1px solid rgba(138, 92, 255, 0.25);
+  color: #C8960C;
+  background: rgba(200, 150, 12, 0.08);
+  border: 1px solid rgba(200, 150, 12, 0.25);
   border-radius: 6px;
   padding: 4px 10px;
   cursor: pointer;
@@ -128,13 +128,13 @@
 }
 
 .accountBarBtn:hover {
-  background: rgba(138, 92, 255, 0.18);
+  background: rgba(200, 150, 12, 0.18);
 }
 
 /* ── Beats sign-in prompt (shown when signed out) ── */
 .beatsSignInPrompt {
-  background: linear-gradient(135deg, rgba(138,92,255,0.06) 0%, rgba(138,92,255,0.02) 100%);
-  border: 1px solid rgba(138, 92, 255, 0.2);
+  background: linear-gradient(135deg, rgba(200,150,12,0.06) 0%, rgba(200,150,12,0.02) 100%);
+  border: 1px solid rgba(200, 150, 12, 0.22);
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
@@ -142,11 +142,37 @@
   gap: 6px;
 }
 
+.beatsSignInTopRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.beatsSignInCoin {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .beatsSignInHeading {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 700;
   color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.beatsWordmark {
+  height: 1.1em;
+  width: auto;
+  object-fit: contain;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
 }
 
 .beatsSignInSub {
@@ -162,7 +188,7 @@
   font-size: 0.85rem;
   font-weight: 700;
   color: #fff;
-  background: #8A5CFF;
+  background: #C8960C;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
@@ -171,14 +197,17 @@
 }
 
 .beatsSignInBtn:hover {
-  background: #7c3aed;
+  background: #A67A09;
 }
 
 .beatBalance {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #8A5CFF;
+  color: #C8960C;
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .beatsSuccessBanner {
@@ -220,8 +249,8 @@
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  background: rgba(138,92,255,0.06);
-  border: 1px solid rgba(138,92,255,0.18);
+  background: rgba(200,150,12,0.06);
+  border: 1px solid rgba(200,150,12,0.2);
   border-radius: 10px;
   font-size: 0.76rem;
   color: rgba(0,0,0,0.55);
@@ -234,13 +263,13 @@
   padding: 0;
   font-size: 0.76rem;
   font-weight: 700;
-  color: #7c3aed;
+  color: #C8960C;
   cursor: pointer;
   text-align: left;
   width: fit-content;
   transition: color 0.13s;
 }
-.directTipBeatsLink:hover { color: #6d28d9; }
+.directTipBeatsLink:hover { color: #A67A09; }
 
 .directTipLabel {
   margin: 0;
@@ -332,6 +361,19 @@
   gap: 8px;
 }
 
+.beatShopHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+
+.beatShopLogo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
 .beatPkg {
   display: flex;
   align-items: center;
@@ -346,8 +388,8 @@
 }
 
 .beatPkg:hover:not(:disabled) {
-  border-color: #8A5CFF;
-  background: rgba(138, 92, 255, 0.04);
+  border-color: #C8960C;
+  background: rgba(200, 150, 12, 0.05);
 }
 
 .beatPkg:disabled {
@@ -356,8 +398,8 @@
 }
 
 .beatPkgFeatured {
-  border-color: #8A5CFF;
-  background: rgba(138, 92, 255, 0.05);
+  border-color: #C8960C;
+  background: rgba(200, 150, 12, 0.06);
 }
 
 .beatPkgLabel {
@@ -376,7 +418,7 @@
 }
 
 .beatPkgBonus {
-  color: #8A5CFF;
+  color: #C8960C;
   font-size: 0.78rem;
 }
 
@@ -403,7 +445,7 @@
 }
 
 .beatShopValueProps li:first-child {
-  color: #a78bfa;
+  color: #C8960C;
 }
 
 .form {
@@ -645,12 +687,12 @@
 .queueItemBeats {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #8A5CFF;
-  background: rgba(138, 92, 255, 0.1);
-  border-radius: 20px;
-  padding: 2px 8px;
+  color: #C8960C;
   white-space: nowrap;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .queueItemStatus {
@@ -705,11 +747,11 @@
 .tabGroupBeats {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #8A5CFF;
-  background: rgba(138, 92, 255, 0.1);
-  border-radius: 20px;
-  padding: 2px 8px;
+  color: #C8960C;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .tabGroupNameArtist {
@@ -835,25 +877,25 @@
 .minusBtn { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
 .minusBtn:hover { background: #fee2e2; }
 
-/* ── Split boost button [♫ n | +] ── */
+/* ── Split boost button [🪙 n | +] ── */
 .splitBoostWrap {
   display: flex;
   align-items: stretch;
-  border: 1.5px solid rgba(138, 92, 255, 0.18);
+  border: 1.5px solid rgba(200, 150, 12, 0.2);
   border-radius: 14px;
   overflow: hidden;
   transition: border-color 0.13s;
   flex-shrink: 0;
 }
 
-.splitBoostWrap:hover { border-color: rgba(138, 92, 255, 0.45); }
-.splitBoostWrapTipped { border-color: rgba(138, 92, 255, 0.45); }
-.splitBoostWrapOpen   { border-color: #8A5CFF; }
+.splitBoostWrap:hover { border-color: rgba(200, 150, 12, 0.45); }
+.splitBoostWrapTipped { border-color: rgba(200, 150, 12, 0.45); }
+.splitBoostWrapOpen   { border-color: #C8960C; }
 
 .splitBtnLeft {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #c4b5fd;
+  color: rgba(200, 150, 12, 0.5);
   background: none;
   border: none;
   padding: 3px 10px;
@@ -861,10 +903,13 @@
   transition: background 0.12s, color 0.12s;
   white-space: nowrap;
   line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
-.splitBtnLeft:hover   { background: rgba(138, 92, 255, 0.07); color: #8A5CFF; }
-.splitBtnLeftTipped   { color: #8A5CFF; }
+.splitBtnLeft:hover   { background: rgba(200, 150, 12, 0.07); color: #C8960C; }
+.splitBtnLeftTipped   { color: #C8960C; }
 
 .removeWarning {
   margin-top: 6px;
@@ -920,8 +965,16 @@
 .tipFormSummary {
   margin: 4px 0 0;
   font-size: 0.8rem;
-  color: #8A5CFF;
+  color: #C8960C;
   font-weight: 600;
+}
+
+.coinIcon {
+  width: 1.8em;
+  height: 1.8em;
+  object-fit: contain;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .playTime {

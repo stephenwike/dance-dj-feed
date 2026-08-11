@@ -1928,18 +1928,20 @@
 
 .countTip {
   font-weight: 700;
-  color: #a78bfa;
+  color: #C8960C;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .qBeatChip {
   font-size: 0.7rem;
   font-weight: 700;
-  color: #8A5CFF;
-  background: rgba(138, 92, 255, 0.1);
-  border: 1px solid rgba(138, 92, 255, 0.2);
-  border-radius: 10px;
-  padding: 1px 6px;
+  color: #C8960C;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .danceExpanded {

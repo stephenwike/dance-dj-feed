@@ -255,9 +255,14 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
                         {first.isSongSwap && <span className={styles.swapChip}>↻ Song Swap</span>}
                       </div>
                     </div>
+                    {beatsFor(first) > 0 && (
+                      <div className={styles.beatsRowPlaying}>
+                        <img src="/beats/coin_front.png" style={{width:'1em',height:'1em',objectFit:'contain',flexShrink:0}} alt="" aria-hidden="true" />
+                        {beatsFor(first)}
+                      </div>
+                    )}
                     <div className={styles.queueDancePlaying}>
                       {isPartner ? (first.songName || first.danceName) : first.danceName}
-                      {beatsFor(first) > 0 && <span className={styles.beatsBadgeTitle}>♫ {beatsFor(first)}</span>}
                     </div>
                     {isPartner && first.artist && (
                       <div className={styles.partnerArtistLine}>
@@ -291,9 +296,14 @@ export default function FeedSlugPage({ sessionId, slug, paymentLinks = [] }) {
                       <li key={r._id} className={`${styles.queueItem} ${r.isSongSwap ? styles.queueItemSwap : ''} ${r.danceType === 'message' ? styles.queueItemMsg : ''}`}>
                         <span className={styles.queueNum}>{r.danceType === 'message' ? '💬' : r.num}</span>
                         <span className={styles.queueDanceCol}>
+                          {beatsFor(r) > 0 && (
+                            <span className={styles.beatsRowSm}>
+                              <img src="/beats/coin_front.png" style={{width:'1em',height:'1em',objectFit:'contain',flexShrink:0}} alt="" aria-hidden="true" />
+                              {beatsFor(r)}
+                            </span>
+                          )}
                           <span className={styles.queueDance}>
                             {r.danceType === 'partner' ? (r.songName || r.danceName) : r.danceName}
-                            {beatsFor(r) > 0 && <span className={styles.beatsBadgeSm}>♫ {beatsFor(r)}</span>}
                           </span>
                           {r.isSongSwap && r.swapSongName && <span className={styles.queueSwapRow}>↪ {r.swapSongName}</span>}
                           {r.danceType === 'partner' && r.artist && (

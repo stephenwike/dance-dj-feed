@@ -49,7 +49,7 @@ export default function QueueCard({ request, onAction, resolvedName, dragHandleP
                 )
               }
               {totalBeats > 0 && (
-                <span className={styles.qBeatChip}>♫ {totalBeats}</span>
+                <span className={styles.qBeatChip}><img src="/beats/coin_front.png" style={{width:'1.5em',height:'1.5em',verticalAlign:'middle',objectFit:'contain'}} alt="" aria-hidden="true" />{totalBeats}</span>
               )}
             </>
           )}
