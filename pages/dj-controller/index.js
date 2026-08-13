@@ -6,6 +6,7 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import styles from './dj-controller.module.css';
 import { useRequestGroups } from '../../lib/client/dj/hooks/useRequestGroups';
+import { computeScore } from '../../lib/client/dj/fairnessScore';
 import { useQueueReorder } from '../../lib/client/dj/hooks/useQueueReorder';
 import { useStandardAutoAdvance } from '../../lib/client/dj/hooks/useStandardAutoAdvance';
 import { useSessionManager } from '../../lib/client/dj/hooks/useSessionManager';
@@ -345,9 +346,18 @@ function Controller() {
                   {history.length === 0 ? (
                     <p className={styles.empty} style={{ padding: '12px 14px' }}>No tracks played yet this session.</p>
                   ) : (
-                    history.map(r => (
+                    (() => {
+                      const seen = {};
+                      return history.filter(r => {
+                        const key = (r.danceName || r._id).toLowerCase().trim();
+                        const t = new Date(r.updatedAt).getTime();
+                        if (seen[key] !== undefined && Math.abs(t - seen[key]) < 5 * 60 * 1000) return false;
+                        seen[key] = t;
+                        return true;
+                      });
+                    })().map(r => (
                       <div key={r._id} className={styles.histRow} style={{ padding: '6px 14px' }}>
-                        <span className={r.status === 'played' ? styles.histDot : styles.histDotSkip} />
+                        <span className={styles.histDot} />
                         <span className={styles.histName}>{r.danceName}</span>
                         <span className={styles.histAge}>{(() => { const t = timeAgo(r.updatedAt); return t === 'just now' ? t : `${t} ago`; })()}</span>
                       </div>
@@ -417,11 +427,13 @@ function Controller() {
                           <QueueCard
                             request={r}
                             onAction={handleAction}
+                            onEdit={(req) => setEditingGroup({ requests: [req], danceName: req.danceName, difficulty: req.difficulty || '' })}
                             resolvedName={resolvedNames[r.clientId]}
                             dragHandleProps={dragHandleProps}
                             requesterCount={r.danceType === 'partner' ? 1 + (partnerUpvoteCounts[r._id] ?? 0) : (danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1)}
                             totalBeats={r.danceType === 'partner' ? (danceBeats[r._id] ?? 0) : (danceBeats[(r.danceName || '').toLowerCase().trim()] ?? 0)}
                             estimatedPlayAt={queueTimes[r._id]}
+                            score={computeScore([r], playsPerClient)}
                           />
                         )}
                       </SortableQueueItem>

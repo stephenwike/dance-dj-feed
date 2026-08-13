@@ -362,18 +362,72 @@
   gap: 8px;
 }
 
-/* ── Beats rows (before dance name) ── */
-.beatsRowPlaying {
+/* ── Beats coin layout ── */
+.playingMain {
   display: flex;
   align-items: center;
-  gap: 0.3em;
-  font-size: clamp(1.6rem, 3vw, 4rem);
-  font-weight: 900;
-  color: #D4A017;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  gap: clamp(0.6rem, 1.2vw, 1.4rem);
 }
 
+.queueDanceRow {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 0.8vw, 1rem);
+}
+
+.beatsCoinLg {
+  flex-shrink: 0;
+  width: clamp(3.2rem, 5.5vw, 7.5rem);
+  height: clamp(3.2rem, 5.5vw, 7.5rem);
+  box-sizing: border-box;
+  padding-bottom: 0.08em;
+  border-radius: 50%;
+  background: url('/beats/coin_back.png') center/cover no-repeat;
+  box-shadow: 0 4px 20px rgba(200,150,12,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: clamp(1.43rem, 2.47vw, 3.42rem);
+  color: #000152;
+  text-shadow:
+    0 -1px 0 rgba(255,245,160,0.55),
+    1px 0 0 rgba(0,0,0,0.95),
+    -1px 0 0 rgba(0,0,0,0.95),
+    0 1px 0 rgba(0,0,0,0.95),
+    0 2px 8px rgba(0,0,0,0.9);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.beatsCoinSm {
+  flex-shrink: 0;
+  width: clamp(2rem, 3.2vw, 4.2rem);
+  height: clamp(2rem, 3.2vw, 4.2rem);
+  box-sizing: border-box;
+  padding-bottom: 0.08em;
+  border-radius: 50%;
+  background: url('/beats/coin_back.png') center/cover no-repeat;
+  box-shadow: 0 2px 10px rgba(200,150,12,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: clamp(0.8rem, 1.25vw, 1.6rem);
+  color: #000152;
+  text-shadow:
+    0 -1px 0 rgba(255,245,160,0.55),
+    1px 0 0 rgba(0,0,0,0.95),
+    -1px 0 0 rgba(0,0,0,0.95),
+    0 1px 0 rgba(0,0,0,0.95),
+    0 2px 8px rgba(0,0,0,0.9);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Legacy (unused, kept for safety) ── */
 .beatsRowSm {
   display: flex;
   align-items: center;
@@ -556,6 +610,7 @@
   opacity: 0.75;
   font-style: italic;
 }
+
 
 /* ── Payment link QR codes ── */
 .paymentSection {
