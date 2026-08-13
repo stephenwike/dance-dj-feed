@@ -1037,7 +1037,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
+                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
                       <span className={styles.queueItemStatus}>Now Playing</span>
                     </div>
                   ))}
@@ -1048,7 +1048,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
+                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
                     </div>
                   ))}
                 </div>
@@ -1069,7 +1069,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                     {/* Dance name / partner song header */}
                     {group.danceType === 'partner' ? (
                       <div className={styles.tabGroupName}>
-                        {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
+                        {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
                         <span>
                           {group.songName
                             ? <>{group.songName}{group.artist ? <span className={styles.tabGroupNameArtist}> — {group.artist}</span> : ''}</>
@@ -1078,7 +1078,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                       </div>
                     ) : (
                       <div className={styles.tabGroupName}>
-                        {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
+                        {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
                         <span>{group.danceName}</span>
                       </div>
                     )}
