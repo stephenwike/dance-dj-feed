@@ -212,19 +212,24 @@ function PaymentLinksEl({ paymentLinks = [] }) {
 
 // ── Sub-components ─────────────────────────────────────────────────
 
+const beatsFor = r => Math.round((r?.tipCents ?? 0) / 5);
+const coinImg = { width: '1em', height: '1em', objectFit: 'contain', flexShrink: 0 };
+
 function NowPlayingCard({ request }) {
   const isPartner = request.danceType === 'partner';
   const dc = isPartner ? null : request.difficulty ? diffColor(request.difficulty) : '#8A5CFF';
+  const beats = beatsFor(request);
   return (
     <div
       className={feedStyles.queueItemPlaying}
       style={dc ? {
         borderLeftColor: dc, borderLeftWidth: '6px',
         background: `rgba(${hexToRgb(dc)}, 0.18)`,
-        boxShadow: `inset 4px 0 32px rgba(${hexToRgb(dc)}, 0.12)`,
+        boxShadow: `inset 4px 0 32px rgba(${hexToRgb(dc)}, 0.12), 0 0 40px rgba(${hexToRgb(dc)}, 0.08)`,
       } : {
         borderLeftColor: 'rgba(255,255,255,0.35)', borderLeftWidth: '6px',
         background: 'rgba(255,255,255,0.04)',
+        boxShadow: 'inset 4px 0 24px rgba(255,255,255,0.04)',
       }}
     >
       <div className={feedStyles.playingTop}>
@@ -232,11 +237,32 @@ function NowPlayingCard({ request }) {
           <span className={feedStyles.playingDot} style={dc ? { background: dc } : { background: 'rgba(255,255,255,0.7)' }} />
           <span className={feedStyles.statusLabel}>Playing</span>
         </div>
-        {isPartner && <span className={feedStyles.partnerBadge}>👫 Partner Dance</span>}
+        <div className={feedStyles.playingBadges}>
+          {isPartner && <span className={feedStyles.partnerBadge}>👫 Partner{request.partnerStyle ? ` — ${request.partnerStyle}` : ' Dance'}</span>}
+          {request.isSongSwap && <span className={feedStyles.swapChip}>↻ Song Swap</span>}
+        </div>
       </div>
+      {beats > 0 && (
+        <div className={feedStyles.beatsRowPlaying}>
+          <img src="/beats/coin_front.png" style={coinImg} alt="" aria-hidden="true" />
+          {beats}
+        </div>
+      )}
       <div className={feedStyles.queueDancePlaying}>
         {isPartner ? (request.songName || request.danceName) : request.danceName}
       </div>
+      {isPartner && request.artist && (
+        <div className={feedStyles.partnerArtistLine}>
+          <span className={feedStyles.partnerArtist}>{request.artist}</span>
+        </div>
+      )}
+      {request.isSongSwap && request.swapSongName && (
+        <div className={feedStyles.swapSongLine}>
+          <span className={feedStyles.swapArrow}>↪</span>
+          <span className={feedStyles.swapSongName}>{request.swapSongName}</span>
+          {request.swapArtist && <span className={feedStyles.swapSongArtist}>{request.swapArtist}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -249,21 +275,38 @@ function UpNextList({ items }) {
         <span className={feedStyles.statusLabel}>Up Next</span>
       </div>
       <ol className={feedStyles.queueList}>
-        {items.map((r, num) => (
-          <li key={r._id} className={feedStyles.queueItem}>
-            <span className={feedStyles.queueNum}>{r.danceType === 'message' ? '💬' : num + 1}</span>
-            <span className={feedStyles.queueDanceCol}>
-              <span className={feedStyles.queueDance}>
-                {r.danceType === 'partner' ? (r.songName || r.danceName) : r.danceName}
+        {items.map((r, num) => {
+          const beats = beatsFor(r);
+          const isPartner = r.danceType === 'partner';
+          return (
+            <li key={r._id} className={`${feedStyles.queueItem}${r.isSongSwap ? ` ${feedStyles.queueItemSwap}` : ''}${r.danceType === 'message' ? ` ${feedStyles.queueItemMsg}` : ''}`}>
+              <span className={feedStyles.queueNum}>{r.danceType === 'message' ? '💬' : num + 1}</span>
+              <span className={feedStyles.queueDanceCol}>
+                {beats > 0 && (
+                  <span className={feedStyles.beatsRowSm}>
+                    <img src="/beats/coin_front.png" style={coinImg} alt="" aria-hidden="true" />
+                    {beats}
+                  </span>
+                )}
+                <span className={feedStyles.queueDance}>
+                  {isPartner ? (r.songName || r.danceName) : r.danceName}
+                </span>
+                {r.isSongSwap && r.swapSongName && <span className={feedStyles.queueSwapRow}>↪ {r.swapSongName}</span>}
+                {isPartner && r.artist && <span className={feedStyles.queuePartnerRow}>{r.artist}</span>}
               </span>
-            </span>
-            <div className={feedStyles.queueRight}>
-              {r.difficulty && r.danceType !== 'partner' && (
-                <span className={feedStyles.diffPip} style={{ background: diffColor(r.difficulty) }}>{r.difficulty}</span>
-              )}
-            </div>
-          </li>
-        ))}
+              <div className={feedStyles.queueRight}>
+                {r.danceType === 'message' ? null
+                  : isPartner ? (
+                    <span className={feedStyles.diffPip} style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      {r.partnerStyle || 'Partner'}
+                    </span>
+                  ) : r.difficulty ? (
+                    <span className={feedStyles.diffPip} style={{ background: diffColor(r.difficulty) }}>{r.difficulty}</span>
+                  ) : null}
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </>
   );
