@@ -98,7 +98,7 @@ export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9
             }}
           />
         ) : (
-          <div className={styles.feedPreviewEmpty}>Start a session to preview the feed</div>
+          <div className={styles.feedPreviewEmpty}>Create a session to preview the feed</div>
         )}
       </div>
 

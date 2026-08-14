@@ -302,7 +302,7 @@ function Controller() {
 
             {activePanel === 'feed-config' && (
               <FeedConfigPanel
-                activeSession={activeSession}
+                activeSession={workingSession}
                 feedAspectRatio={feedAspectRatio}
                 feedTemplateId={feedTemplateId}
                 setFeedAspectRatio={setFeedAspectRatio}
