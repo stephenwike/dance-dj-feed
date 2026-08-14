@@ -471,6 +471,215 @@
 
 .feedConfigItemIcon { font-size: 0.95rem; flex-shrink: 0; }
 
+/* ── Feed config body (below preview) ── */
+.feedConfigBody {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.feedWarning {
+  padding: 8px 12px;
+  background: rgba(245,158,11,0.1);
+  border-bottom: 1px solid rgba(245,158,11,0.2);
+  font-size: 0.75rem;
+  color: #fbbf24;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.feedSectionLabel {
+  padding: 8px 12px 4px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+
+.feedLockedHint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgba(255,255,255,0.2);
+}
+
+/* ── Template list ── */
+.feedTemplateList {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px 8px;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.feedTemplateRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: border-color 0.13s, background 0.13s;
+}
+.feedTemplateRow:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+}
+.feedTemplateRowActive {
+  background: rgba(138,92,255,0.1);
+  border-color: rgba(138,92,255,0.35);
+}
+
+.feedTemplateInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.feedTemplateName {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e2e2f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feedTemplateRowActive .feedTemplateName { color: #c4b5fd; }
+
+.feedTemplateMeta {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.3);
+}
+
+.feedTemplateActions {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.feedTemplateBtn {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.13s;
+  white-space: nowrap;
+}
+.feedTemplateBtn:hover { color: rgba(255,255,255,0.8); border-color: rgba(255,255,255,0.22); }
+
+.feedTemplateBtnDanger {
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.3);
+  color: #f87171;
+}
+.feedTemplateBtnDanger:hover { background: rgba(239,68,68,0.2); }
+
+.feedTemplateCheck {
+  font-size: 0.72rem;
+  color: #a78bfa;
+  flex-shrink: 0;
+}
+
+.feedNewTemplateBtn {
+  margin-top: 2px;
+  padding: 7px 10px;
+  background: none;
+  border: 1px dashed rgba(138,92,255,0.25);
+  border-radius: 8px;
+  color: rgba(138,92,255,0.6);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: border-color 0.13s, color 0.13s, background 0.13s;
+}
+.feedNewTemplateBtn:hover {
+  border-color: rgba(138,92,255,0.5);
+  color: #a78bfa;
+  background: rgba(138,92,255,0.05);
+}
+
+.feedApplyBtn {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: background 0.13s, opacity 0.13s;
+}
+.feedApplyBtn:hover:not(:disabled) { background: #7c3aed; }
+.feedApplyBtn:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Slide list (in feed panel) ── */
+.feedSlideList {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px 12px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.feedSlideRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.feedSlideNum {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: rgba(138,92,255,0.5);
+  background: rgba(138,92,255,0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.feedSlideName {
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feedSlideDur {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.28);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Wallet panel ── */
 .walletBody {
   display: flex;

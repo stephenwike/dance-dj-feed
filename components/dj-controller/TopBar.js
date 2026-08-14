@@ -117,7 +117,7 @@ export default function TopBar({
           <>
             <button
               className={styles.topBarQuickBtn}
-              onClick={() => window.open(`/feed/${workingSession.slug}`, '_blank')}
+              onClick={() => window.open(`/feed-preview?sessionId=${workingSession._id}`, '_blank')}
             >
               🖥️ Feed ↗
             </button>

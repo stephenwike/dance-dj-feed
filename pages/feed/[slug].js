@@ -341,22 +341,13 @@ export async function getServerSideProps({ params }) {
   const client = await clientPromise;
   const session = await client.db(DB_NAME).collection('dj_sessions').findOne(
     { slug, status: 'active' },
-    { projection: { _id: 1, slug: 1, ownerId: 1 } }
+    { projection: { _id: 1 } }
   );
   if (!session) return { notFound: true };
-
-  const profile = session.ownerId
-    ? await client.db(DB_NAME).collection('dj_profiles').findOne(
-        { ownerId: session.ownerId },
-        { projection: { paymentLinks: 1 } }
-      )
-    : null;
-
   return {
-    props: {
-      sessionId: String(session._id),
-      slug: session.slug,
-      paymentLinks: profile?.paymentLinks ?? [],
+    redirect: {
+      destination: `/feed-preview?sessionId=${String(session._id)}`,
+      permanent: false,
     },
   };
 }

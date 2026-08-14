@@ -50,6 +50,7 @@ export default function Sidebar({
 
       {btn('dj-add', '➕', 'Add to Queue')}
       {btn('messages', '💬', 'Messages', activeMsg && activePanel !== 'messages' ? styles.sidebarBtnAlert : '')}
+      {btn('feed-config', '📺', 'Feed')}
       {btn('settings', '⚙️', 'Settings')}
       {btn('history', '📋', 'History')}
       {btn('sessions', '🗂️', 'Sessions')}

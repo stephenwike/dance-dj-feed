@@ -51,8 +51,9 @@ function Controller() {
     selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
     toggleQueueVisibility, setQueueVisibleCount,
+    setFeedAspectRatio, setFeedTemplateId, applyFeedTemplate,
     tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
-    queueVisibleToRequesters, queueVisibleCount,
+    queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId,
   } = useSessionManager();
 
   const requestsUrl = workingSession?._id ? `/api/dj/requests?sessionId=${workingSession._id}` : '/api/dj/requests';
@@ -300,7 +301,14 @@ function Controller() {
             )}
 
             {activePanel === 'feed-config' && (
-              <FeedConfigPanel activeSession={activeSession} />
+              <FeedConfigPanel
+                activeSession={activeSession}
+                feedAspectRatio={feedAspectRatio}
+                feedTemplateId={feedTemplateId}
+                setFeedAspectRatio={setFeedAspectRatio}
+                setFeedTemplateId={setFeedTemplateId}
+                applyFeedTemplate={applyFeedTemplate}
+              />
             )}
 
             {activePanel === 'wallet' && (
