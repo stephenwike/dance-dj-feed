@@ -75,7 +75,7 @@ export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9
       <div ref={wrapRef} className={styles.feedPreviewWrap} style={{ height: previewHeight }}>
         {activeSession ? (
           <iframe
-            src={`/feed/${activeSession.slug}`}
+            src={`/feed-preview?templateId=${feedTemplateId}&sessionId=${activeSession._id}`}
             title="Feed Preview"
             style={{
               width: currentRatio.w,
