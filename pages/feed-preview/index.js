@@ -867,7 +867,7 @@ export default function FeedPreviewPage() {
   const effectiveTemplateId = templateIdParam ?? (useSessionLookup ? (sessionDisplay?.feedTemplateId ?? null) : null);
   // Key that changes when the DJ clicks Apply — causes template to re-fetch even if the ID didn't change
   const feedAppliedAt = sessionDisplay?.feedAppliedAt ?? null;
-  const templateFetchKey = `${effectiveTemplateId ?? 'default'}_${feedAppliedAt ?? ''}`;
+  const templateFetchKey = `${effectiveTemplateId ?? ''}_${feedAppliedAt ?? ''}`;
 
   // QR code URL — must point to the slug-based route so getServerSideProps can resolve the session.
   const sessionSlug = sessionDisplay?.slug ?? null;
