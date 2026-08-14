@@ -267,14 +267,12 @@ function NowPlayingCard({ request, beatsFor }) {
     >
       <div className={feedStyles.playingTop}>
         <div className={feedStyles.playingLabel}>
-          {!isPaused && (
-            <span
-              className={feedStyles.playingDot}
-              style={dc ? { background: dc, boxShadow: `0 0 0 0 ${dc}99` } : { background: 'rgba(255,255,255,0.7)' }}
-              aria-label="Playing"
-            />
-          )}
-          <span className={feedStyles.statusLabel}>{isPaused ? 'Paused' : 'Playing'}</span>
+          <span
+            className={feedStyles.playingDot}
+            style={dc ? { background: dc, boxShadow: `0 0 0 0 ${dc}99` } : { background: 'rgba(255,255,255,0.7)' }}
+            aria-label="Playing"
+          />
+          <span className={feedStyles.statusLabel}>Playing</span>
         </div>
         <div className={feedStyles.playingBadges}>
           {isPartner && <span className={feedStyles.partnerBadge}>👫 Partner{request.partnerStyle ? ` — ${request.partnerStyle}` : ' Dance'}</span>}
@@ -383,11 +381,15 @@ function getAdDanceSub(r) {
 // Compute order-change sequence as hero beats increase from 0 through non-hero items
 function computeAdOrders(items) {
   const hero = items.find(x => x.hero);
-  const byBeats = [...items].sort((a, b) => b.baseBeats - a.baseBeats);
-  const orders = [byBeats.map(x => x.id)];
-  const working = byBeats.map(x => x.id);
-  const targets = items.filter(x => !x.hero).sort((a, b) => a.baseBeats - b.baseBeats);
-  for (const target of targets) {
+  // Start: non-hero sorted by beats ascending (queue order), hero at the bottom.
+  // This gives [2,3,4,1]. Hero then rises past each item from top-of-stack downward,
+  // ending at [1,2,3,4].
+  const nonHero = items.filter(x => !x.hero).sort((a, b) => a.baseBeats - b.baseBeats);
+  const initial = [...nonHero.map(x => x.id), hero.id];
+  const orders = [initial];
+  const working = [...initial];
+  // Targets in reverse order (highest beats first = item directly above hero first)
+  for (const target of [...nonHero].reverse()) {
     const heroIdx = working.indexOf(hero.id);
     const targetIdx = working.indexOf(target.id);
     if (heroIdx <= targetIdx) continue;
@@ -418,6 +420,61 @@ function buildAdDisplayItems(requests) {
     };
   });
   return slots.map((item, i) => item ?? MOCK_AD_ITEMS[i]);
+}
+
+function AdNowPlayingCard({ playing }) {
+  const [progress, setProgress] = useState(100);
+  const isPaused = !!playing?.pausedAt;
+  const name = playing ? getAdDanceName(playing) : 'Cha Cha Slide';
+  const sub  = playing ? getAdDanceSub(playing)  : 'Beginner';
+
+  useEffect(() => {
+    if (!playing?.playStartedAt) { setProgress(100); return; }
+    const total = playing.duration_ms ?? 180000;
+    const update = () => {
+      const ref = isPaused ? new Date(playing.pausedAt) : new Date();
+      const elapsed = ref - new Date(playing.playStartedAt);
+      setProgress(Math.max(0, 100 - (elapsed / total) * 100));
+    };
+    update();
+    if (isPaused) return;
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [playing?._id, playing?.playStartedAt, playing?.pausedAt, playing?.duration_ms, isPaused]);
+
+  return (
+    <div style={{
+      borderRadius: 'clamp(10px, 1.4vw, 18px)',
+      borderLeft: '6px solid #22c55e',
+      background: 'rgba(34,197,94,0.1)',
+      boxShadow: 'inset 4px 0 32px rgba(34,197,94,0.1), 0 0 40px rgba(34,197,94,0.06)',
+      padding: '1.6vh 2vw',
+      flexShrink: 0,
+      overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1vw', marginBottom: '0.6vh' }}>
+        <span style={{
+          width: 'clamp(7px, 0.8vw, 12px)', height: 'clamp(7px, 0.8vw, 12px)',
+          borderRadius: '50%', background: '#22c55e', flexShrink: 0,
+          animation: 'ba-dot-blink 2.8s ease-in-out infinite',
+        }} />
+        <span style={{ fontSize: 'clamp(0.6rem, 0.85vw, 1rem)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.13em', color: '#22c55e' }}>
+          Now Playing
+        </span>
+      </div>
+      <div style={{ fontSize: 'clamp(1rem, 2.2vw, 3rem)', fontWeight: 800, color: '#F5F2E8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.1 }}>
+        {name}
+      </div>
+      <div style={{ fontSize: 'clamp(0.65rem, 1.1vw, 1.4rem)', color: 'rgba(245,242,232,0.35)', marginTop: '0.4vh' }}>
+        {sub}
+      </div>
+      {playing?.playStartedAt && (
+        <div style={{ height: 'clamp(3px, 0.4vh, 5px)', background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden', marginTop: '1.2vh' }}>
+          <div style={{ height: '100%', width: `${progress}%`, background: '#22c55e', borderRadius: 99, transition: 'width 1s linear' }} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function BeatsAdEl({ requests = [] }) {
@@ -613,33 +670,8 @@ function BeatsAdEl({ requests = [] }) {
       {/* ── Right: Visual ── */}
       <div style={{ gridArea: 'viz', display: 'flex', flexDirection: 'column', gap: '1.8vh', justifyContent: 'center', position: 'relative', zIndex: 1 }}>
 
-        {/* Now Playing card */}
-        <div style={{
-            background: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.28)',
-            borderRadius: 'clamp(10px, 1.4vw, 18px)', padding: '1.8vh 2vw',
-            display: 'flex', alignItems: 'center', gap: '1.6vw', flexShrink: 0,
-          }}>
-            <div style={{
-              width: 'clamp(36px, 4vw, 62px)', height: 'clamp(36px, 4vw, 62px)',
-              borderRadius: '50%', background: 'rgba(34,197,94,0.18)', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 'clamp(1rem, 1.8vw, 2.2rem)', color: '#22c55e',
-            }}>♫</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'clamp(0.6rem, 0.9vw, 1.1rem)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.13em', color: '#22c55e', marginBottom: '0.4vh' }}>Now Playing</div>
-              <div style={{ fontSize: 'clamp(1rem, 2vw, 2.6rem)', fontWeight: 800, color: '#F5F2E8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {playing ? getAdDanceName(playing) : 'Cha Cha Slide'}
-              </div>
-              <div style={{ fontSize: 'clamp(0.65rem, 1.1vw, 1.4rem)', color: 'rgba(245,242,232,0.3)', marginTop: '0.3vh' }}>
-                {playing ? getAdDanceSub(playing) : 'Beginner'}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 'clamp(18px, 2.2vw, 32px)', flexShrink: 0 }}>
-              {[{ h: '45%', d: '0.65s' }, { h: '80%', d: '0.48s' }, { h: '60%', d: '0.72s' }, { h: '95%', d: '0.55s' }, { h: '50%', d: '0.63s' }].map((b, i) => (
-                <div key={i} style={{ width: 'clamp(3px, 0.4vw, 6px)', background: '#22c55e', borderRadius: 2, height: b.h, animation: `ba-bar ${b.d} ease-in-out infinite alternate` }} />
-              ))}
-            </div>
-        </div>
+        {/* Now Playing card — mirrors the main feed NowPlayingCard style */}
+        <AdNowPlayingCard playing={playing} />
 
         {/* Queue card */}
         <div style={{
