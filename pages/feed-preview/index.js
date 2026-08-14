@@ -45,10 +45,8 @@ function makeBeatsFor(requests) {
 
 // ── Element renderers ──────────────────────────────────────────────
 
-function MainFeedEl({ requests }) {
+function MainFeedEl({ requests, requestUrl = '' }) {
   const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
-  const [requestUrl, setRequestUrl] = useState('');
-  useEffect(() => { setRequestUrl(`${window.location.origin}/dj-request`); }, []);
 
   const playing = requests.find(r => r.status === 'playing') ?? null;
   const upcoming = requests
@@ -95,11 +93,7 @@ function MainFeedEl({ requests }) {
   );
 }
 
-function RequestCtaEl() {
-  const [requestUrl, setRequestUrl] = useState('');
-  useEffect(() => {
-    setRequestUrl(`${window.location.origin}/dj-request`);
-  }, []);
+function RequestCtaEl({ requestUrl = '' }) {
 
   return (
     <div className={feedStyles.left} style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
@@ -763,6 +757,51 @@ function BeatsAdEl({ requests = [] }) {
   );
 }
 
+// ── Image element ───────────────────────────────────────────────────
+
+function ImageEl({ src, fit = 'contain', alt = '' }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!src) {
+    return (
+      <div style={{
+        width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 8,
+        color: 'rgba(255,255,255,0.2)', fontSize: 'clamp(0.7rem, 1.1vw, 0.9rem)',
+      }}>
+        <span style={{ fontSize: '2em' }}>🖼️</span>
+        <span>No image URL set</span>
+      </div>
+    );
+  }
+
+  if (failed) {
+    return (
+      <div style={{
+        width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 10,
+        color: 'rgba(255,255,255,0.35)', fontSize: 'clamp(0.65rem, 1vw, 0.85rem)',
+        padding: '1em', textAlign: 'center',
+      }}>
+        <span style={{ fontSize: '2em' }}>⚠️</span>
+        <span>Image failed to load.</span>
+        <span style={{ color: 'rgba(255,255,255,0.2)' }}>
+          The host may block hotlinking. Try imgur.com or postimages.org instead.
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{ width: '100%', height: '100%', objectFit: fit, display: 'block' }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // ── Placeholder for unsupported element types ──────────────────────
 
 function PlaceholderEl({ type }) {
@@ -797,6 +836,12 @@ export default function FeedPreviewPage() {
   // Key that changes when the DJ clicks Apply — causes template to re-fetch even if the ID didn't change
   const feedAppliedAt = sessionDisplay?.feedAppliedAt ?? null;
   const templateFetchKey = `${effectiveTemplateId ?? 'default'}_${feedAppliedAt ?? ''}`;
+
+  // QR code URL — must point to the slug-based route so getServerSideProps can resolve the session.
+  const sessionSlug = sessionDisplay?.slug ?? null;
+  const [origin, setOrigin] = useState('');
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const requestUrl = sessionSlug ? `${origin}/request/${sessionSlug}` : `${origin}/dj-request`;
 
   const [template, setTemplate] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -875,14 +920,15 @@ export default function FeedPreviewPage() {
 
   function renderElement(el) {
     switch (el.type) {
-      case 'main-feed':      return <MainFeedEl requests={requests} />;
-      case 'request-cta':    return <RequestCtaEl />;
+      case 'main-feed':      return <MainFeedEl requests={requests} requestUrl={requestUrl} />;
+      case 'request-cta':    return <RequestCtaEl requestUrl={requestUrl} />;
       case 'feed-panel':     return <FeedPanelEl requests={requests} />;
       case 'now-playing':    return <NowPlayingEl requests={requests} />;
       case 'queue-list':     return <QueueListEl requests={requests} />;
       case 'message-banner': return <MessageBannerEl message={activeMessage} />;
       case 'payment-links':  return <PaymentLinksEl paymentLinks={paymentLinks} />;
       case 'beats-ad':       return <BeatsAdEl requests={requests} />;
+      case 'image':          return <ImageEl src={el.src} fit={el.fit} alt={el.alt} />;
       default:               return <PlaceholderEl type={el.type} />;
     }
   }

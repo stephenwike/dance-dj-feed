@@ -701,3 +701,80 @@
   flex-shrink: 0;
 }
 
+/* ── Image element config ─────────────────────────────────────────── */
+.imageConfig {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+.imageConfigRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.imageUrlInput {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: #f0f0f0;
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  min-width: 0;
+}
+.imageUrlInput::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+.imageUrlInput:focus {
+  outline: none;
+  border-color: rgba(138,92,255,0.5);
+}
+.imageFitSelect {
+  background: #1e1e30;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: #e2e2f0;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.imageFitSelect option {
+  background: #1e1e30;
+  color: #e2e2f0;
+}
+.imageFitSelect:focus {
+  outline: none;
+  border-color: rgba(138,92,255,0.5);
+}
+.imageHostingTip {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.38);
+  line-height: 1.55;
+}
+.imageHostingTipHead {
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+}
+.imageHostingTip strong {
+  color: rgba(255,255,255,0.6);
+  font-weight: 600;
+}
+.imageHostingTip em {
+  font-style: normal;
+  color: rgba(255,255,255,0.55);
+}
+.imageHostingTip code {
+  font-family: monospace;
+  font-size: 0.9em;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.imageHostingWarn {
+  color: rgba(251,191,36,0.7);
+}
+

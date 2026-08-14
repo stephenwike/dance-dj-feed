@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const col = client.db(DB_NAME).collection('dj_sessions');
     const doc = await col.findOne(
       { _id: new ObjectId(sessionId) },
-      { projection: { feedTemplateId: 1, feedAspectRatio: 1, feedAppliedAt: 1, status: 1 } },
+      { projection: { feedTemplateId: 1, feedAspectRatio: 1, feedAppliedAt: 1, status: 1, slug: 1 } },
     );
     if (!doc) return res.status(404).json({ error: 'Not found' });
 
@@ -25,6 +25,7 @@ export default async function handler(req, res) {
       feedAspectRatio: doc.feedAspectRatio ?? '16:9',
       feedAppliedAt:   doc.feedAppliedAt   ?? null,
       status:          doc.status,
+      slug:            doc.slug            ?? null,
     });
   } catch {
     return res.status(400).json({ error: 'Invalid session ID' });

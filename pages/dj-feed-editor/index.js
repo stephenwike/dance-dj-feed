@@ -252,27 +252,31 @@ export default function FeedEditorPage() {
     const params = new URLSearchParams();
     if (activeSession?._id) params.set('sessionId', String(activeSession._id));
 
-    // If this template is already saved, just open it
-    if (id) {
-      params.set('templateId', id);
-      window.open(`/feed-preview?${params}`, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
-    // Unsaved new template — save it first so the preview page can fetch it
+    // Always save first — the preview page fetches from the DB, so unsaved changes won't show.
     setSaving(true);
     setError(null);
     try {
       const body = { name: name.trim() || 'New Template', designedFor, slides };
-      const res = await fetch('/api/dj/feed-templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Save failed');
-      const created = await res.json();
-      router.replace(`/dj-feed-editor?id=${created.id}`, undefined, { shallow: true });
-      params.set('templateId', created.id);
+      let templateId = id;
+      if (id) {
+        const res = await fetch(`/api/dj/feed-templates/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error((await res.json()).error ?? 'Save failed');
+      } else {
+        const res = await fetch('/api/dj/feed-templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error((await res.json()).error ?? 'Save failed');
+        const created = await res.json();
+        templateId = created.id;
+        router.replace(`/dj-feed-editor?id=${created.id}`, undefined, { shallow: true });
+      }
+      params.set('templateId', templateId);
       window.open(`/feed-preview?${params}`, '_blank', 'noopener,noreferrer');
     } catch (e) {
       setError(e.message);
@@ -476,6 +480,38 @@ export default function FeedEditorPage() {
                           onChange={e => updateElement(selectedSlideIdx, elIdx, { rowSpan: Math.min(rows - el.row + 1, Math.max(1, parseInt(e.target.value) || 1)) })} />
                       </div>
                       <button className={styles.removeElBtn} onClick={() => removeElement(selectedSlideIdx, elIdx)}>✕</button>
+                      {el.type === 'image' && (
+                        <div className={styles.imageConfig}>
+                          <div className={styles.imageConfigRow}>
+                            <input
+                              className={styles.imageUrlInput}
+                              type="url"
+                              placeholder="https://example.com/logo.png"
+                              value={el.src ?? ''}
+                              onChange={e => updateElement(selectedSlideIdx, elIdx, { src: e.target.value })}
+                            />
+                            <select
+                              className={styles.imageFitSelect}
+                              value={el.fit ?? 'contain'}
+                              onChange={e => updateElement(selectedSlideIdx, elIdx, { fit: e.target.value })}
+                              title="How the image fills its cell"
+                            >
+                              <option value="contain">Contain</option>
+                              <option value="cover">Cover</option>
+                              <option value="fill">Stretch</option>
+                            </select>
+                          </div>
+                          <div className={styles.imageHostingTip}>
+                            <span className={styles.imageHostingTipHead}>Need a URL?</span>
+                            {' '}Upload to <strong>postimages.org</strong> and copy the <em>Direct link</em>{' '}
+                            — it starts with <code>i.postimg.cc</code> and ends in <code>.jpg</code> or <code>.png</code>.
+                            {' '}On <strong>imgur.com</strong>, right-click the uploaded image and choose <em>Copy image address</em>.{' '}
+                            <span className={styles.imageHostingWarn}>
+                              Don&apos;t use the page URL — you need a link that goes directly to the image file.
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
