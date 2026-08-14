@@ -198,7 +198,7 @@ function TippingExplainer() {
   return (
     <div className={styles.tipExplainer}>
       <div className={styles.tipTabs}>
-        {[['♫', 'Beats'], ['¢', 'Tipping'], ['💸', 'Payouts']].map(([icon, label], i) => (
+        {[['🪙', 'Beats'], ['¢', 'Tipping'], ['💸', 'Payouts']].map(([icon, label], i) => (
           <button
             key={label}
             className={`${styles.tipTab} ${tab === i ? styles.tipTabActive : ''}`}
@@ -228,7 +228,7 @@ function TippingExplainer() {
                   ].map(pkg => (
                     <div key={pkg.price} className={`${styles.tipBeatsPkg} ${pkg.tag ? styles.tipBeatsPkgFeatured : ''}`}>
                       {pkg.tag && <span className={styles.tipBeatsPkgTag}>{pkg.tag}</span>}
-                      <span className={styles.tipBeatsCount}>{pkg.beats} <span className={styles.tipBeatsIcon}>♫</span></span>
+                      <span className={styles.tipBeatsCount}>{pkg.beats} <img src="/beats/coin_front.png" style={{width:'1.2em',height:'1.2em',verticalAlign:'middle',objectFit:'contain'}} alt="" aria-hidden="true" /></span>
                       {pkg.bonus && <span className={styles.tipBeatsBonus}>{pkg.bonus} bonus</span>}
                       <span className={styles.tipBeatsPrice}>{pkg.price}</span>
                     </div>
@@ -260,19 +260,21 @@ function TippingExplainer() {
                         className={`${styles.tipDemoBtn} ${tipAmount === n ? styles.tipDemoBtnSel : ''}`}
                         onClick={() => setTipAmount(n)}
                       >
-                        {n} <span style={{ color: '#fbbf24' }}>♫</span>
+                        {n} <img src="/beats/coin_front.png" style={{width:'1.3em',height:'1.3em',verticalAlign:'middle',objectFit:'contain'}} alt="" aria-hidden="true" />
                       </button>
                     ))}
                   </div>
                   {tipAmount && (
                     <button className={styles.tipDemoSendBtn} onClick={() => setTipped(true)}>
-                      Send {tipAmount} <span style={{ color: '#fbbf24' }}>♫</span> →
+                      Send {tipAmount} <img src="/beats/coin_front.png" style={{width:'1.3em',height:'1.3em',verticalAlign:'middle',objectFit:'contain'}} alt="" aria-hidden="true" /> →
                     </button>
                   )}
                 </div>
               ) : (
                 <div className={styles.tipDemoSuccess}>
-                  <div className={styles.tipDemoSuccessIcon}>♫</div>
+                  <div className={styles.tipDemoSuccessIcon}>
+                    <img src="/beats/coin_logo.png" style={{width:'2.5rem',height:'2.5rem',objectFit:'contain'}} alt="Beats coin" />
+                  </div>
                   <div className={styles.tipDemoSuccessTitle}>Tip sent!</div>
                   <div className={styles.tipDemoSuccessSub}>Your request is now prioritised in the DJ&apos;s view</div>
                   <button className={styles.tipDemoResetBtn} onClick={() => { setTipAmount(null); setTipped(false); }}>
@@ -680,7 +682,9 @@ export default function Home() {
                   </div>
                 </li>
                 <li className={styles.featureItem}>
-                  <span className={styles.featureItemIcon}>⚡</span>
+                  <span className={styles.featureItemIcon}>
+                    <img src="/beats/coin_front.png" style={{width:'1.4em',height:'1.4em',objectFit:'contain',verticalAlign:'middle'}} alt="Beats coin" />
+                  </span>
                   <div>
                     <strong>Beat tipping</strong>
                     <p>Attendees can buy Beats to tip on requests they want to see sooner. You keep the proceeds after payment processing.</p>

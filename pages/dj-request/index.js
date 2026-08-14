@@ -677,7 +677,10 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                     </div>
                     {tippingEnabled && (
                       <div className={styles.accountBarActions}>
-                        <span className={styles.beatBalance}>{beatBalance} Beats</span>
+                        <span className={styles.beatBalance}>
+                      <img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />
+                      {beatBalance} Beats
+                    </span>
                         <button className={styles.accountBarBtn} onClick={() => setShowBeatShop(v => !v)}>
                           {showBeatShop ? 'Close' : 'Buy Beats'}
                         </button>
@@ -687,6 +690,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
 
                   {tippingEnabled && showBeatShop && (
                     <div className={styles.beatShop}>
+                      <div className={styles.beatShopHeader}>
+                        <img src="/beats/beat_text.png" className={styles.beatShopLogo} alt="beat" />
+                      </div>
                       {BEAT_PACKAGES.map(pkg => (
                         <button
                           key={pkg.id}
@@ -714,7 +720,10 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                 </>
               ) : tippingEnabled ? (
                 <div className={styles.beatsSignInPrompt}>
-                  <p className={styles.beatsSignInHeading}>Get more from your tip with Beats</p>
+                  <div className={styles.beatsSignInTopRow}>
+                    <img src="/beats/coin_front.png" className={styles.beatsSignInCoin} alt="" aria-hidden="true" />
+                    <p className={styles.beatsSignInHeading}>Tip your requests with <img src="/beats/beat_text.png" className={styles.beatsWordmark} alt="beat" /></p>
+                  </div>
                   <p className={styles.beatsSignInSub}>No processing fees — 100% goes to the DJ. Tip a specific dance to boost it in the queue.</p>
                   <button
                     className={styles.beatsSignInBtn}
@@ -1028,7 +1037,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}>♫ {beatsForItem(r)}</span>}
+                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
                       <span className={styles.queueItemStatus}>Now Playing</span>
                     </div>
                   ))}
@@ -1039,7 +1048,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}>♫ {beatsForItem(r)}</span>}
+                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
                     </div>
                   ))}
                 </div>
@@ -1060,7 +1069,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                     {/* Dance name / partner song header */}
                     {group.danceType === 'partner' ? (
                       <div className={styles.tabGroupName}>
-                        {totalBeats > 0 && <span className={styles.tabGroupBeats}>♫ {totalBeats}</span>}
+                        {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
                         <span>
                           {group.songName
                             ? <>{group.songName}{group.artist ? <span className={styles.tabGroupNameArtist}> — {group.artist}</span> : ''}</>
@@ -1069,7 +1078,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                       </div>
                     ) : (
                       <div className={styles.tabGroupName}>
-                        {totalBeats > 0 && <span className={styles.tabGroupBeats}>♫ {totalBeats}</span>}
+                        {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
                         <span>{group.danceName}</span>
                       </div>
                     )}
@@ -1104,7 +1113,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                                         onClick={() => beatBalance === 0 ? setShowBeatShop(true) : setBoosterOpenId(isOpen ? null : myOriginal._id)}
                                         title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
                                       >
-                                        ♫{hasTip ? ` ${displayBeats}` : ''}
+                                        <img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{hasTip ? displayBeats : ''}
                                       </button>
                                     </div>
                                   );
@@ -1169,7 +1178,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                                           onClick={() => beatBalance === 0 ? setShowBeatShop(true) : setBoosterOpenId(isOpen ? null : mySwap._id)}
                                           title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
                                         >
-                                          ♫{hasTip ? ` ${displayBeats}` : ''}
+                                          <img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{hasTip ? displayBeats : ''}
                                         </button>
                                       </div>
                                     );
