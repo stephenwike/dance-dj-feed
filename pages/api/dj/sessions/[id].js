@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId } = req.body ?? {};
+    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId, feedAppliedAt } = req.body ?? {};
     const set = {};
 
     if (name !== undefined) {
@@ -79,6 +79,7 @@ export default async function handler(req, res) {
     if (queueVisibleCount !== undefined) set.queueVisibleCount = Math.max(0, Number(queueVisibleCount) || 0);
     if (feedAspectRatio !== undefined) set.feedAspectRatio = String(feedAspectRatio);
     if (feedTemplateId !== undefined) set.feedTemplateId = String(feedTemplateId);
+    if (feedAppliedAt !== undefined) set.feedAppliedAt = String(feedAppliedAt);
     await col.updateOne({ _id: objId, ownerId: userId }, { $set: set });
 
     if (status === 'closed') {

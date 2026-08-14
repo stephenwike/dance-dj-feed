@@ -51,7 +51,7 @@ function Controller() {
     selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
     toggleQueueVisibility, setQueueVisibleCount,
-    setFeedAspectRatio, setFeedTemplateId,
+    setFeedAspectRatio, setFeedTemplateId, applyFeedTemplate,
     tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
     queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId,
   } = useSessionManager();
@@ -307,6 +307,7 @@ function Controller() {
                 feedTemplateId={feedTemplateId}
                 setFeedAspectRatio={setFeedAspectRatio}
                 setFeedTemplateId={setFeedTemplateId}
+                applyFeedTemplate={applyFeedTemplate}
               />
             )}
 

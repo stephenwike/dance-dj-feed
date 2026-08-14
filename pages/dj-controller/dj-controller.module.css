@@ -614,6 +614,25 @@
   background: rgba(138,92,255,0.05);
 }
 
+.feedApplyBtn {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  background: #8A5CFF;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: background 0.13s, opacity 0.13s;
+}
+.feedApplyBtn:hover:not(:disabled) { background: #7c3aed; }
+.feedApplyBtn:disabled { opacity: 0.5; cursor: default; }
+
 /* ── Slide list (in feed panel) ── */
 .feedSlideList {
   display: flex;

@@ -22,10 +22,31 @@ function hexToRgb(hex) {
   const n = parseInt(hex.replace('#', ''), 16);
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
 }
+function formatTime(ms_offset) {
+  const d = new Date(Date.now() + ms_offset);
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function makeBeatsFor(requests) {
+  const map = {};
+  for (const r of requests) {
+    if (!['pending', 'approved', 'playing'].includes(r.status)) continue;
+    if (r.danceType === 'message') continue;
+    const key = r.danceType === 'partner'
+      ? (r.partnerGroupId || r._id)
+      : (r.danceId || (r.danceName || '').toLowerCase().trim());
+    map[key] = (map[key] ?? 0) + Math.round((r.tipCents ?? 0) / 5);
+  }
+  return (r) => {
+    if (r.danceType === 'partner') return map[r.partnerGroupId || r._id] ?? 0;
+    return map[r.danceId || (r.danceName || '').toLowerCase().trim()] ?? 0;
+  };
+}
 
 // ── Element renderers ──────────────────────────────────────────────
 
 function MainFeedEl({ requests }) {
+  const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
   const [requestUrl, setRequestUrl] = useState('');
   useEffect(() => { setRequestUrl(`${window.location.origin}/dj-request`); }, []);
 
@@ -65,8 +86,8 @@ function MainFeedEl({ requests }) {
           </div>
         ) : (
           <>
-            {playing && <NowPlayingCard request={playing} />}
-            {upcoming.length > 0 && <UpNextList items={upcoming} />}
+            {playing && <NowPlayingCard request={playing} beatsFor={beatsFor} />}
+            {upcoming.length > 0 && <UpNextList items={upcoming} playing={playing} beatsFor={beatsFor} />}
           </>
         )}
       </div>
@@ -99,6 +120,7 @@ function RequestCtaEl() {
 }
 
 function FeedPanelEl({ requests }) {
+  const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
   const playing = requests.find(r => r.status === 'playing') ?? null;
   const upcoming = requests
     .filter(r => r.status === 'approved')
@@ -114,8 +136,8 @@ function FeedPanelEl({ requests }) {
         </div>
       ) : (
         <>
-          {playing && <NowPlayingCard request={playing} />}
-          {upcoming.length > 0 && <UpNextList items={upcoming} />}
+          {playing && <NowPlayingCard request={playing} beatsFor={beatsFor} />}
+          {upcoming.length > 0 && <UpNextList items={upcoming} playing={playing} beatsFor={beatsFor} />}
         </>
       )}
     </div>
@@ -123,6 +145,7 @@ function FeedPanelEl({ requests }) {
 }
 
 function NowPlayingEl({ requests }) {
+  const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
   const playing = requests.find(r => r.status === 'playing') ?? null;
   if (!playing) {
     return (
@@ -135,12 +158,14 @@ function NowPlayingEl({ requests }) {
   }
   return (
     <div className={feedStyles.right} style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
-      <NowPlayingCard request={playing} />
+      <NowPlayingCard request={playing} beatsFor={beatsFor} />
     </div>
   );
 }
 
 function QueueListEl({ requests }) {
+  const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
+  const playing = requests.find(r => r.status === 'playing') ?? null;
   const upcoming = requests
     .filter(r => r.status === 'approved')
     .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))
@@ -156,7 +181,7 @@ function QueueListEl({ requests }) {
   }
   return (
     <div className={feedStyles.right} style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
-      <UpNextList items={upcoming} />
+      <UpNextList items={upcoming} playing={playing} beatsFor={beatsFor} />
     </div>
   );
 }
@@ -212,13 +237,27 @@ function PaymentLinksEl({ paymentLinks = [] }) {
 
 // ── Sub-components ─────────────────────────────────────────────────
 
-const beatsFor = r => Math.round((r?.tipCents ?? 0) / 5);
-const coinImg = { width: '1em', height: '1em', objectFit: 'contain', flexShrink: 0 };
-
-function NowPlayingCard({ request }) {
+function NowPlayingCard({ request, beatsFor }) {
+  const [progress, setProgress] = useState(100);
+  const isPaused = !!request.pausedAt;
   const isPartner = request.danceType === 'partner';
   const dc = isPartner ? null : request.difficulty ? diffColor(request.difficulty) : '#8A5CFF';
   const beats = beatsFor(request);
+
+  useEffect(() => {
+    if (!request.playStartedAt) { setProgress(100); return; }
+    const total = request.duration_ms ?? 180000;
+    const update = () => {
+      const ref = isPaused ? new Date(request.pausedAt) : new Date();
+      const elapsed = ref - new Date(request.playStartedAt);
+      setProgress(Math.max(0, 100 - (elapsed / total) * 100));
+    };
+    update();
+    if (isPaused) return;
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [request._id, request.playStartedAt, request.pausedAt, request.duration_ms, isPaused]);
+
   return (
     <div
       className={feedStyles.queueItemPlaying}
@@ -234,22 +273,27 @@ function NowPlayingCard({ request }) {
     >
       <div className={feedStyles.playingTop}>
         <div className={feedStyles.playingLabel}>
-          <span className={feedStyles.playingDot} style={dc ? { background: dc } : { background: 'rgba(255,255,255,0.7)' }} />
-          <span className={feedStyles.statusLabel}>Playing</span>
+          {!isPaused && (
+            <span
+              className={feedStyles.playingDot}
+              style={dc ? { background: dc, boxShadow: `0 0 0 0 ${dc}99` } : { background: 'rgba(255,255,255,0.7)' }}
+              aria-label="Playing"
+            />
+          )}
+          <span className={feedStyles.statusLabel}>{isPaused ? 'Paused' : 'Playing'}</span>
         </div>
         <div className={feedStyles.playingBadges}>
           {isPartner && <span className={feedStyles.partnerBadge}>👫 Partner{request.partnerStyle ? ` — ${request.partnerStyle}` : ' Dance'}</span>}
           {request.isSongSwap && <span className={feedStyles.swapChip}>↻ Song Swap</span>}
         </div>
       </div>
-      {beats > 0 && (
-        <div className={feedStyles.beatsRowPlaying}>
-          <img src="/beats/coin_front.png" style={coinImg} alt="" aria-hidden="true" />
-          {beats}
+      <div className={feedStyles.playingMain}>
+        {beats > 0 && (
+          <span className={feedStyles.beatsCoinLg} aria-label={`${beats} beats`}>{beats}</span>
+        )}
+        <div className={feedStyles.queueDancePlaying}>
+          {isPartner ? (request.songName || request.danceName) : request.danceName}
         </div>
-      )}
-      <div className={feedStyles.queueDancePlaying}>
-        {isPartner ? (request.songName || request.danceName) : request.danceName}
       </div>
       {isPartner && request.artist && (
         <div className={feedStyles.partnerArtistLine}>
@@ -263,11 +307,25 @@ function NowPlayingCard({ request }) {
           {request.swapArtist && <span className={feedStyles.swapSongArtist}>{request.swapArtist}</span>}
         </div>
       )}
+      {request.playStartedAt && (
+        <div className={feedStyles.progressBar}>
+          <div className={feedStyles.progressFill} style={{ width: `${progress}%`, background: dc ?? 'rgba(255,255,255,0.45)' }} />
+        </div>
+      )}
     </div>
   );
 }
 
-function UpNextList({ items }) {
+function UpNextList({ items, playing, beatsFor }) {
+  const upcomingWithTimes = useMemo(() => {
+    let cumMs = playing?.duration_ms ?? 180000;
+    return items.map((r, idx) => {
+      const startTime = playing ? formatTime(cumMs) : null;
+      cumMs += r.duration_ms ?? 180000;
+      return { ...r, startTime, num: idx + 1 };
+    });
+  }, [items, playing]);
+
   return (
     <>
       <div className={feedStyles.upNextHeader}>
@@ -275,26 +333,26 @@ function UpNextList({ items }) {
         <span className={feedStyles.statusLabel}>Up Next</span>
       </div>
       <ol className={feedStyles.queueList}>
-        {items.map((r, num) => {
+        {upcomingWithTimes.map(r => {
           const beats = beatsFor(r);
           const isPartner = r.danceType === 'partner';
           return (
             <li key={r._id} className={`${feedStyles.queueItem}${r.isSongSwap ? ` ${feedStyles.queueItemSwap}` : ''}${r.danceType === 'message' ? ` ${feedStyles.queueItemMsg}` : ''}`}>
-              <span className={feedStyles.queueNum}>{r.danceType === 'message' ? '💬' : num + 1}</span>
+              <span className={feedStyles.queueNum}>{r.danceType === 'message' ? '💬' : r.num}</span>
               <span className={feedStyles.queueDanceCol}>
-                {beats > 0 && (
-                  <span className={feedStyles.beatsRowSm}>
-                    <img src="/beats/coin_front.png" style={coinImg} alt="" aria-hidden="true" />
-                    {beats}
+                <span className={feedStyles.queueDanceRow}>
+                  {beats > 0 && (
+                    <span className={feedStyles.beatsCoinSm} aria-label={`${beats} beats`}>{beats}</span>
+                  )}
+                  <span className={feedStyles.queueDance}>
+                    {isPartner ? (r.songName || r.danceName) : r.danceName}
                   </span>
-                )}
-                <span className={feedStyles.queueDance}>
-                  {isPartner ? (r.songName || r.danceName) : r.danceName}
                 </span>
                 {r.isSongSwap && r.swapSongName && <span className={feedStyles.queueSwapRow}>↪ {r.swapSongName}</span>}
                 {isPartner && r.artist && <span className={feedStyles.queuePartnerRow}>{r.artist}</span>}
               </span>
               <div className={feedStyles.queueRight}>
+                {r.danceType !== 'message' && r.startTime && <span className={feedStyles.queueTime}>{r.startTime}</span>}
                 {r.danceType === 'message' ? null
                   : isPartner ? (
                     <span className={feedStyles.diffPip} style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}>
@@ -314,27 +372,85 @@ function UpNextList({ items }) {
 
 // ── Beats advertisement ────────────────────────────────────────────
 
-const BEATS_AD_DANCES = [
+const MOCK_AD_ITEMS = [
   { id: 'es', name: 'Electric Slide',       sub: 'Intermediate', baseBeats: 4, hero: false },
   { id: 'bs', name: "Boot Scootin' Boogie", sub: 'Beginner',     baseBeats: 2, hero: false },
   { id: 'cs', name: 'Cupid Shuffle',        sub: 'Beginner',     baseBeats: 1, hero: false },
   { id: 'wc', name: 'Watermelon Crawl',     sub: 'Improver',     baseBeats: 0, hero: true  },
 ];
-const BEATS_AD_ORDERS = [
-  ['es', 'bs', 'cs', 'wc'],
-  ['es', 'bs', 'wc', 'cs'],
-  ['es', 'wc', 'bs', 'cs'],
-  ['wc', 'es', 'bs', 'cs'],
-];
 
-function BeatsAdEl() {
-  const [order, setOrder] = useState(BEATS_AD_ORDERS[0]);
+function getAdDanceName(r) {
+  return r.danceType === 'partner' ? (r.songName || r.danceName || 'Partner Dance') : (r.danceName || 'Dance');
+}
+function getAdDanceSub(r) {
+  return r.danceType === 'partner' ? (r.partnerStyle || 'Partner') : (r.difficulty || 'Mixed');
+}
+
+// Compute order-change sequence as hero beats increase from 0 through non-hero items
+function computeAdOrders(items) {
+  const hero = items.find(x => x.hero);
+  const byBeats = [...items].sort((a, b) => b.baseBeats - a.baseBeats);
+  const orders = [byBeats.map(x => x.id)];
+  const working = byBeats.map(x => x.id);
+  const targets = items.filter(x => !x.hero).sort((a, b) => a.baseBeats - b.baseBeats);
+  for (const target of targets) {
+    const heroIdx = working.indexOf(hero.id);
+    const targetIdx = working.indexOf(target.id);
+    if (heroIdx <= targetIdx) continue;
+    working.splice(heroIdx, 1);
+    working.splice(working.indexOf(target.id), 0, hero.id);
+    orders.push([...working]);
+  }
+  return orders;
+}
+
+// Build 4 display slots from real queue + mock fallback.
+// Slot layout: [0]=top/4beats, [3]=bottom/hero/0beats
+// Queue mapping: 1st in queue → slot[3] (hero), 4th → slot[0] (top)
+function buildAdDisplayItems(requests) {
+  const approved = requests
+    .filter(r => r.status === 'approved')
+    .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))
+    .slice(0, 4);
+  const slots = [null, null, null, null];
+  approved.forEach((r, i) => {
+    const slot = 3 - i; // 1st → slot 3, 2nd → slot 2, 3rd → slot 1, 4th → slot 0
+    slots[slot] = {
+      id: String(r._id),
+      name: getAdDanceName(r),
+      sub: getAdDanceSub(r),
+      baseBeats: MOCK_AD_ITEMS[slot].baseBeats,
+      hero: slot === 3,
+    };
+  });
+  return slots.map((item, i) => item ?? MOCK_AD_ITEMS[i]);
+}
+
+function BeatsAdEl({ requests = [] }) {
+  const playing = requests.find(r => r.status === 'playing') ?? null;
+
+  const displayItems = useMemo(() => buildAdDisplayItems(requests), [requests]);
+  const adOrders = useMemo(() => computeAdOrders(displayItems), [displayItems]);
+
+  const [order, setOrder] = useState(() => adOrders[0]);
   const [heroState, setHeroState] = useState('idle'); // idle | ticking | jumped
 
-  const timers   = useRef([]);
-  const rafId    = useRef(null);
-  const flipData = useRef(null);
-  const heroBeatsRef = useRef(0);
+  const [activeDisplayItems, setActiveDisplayItems] = useState(displayItems);
+
+  const timers                = useRef([]);
+  const rafId                 = useRef(null);
+  const flipData              = useRef(null);
+  const heroBeatsRef          = useRef(0);
+  const displayItemsRef       = useRef(displayItems);
+  const adOrdersRef           = useRef(adOrders);
+  const heroIdRef             = useRef(displayItems.find(x => x.hero)?.id ?? 'wc');
+  const activeDisplayItemsRef = useRef(displayItems);
+
+  // Keep pending-data refs fresh so the next run() reads the latest queue state.
+  // activeDisplayItemsRef and heroIdRef are NOT synced live — they're snapshotted
+  // at the start of each run() so queue changes can't break an in-progress animation.
+  useEffect(() => { displayItemsRef.current = displayItems; }, [displayItems]);
+  useEffect(() => { adOrdersRef.current = adOrders; }, [adOrders]);
 
   // ── FLIP animation: fires after each render, applies if flipData is set ──
   useLayoutEffect(() => {
@@ -367,7 +483,7 @@ function BeatsAdEl() {
         const t = Math.min((now - start) / ms, 1);
         const beats = Math.round(from + (to - from) * t);
         heroBeatsRef.current = beats;
-        const el = document.getElementById('ba-bc-wc');
+        const el = document.getElementById('ba-bc-' + heroIdRef.current);
         if (el) el.textContent = beats;
         if (t < 1) { rafId.current = requestAnimationFrame(frame); }
         else { onDone(); }
@@ -377,9 +493,9 @@ function BeatsAdEl() {
 
     function flipTo(newOrder, nextHeroState) {
       const oldTops = {};
-      BEATS_AD_ORDERS[0].forEach(id => {
-        const el = document.getElementById('ba-qi-' + id);
-        if (el) oldTops[id] = el.getBoundingClientRect().top;
+      activeDisplayItemsRef.current.forEach(d => {
+        const el = document.getElementById('ba-qi-' + d.id);
+        if (el) oldTops[d.id] = el.getBoundingClientRect().top;
       });
       flipData.current = { oldTops, newOrder };
       setOrder(newOrder);
@@ -387,32 +503,33 @@ function BeatsAdEl() {
     }
 
     function run() {
+      // Snapshot data at the start of this run — frozen for the entire animation cycle.
+      const items  = displayItemsRef.current;
+      const orders = adOrdersRef.current;
+      const heroId = items.find(x => x.hero)?.id ?? 'wc';
+
+      heroIdRef.current             = heroId;
+      activeDisplayItemsRef.current = items;
+      setActiveDisplayItems(items);
+
       heroBeatsRef.current = 0;
-      setOrder(BEATS_AD_ORDERS[0]);
+      setOrder(orders[0]);
       setHeroState('idle');
-      const bc = document.getElementById('ba-bc-wc');
+      const bc = document.getElementById('ba-bc-' + heroId);
       if (bc) bc.textContent = '0';
 
       addTimer(() => {
         setHeroState('ticking');
         tickBeats(0, 1, 1200, () => {
-          flipTo(BEATS_AD_ORDERS[1], 'jumped');
+          flipTo(orders[1] ?? orders[0], 'jumped');
           addTimer(() => {
             setHeroState('ticking');
             tickBeats(1, 2, 1000, () => {
-              flipTo(BEATS_AD_ORDERS[2], 'jumped');
+              flipTo(orders[2] ?? orders[1] ?? orders[0], 'jumped');
               addTimer(() => {
                 setHeroState('ticking');
                 tickBeats(2, 5, 2200, () => {
-                  flipTo(BEATS_AD_ORDERS[3], 'jumped');
-                  addTimer(() => {
-                    const list = document.getElementById('ba-queue-list');
-                    if (list) { list.style.transition = 'opacity 0.55s'; list.style.opacity = '0'; }
-                    addTimer(() => {
-                      if (list) { list.style.transition = 'none'; list.style.opacity = '1'; }
-                      addTimer(run, 400);
-                    }, 650);
-                  }, 3200);
+                  flipTo(orders[3] ?? orders[2] ?? orders[1] ?? orders[0], 'jumped');
                 });
               }, 320);
             });
@@ -504,26 +621,30 @@ function BeatsAdEl() {
 
         {/* Now Playing card */}
         <div style={{
-          background: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.28)',
-          borderRadius: 'clamp(10px, 1.4vw, 18px)', padding: '1.8vh 2vw',
-          display: 'flex', alignItems: 'center', gap: '1.6vw', flexShrink: 0,
-        }}>
-          <div style={{
-            width: 'clamp(36px, 4vw, 62px)', height: 'clamp(36px, 4vw, 62px)',
-            borderRadius: '50%', background: 'rgba(34,197,94,0.18)', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 'clamp(1rem, 1.8vw, 2.2rem)', color: '#22c55e',
-          }}>♫</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'clamp(0.6rem, 0.9vw, 1.1rem)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.13em', color: '#22c55e', marginBottom: '0.4vh' }}>Now Playing</div>
-            <div style={{ fontSize: 'clamp(1rem, 2vw, 2.6rem)', fontWeight: 800, color: '#F5F2E8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Cha Cha Slide</div>
-            <div style={{ fontSize: 'clamp(0.65rem, 1.1vw, 1.4rem)', color: 'rgba(245,242,232,0.3)', marginTop: '0.3vh' }}>Beginner</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 'clamp(18px, 2.2vw, 32px)', flexShrink: 0 }}>
-            {[{ h: '45%', d: '0.65s' }, { h: '80%', d: '0.48s' }, { h: '60%', d: '0.72s' }, { h: '95%', d: '0.55s' }, { h: '50%', d: '0.63s' }].map((b, i) => (
-              <div key={i} style={{ width: 'clamp(3px, 0.4vw, 6px)', background: '#22c55e', borderRadius: 2, height: b.h, animation: `ba-bar ${b.d} ease-in-out infinite alternate` }} />
-            ))}
-          </div>
+            background: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.28)',
+            borderRadius: 'clamp(10px, 1.4vw, 18px)', padding: '1.8vh 2vw',
+            display: 'flex', alignItems: 'center', gap: '1.6vw', flexShrink: 0,
+          }}>
+            <div style={{
+              width: 'clamp(36px, 4vw, 62px)', height: 'clamp(36px, 4vw, 62px)',
+              borderRadius: '50%', background: 'rgba(34,197,94,0.18)', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 'clamp(1rem, 1.8vw, 2.2rem)', color: '#22c55e',
+            }}>♫</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 'clamp(0.6rem, 0.9vw, 1.1rem)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.13em', color: '#22c55e', marginBottom: '0.4vh' }}>Now Playing</div>
+              <div style={{ fontSize: 'clamp(1rem, 2vw, 2.6rem)', fontWeight: 800, color: '#F5F2E8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {playing ? getAdDanceName(playing) : 'Cha Cha Slide'}
+              </div>
+              <div style={{ fontSize: 'clamp(0.65rem, 1.1vw, 1.4rem)', color: 'rgba(245,242,232,0.3)', marginTop: '0.3vh' }}>
+                {playing ? getAdDanceSub(playing) : 'Beginner'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 'clamp(18px, 2.2vw, 32px)', flexShrink: 0 }}>
+              {[{ h: '45%', d: '0.65s' }, { h: '80%', d: '0.48s' }, { h: '60%', d: '0.72s' }, { h: '95%', d: '0.55s' }, { h: '50%', d: '0.63s' }].map((b, i) => (
+                <div key={i} style={{ width: 'clamp(3px, 0.4vw, 6px)', background: '#22c55e', borderRadius: 2, height: b.h, animation: `ba-bar ${b.d} ease-in-out infinite alternate` }} />
+              ))}
+            </div>
         </div>
 
         {/* Queue card */}
@@ -548,7 +669,8 @@ function BeatsAdEl() {
           {/* Animated queue list */}
           <div id="ba-queue-list" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             {order.map((id, idx) => {
-              const d = BEATS_AD_DANCES.find(x => x.id === id);
+              const d = activeDisplayItems.find(x => x.id === id);
+              if (!d) return null;
               const ticking = d.hero && heroState === 'ticking';
               const jumped  = d.hero && heroState === 'jumped';
               const active  = ticking || jumped;
@@ -571,46 +693,46 @@ function BeatsAdEl() {
                 >
                   {/* Position number */}
                   <span style={{
-                    fontSize: 'clamp(0.9rem, 1.6vw, 2rem)', fontWeight: 800,
+                    fontSize: 'clamp(1.4rem, 2.4vw, 3.5rem)', fontWeight: 800,
                     color: jumped ? '#FFCC44' : active ? '#F4A916' : 'rgba(245,242,232,0.3)',
-                    width: 'clamp(20px, 2vw, 30px)', textAlign: 'center', flexShrink: 0,
+                    width: 'clamp(28px, 3vw, 52px)', textAlign: 'center', flexShrink: 0,
                     transition: 'color 0.35s', fontVariantNumeric: 'tabular-nums',
                   }}>{idx + 1}</span>
 
                   {/* Dance info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{
-                      fontSize: 'clamp(0.9rem, 1.9vw, 2.4rem)', fontWeight: 700,
+                      fontSize: 'clamp(1.3rem, 2.6vw, 4rem)', fontWeight: 700,
                       whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       color: active ? '#FFCC44' : '#F5F2E8', transition: 'color 0.35s',
                     }}>{d.name}</div>
-                    <div style={{ fontSize: 'clamp(0.62rem, 1vw, 1.2rem)', color: 'rgba(245,242,232,0.3)', marginTop: '0.3vh' }}>{d.sub}</div>
+                    <div style={{ fontSize: 'clamp(0.85rem, 1.4vw, 2rem)', color: 'rgba(245,242,232,0.3)', marginTop: '0.3vh' }}>{d.sub}</div>
                   </div>
 
                   {/* Beat chip */}
                   <span style={{
-                    display: 'flex', alignItems: 'center', gap: '0.5vw', flexShrink: 0,
-                    fontSize: 'clamp(0.85rem, 1.5vw, 1.9rem)', fontWeight: 800,
+                    display: 'flex', alignItems: 'center', gap: '0.6vw', flexShrink: 0,
+                    fontSize: 'clamp(1.2rem, 2.2vw, 3.2rem)', fontWeight: 800,
                     fontVariantNumeric: 'tabular-nums',
                     color: active ? '#FFCC44' : 'rgba(245,242,232,0.3)',
                     border: `1.5px solid ${active ? 'rgba(244,169,22,0.32)' : 'rgba(255,255,255,0.08)'}`,
-                    borderRadius: '100px', padding: '0.5vh 1vw 0.5vh 0.7vw',
+                    borderRadius: '100px', padding: '0.5vh 1.2vw 0.5vh 0.8vw',
                     background: active ? 'rgba(244,169,22,0.13)' : 'transparent',
                     boxShadow: jumped ? '0 0 18px rgba(244,169,22,0.4)' : ticking ? '0 0 12px rgba(244,169,22,0.25)' : 'none',
                     transition: 'color 0.3s, background 0.3s, border-color 0.3s, box-shadow 0.3s',
                   }}>
-                    <span style={{ ...coin('clamp(13px, 1.5vw, 22px)', active ? 1 : 0.35), boxShadow: jumped ? '0 0 10px rgba(244,169,22,0.65)' : 'none', transition: 'opacity 0.3s, box-shadow 0.3s' }} />
-                    <span id={d.hero ? 'ba-bc-wc' : undefined}>{d.hero ? heroBeatsRef.current : d.baseBeats}</span>
+                    <span style={{ ...coin('clamp(20px, 2.5vw, 40px)', active ? 1 : 0.35), boxShadow: jumped ? '0 0 10px rgba(244,169,22,0.65)' : 'none', transition: 'opacity 0.3s, box-shadow 0.3s' }} />
+                    <span id={d.hero ? 'ba-bc-' + d.id : undefined}>{d.hero ? heroBeatsRef.current : d.baseBeats}</span>
                   </span>
 
                   {/* Up arrow */}
-                  {showArrow && <span style={{ fontSize: 'clamp(0.8rem, 1.4vw, 1.8rem)', fontWeight: 900, color: '#FFCC44', flexShrink: 0, animation: 'ba-arrow-bob 0.9s ease-in-out infinite' }}>↑</span>}
+                  {showArrow && <span style={{ fontSize: 'clamp(1.2rem, 2.2vw, 3rem)', fontWeight: 900, color: '#FFCC44', flexShrink: 0, animation: 'ba-arrow-bob 0.9s ease-in-out infinite' }}>↑</span>}
 
                   {/* Up Next badge */}
                   {isNext && (
                     <span style={{
                       position: 'absolute', top: '0.5vh', right: 0,
-                      fontSize: 'clamp(0.5rem, 0.7vw, 0.85rem)', fontWeight: 900,
+                      fontSize: 'clamp(0.65rem, 1vw, 1.3rem)', fontWeight: 900,
                       textTransform: 'uppercase', letterSpacing: '0.1em',
                       color: '#F4A916', background: 'rgba(244,169,22,0.13)',
                       border: '1px solid rgba(244,169,22,0.32)', borderRight: 'none',
@@ -672,6 +794,9 @@ export default function FeedPreviewPage() {
 
   // URL param takes priority; otherwise use what the session reports
   const effectiveTemplateId = templateIdParam ?? (useSessionLookup ? (sessionDisplay?.feedTemplateId ?? null) : null);
+  // Key that changes when the DJ clicks Apply — causes template to re-fetch even if the ID didn't change
+  const feedAppliedAt = sessionDisplay?.feedAppliedAt ?? null;
+  const templateFetchKey = `${effectiveTemplateId ?? 'default'}_${feedAppliedAt ?? ''}`;
 
   const [template, setTemplate] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -696,7 +821,8 @@ export default function FeedPreviewPage() {
         setTemplate(DEFAULT_TEMPLATE);
         setInitialLoading(false);
       });
-  }, [isReady, effectiveTemplateId, useSessionLookup]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, templateFetchKey, useSessionLookup]);
 
   const requestsUrl = sessionId ? `/api/dj/requests?sessionId=${sessionId}` : null;
   const { data: requests = [] } = useSWR(requestsUrl, fetcher, {
@@ -756,7 +882,7 @@ export default function FeedPreviewPage() {
       case 'queue-list':     return <QueueListEl requests={requests} />;
       case 'message-banner': return <MessageBannerEl message={activeMessage} />;
       case 'payment-links':  return <PaymentLinksEl paymentLinks={paymentLinks} />;
-      case 'beats-ad':       return <BeatsAdEl />;
+      case 'beats-ad':       return <BeatsAdEl requests={requests} />;
       default:               return <PlaceholderEl type={el.type} />;
     }
   }

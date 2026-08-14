@@ -6,11 +6,21 @@ import { ASPECT_RATIOS, DEFAULT_TEMPLATE, templateWarnings } from '../../lib/cli
 
 const fetcher = url => fetch(url).then(r => r.json());
 
-export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9', feedTemplateId = 'default', setFeedAspectRatio, setFeedTemplateId }) {
+export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9', feedTemplateId = 'default', setFeedAspectRatio, setFeedTemplateId, applyFeedTemplate }) {
   const router = useRouter();
   const wrapRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(320);
   const [deleteId, setDeleteId] = useState(null);
+  const [iframeKey, setIframeKey] = useState(0);
+  const [applyState, setApplyState] = useState('idle'); // idle | applying | applied
+
+  async function handleApply() {
+    setApplyState('applying');
+    await applyFeedTemplate?.();
+    setIframeKey(k => k + 1);
+    setApplyState('applied');
+    setTimeout(() => setApplyState('idle'), 2000);
+  }
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -75,6 +85,7 @@ export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9
       <div ref={wrapRef} className={styles.feedPreviewWrap} style={{ height: previewHeight }}>
         {activeSession ? (
           <iframe
+            key={iframeKey}
             src={`/feed-preview?templateId=${feedTemplateId}&sessionId=${activeSession._id}`}
             title="Feed Preview"
             style={{
@@ -136,6 +147,14 @@ export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9
             + New Template
           </button>
         </div>
+
+        <button
+          className={styles.feedApplyBtn}
+          onClick={handleApply}
+          disabled={applyState !== 'idle' || !activeSession}
+        >
+          {applyState === 'applying' ? 'Applying…' : applyState === 'applied' ? '✓ Applied' : 'Apply to Live Feed'}
+        </button>
 
         <div className={styles.feedSectionLabel}>
           Slides
