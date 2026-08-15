@@ -115,7 +115,7 @@ function Controller() {
 
   const playingItem = playing[0] ?? null;
   const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
-  useStandardAutoAdvance({ isSpotify, playingItem, mutate });
+  useStandardAutoAdvance({ isSpotify, playingItem, mutate, sessionId: activeSession?._id });
 
   const { sensors, handleDragEnd } = useQueueReorder({ queue, mutate });
 
