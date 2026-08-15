@@ -8,6 +8,7 @@ import styles from './dj-controller.module.css';
 import { useRequestGroups } from '../../lib/client/dj/hooks/useRequestGroups';
 import { computeScore } from '../../lib/client/dj/fairnessScore';
 import { useQueueReorder } from '../../lib/client/dj/hooks/useQueueReorder';
+import { useStandardAutoAdvance } from '../../lib/client/dj/hooks/useStandardAutoAdvance';
 import { useSessionManager } from '../../lib/client/dj/hooks/useSessionManager';
 import { useAnnouncements } from '../../lib/client/dj/hooks/useAnnouncements';
 import { useRequestActions } from '../../lib/client/dj/hooks/useRequestActions';
@@ -114,6 +115,7 @@ function Controller() {
 
   const playingItem = playing[0] ?? null;
   const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
+  useStandardAutoAdvance({ isSpotify, playingItem, mutate });
 
   const { sensors, handleDragEnd } = useQueueReorder({ queue, mutate });
 
