@@ -6,7 +6,6 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import styles from './dj-controller.module.css';
 import { useRequestGroups } from '../../lib/client/dj/hooks/useRequestGroups';
-import { computeScore } from '../../lib/client/dj/fairnessScore';
 import { useQueueReorder } from '../../lib/client/dj/hooks/useQueueReorder';
 import { useStandardAutoAdvance } from '../../lib/client/dj/hooks/useStandardAutoAdvance';
 import { useSessionManager } from '../../lib/client/dj/hooks/useSessionManager';
@@ -109,7 +108,7 @@ function Controller() {
 
   const {
     playing, queue, history,
-    resolvedNames, danceRequestCounts, danceBeats, partnerUpvoteCounts,
+    resolvedNames, danceRequestCounts, danceBeats, danceScores, partnerUpvoteCounts,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
   } = useRequestGroups({ rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
 
@@ -434,7 +433,7 @@ function Controller() {
                             requesterCount={r.danceType === 'partner' ? 1 + (partnerUpvoteCounts[r._id] ?? 0) : (danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1)}
                             totalBeats={r.danceType === 'partner' ? (danceBeats[r._id] ?? 0) : (danceBeats[(r.danceName || '').toLowerCase().trim()] ?? 0)}
                             estimatedPlayAt={queueTimes[r._id]}
-                            score={computeScore([r], playsPerClient)}
+                            score={danceScores[r.danceType === 'partner' ? (r.partnerGroupId || r._id) : (r.danceName || '').toLowerCase().trim()] ?? 0}
                           />
                         )}
                       </SortableQueueItem>

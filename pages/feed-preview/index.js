@@ -916,6 +916,19 @@ export default function FeedPreviewPage() {
     return m;
   })();
 
+  const [msgProgress, setMsgProgress] = useState(100);
+  useEffect(() => {
+    if (!activeMessage?.expiresAt) { setMsgProgress(100); return; }
+    const total = activeMessage.duration * 1000;
+    const update = () => {
+      const remaining = new Date(activeMessage.expiresAt) - new Date();
+      setMsgProgress(Math.max(0, (remaining / total) * 100));
+    };
+    update();
+    const iv = setInterval(update, 1000);
+    return () => clearInterval(iv);
+  }, [activeMessage?._id, activeMessage?.expiresAt, activeMessage?.duration]);
+
   const { data: profileData } = useSWR('/api/dj/profile', fetcher);
   const paymentLinks = profileData?.paymentLinks ?? [];
 
@@ -998,6 +1011,16 @@ export default function FeedPreviewPage() {
           </div>
         ))}
       </div>
+      {activeMessage && (
+        <div className={feedStyles.messageBanner} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}>
+          <div className={feedStyles.messageText}>{activeMessage.text}</div>
+          {activeMessage.expiresAt && (
+            <div className={feedStyles.messageTimer}>
+              <div className={feedStyles.messageTimerFill} style={{ width: `${msgProgress}%` }} />
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
