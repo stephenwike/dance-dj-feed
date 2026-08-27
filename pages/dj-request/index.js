@@ -188,9 +188,13 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   const sessionList = Array.isArray(sessions) ? sessions : [];
   const activeSession = sessionList.find(s => s.status === 'active') ?? null;
 
-  // Detect session ending mid-visit (only when the SWR is accessible — i.e. the DJ's own browser).
-  // sessionId is non-null only when the session was active at page load time.
-  const sessionEndedMidVisit = !!sessionId && sessionList.length > 0 && !activeSession;
+  // Detect session ending mid-visit: only fire if THIS specific session appears in the
+  // DJ's list AND has been closed. Checking for "any active session" was wrong — if the
+  // authenticated user's sessions don't include this session (e.g. ownerId mismatch after
+  // auth changes), the old check would incorrectly show "session ended" to the DJ while
+  // everyone else (unauthenticated) still saw the form.
+  const thisSession = sessionId ? sessionList.find(s => s._id === sessionId) : null;
+  const sessionEndedMidVisit = !!thisSession && thisSession.status !== 'active';
   const effectivelyEnded = sessionEnded || sessionEndedMidVisit;
 
   // sessionActive: use sessionId (server truth) as the primary signal so unauthenticated
