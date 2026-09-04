@@ -9,6 +9,7 @@ const QUEUE_COUNT_OPTIONS = [
 
 export default function SettingsPanel({
   activeSession,
+  requestsEnabled, toggleRequestsEnabled,
   partnerDancesEnabled, togglePartnerDances,
   tippingEnabled, toggleTipping,
   fairnessScoringEnabled, toggleWeighting,
@@ -26,6 +27,18 @@ export default function SettingsPanel({
           <p className={styles.empty}>Start a session to configure settings.</p>
         ) : (
           <>
+            <div className={styles.settingRow}>
+              <div className={styles.settingInfo}>
+                <span className={styles.settingName}>Accept Requests</span>
+                <span className={styles.settingDesc}>Allow attendees to submit dance requests</span>
+              </div>
+              <button
+                className={`${styles.toggle} ${requestsEnabled ? styles.toggleOn : ''}`}
+                onClick={toggleRequestsEnabled}
+                aria-label={`Requests ${requestsEnabled ? 'on' : 'off'}`}
+              />
+            </div>
+
             <div className={styles.settingRow}>
               <div className={styles.settingInfo}>
                 <span className={styles.settingName}>Partner Dances</span>

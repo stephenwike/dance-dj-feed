@@ -48,10 +48,10 @@ function Controller() {
   const {
     sessions, liveSessions, activeSession, draftSession, workingSession, isSpotify, mutateSessions,
     selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
-    togglePartnerDances, toggleTipping, toggleWeighting, cycleDecay,
+    togglePartnerDances, toggleTipping, toggleRequestsEnabled, toggleWeighting, cycleDecay,
     toggleQueueVisibility, setQueueVisibleCount,
     setFeedAspectRatio, setFeedTemplateId, applyFeedTemplate,
-    tippingEnabled, partnerDancesEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
+    tippingEnabled, partnerDancesEnabled, requestsEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
     queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId,
   } = useSessionManager();
 
@@ -284,6 +284,8 @@ function Controller() {
             {activePanel === 'settings' && (
               <SettingsPanel
                 activeSession={activeSession}
+                requestsEnabled={requestsEnabled}
+                toggleRequestsEnabled={toggleRequestsEnabled}
                 partnerDancesEnabled={partnerDancesEnabled}
                 togglePartnerDances={togglePartnerDances}
                 tippingEnabled={tippingEnabled}

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId, feedAppliedAt } = req.body ?? {};
+    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, requestsEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId, feedAppliedAt } = req.body ?? {};
     const set = {};
 
     if (name !== undefined) {
@@ -72,6 +72,7 @@ export default async function handler(req, res) {
     if (durationMinutes !== undefined) set.durationMinutes = Number(durationMinutes) || null;
     if (partnerDancesEnabled !== undefined) set.partnerDancesEnabled = partnerDancesEnabled;
     if (tippingEnabled !== undefined) set.tippingEnabled = !!tippingEnabled;
+    if (requestsEnabled !== undefined) set.requestsEnabled = !!requestsEnabled;
     if (weightDecayEnabled !== undefined) set.weightDecayEnabled = !!weightDecayEnabled;
     if (weightDecayHalfLifeMinutes !== undefined) set.weightDecayHalfLifeMinutes = Number(weightDecayHalfLifeMinutes) || 60;
     if (fairnessScoringEnabled !== undefined) set.fairnessScoringEnabled = !!fairnessScoringEnabled;

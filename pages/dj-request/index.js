@@ -58,7 +58,7 @@ function getRowStatus(requests, queueTimes) {
   return null;
 }
 
-export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, tippingEnabled: tippingEnabledProp = null, queueVisibleToRequesters = true, queueVisibleCount = 4 }) {
+export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, requestsEnabled: requestsEnabledProp = true, tippingEnabled: tippingEnabledProp = null, queueVisibleToRequesters = true, queueVisibleCount = 4 }) {
   const { data: authSession, status: authStatus } = useSession();
   const isLoaded = authStatus !== 'loading';
   const isSignedIn = !!authSession;
@@ -207,6 +207,8 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   // tippingEnabled: from slug prop (server-rendered) or from live session (non-slug page)
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
   const tippingEnabled = paymentsEnabled && (tippingEnabledProp ?? (activeSession?.tippingEnabled !== false));
+  // requestsEnabled: live session overrides the SSR prop so the DJ can toggle mid-event
+  const requestsEnabled = thisSession ? thisSession.requestsEnabled !== false : requestsEnabledProp;
 
   const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
 
@@ -582,6 +584,22 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
           {directTipping ? 'Redirecting…' : 'Tip the DJ'}
         </button>
       </div>
+    );
+  }
+
+  if (sessionActive && !requestsEnabled) {
+    return (
+      <>
+        <Head><title>Request a Dance</title></Head>
+        <div className={styles.page}>
+          <div className={styles.card}>
+            <div className={styles.noSessionIcon}>🎵</div>
+            <h1 className={styles.noSessionTitle}>Requests Paused</h1>
+            <p className={styles.noSessionSub}>The DJ has paused requests for now. Check back in a moment!</p>
+            <p className={styles.noSessionHint}>This page will update automatically.</p>
+          </div>
+        </div>
+      </>
     );
   }
 
