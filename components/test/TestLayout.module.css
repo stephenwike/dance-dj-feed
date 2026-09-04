@@ -1,0 +1,203 @@
+/* ── Shell ── */
+.shell {
+  display: grid;
+  grid-template-rows: 40px 44px 1fr;
+  height: 100vh;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+  color: #e2e2f0;
+}
+
+/* ── Top bar ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px;
+  background: rgba(10, 10, 20, 0.96);
+  border-bottom: 1px solid rgba(138, 92, 255, 0.2);
+  font-size: 0.78rem;
+}
+
+.crumb {
+  color: #8A5CFF;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.crumb:hover { color: #c4a8ff; }
+.crumbCurrent { color: rgba(255, 255, 255, 0.7); }
+.crumbSep     { color: rgba(255, 255, 255, 0.2); }
+
+/* ── Preset bar ── */
+.controlsBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 20px;
+  background: rgba(14, 14, 28, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.widthDisplay {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.3);
+  min-width: 110px;
+  text-align: right;
+  margin-right: 4px;
+}
+
+.presetBtn {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.72rem;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.presetBtn:hover {
+  background: rgba(138, 92, 255, 0.1);
+  border-color: rgba(138, 92, 255, 0.3);
+  color: rgba(255, 255, 255, 0.7);
+}
+.presetBtnActive {
+  background: rgba(138, 92, 255, 0.15);
+  border-color: rgba(138, 92, 255, 0.5);
+  color: #c4a8ff;
+}
+.presetPx { font-size: 0.65rem; color: rgba(255, 255, 255, 0.25); }
+.presetBtnActive .presetPx { color: rgba(196, 168, 255, 0.5); }
+
+.divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 4px;
+}
+
+/* ── Canvas row ── */
+.canvasRow {
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Canvas — centers the preview, holds handle overlays ── */
+.canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(138, 92, 255, 0.04) 0%, transparent 70%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 23px,
+      rgba(255, 255, 255, 0.03) 23px,
+      rgba(255, 255, 255, 0.03) 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 23px,
+      rgba(255, 255, 255, 0.03) 23px,
+      rgba(255, 255, 255, 0.03) 24px
+    );
+}
+
+/* ── Preview box ── */
+.previewOuter {
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(138, 92, 255, 0.25), 0 8px 48px rgba(0, 0, 0, 0.6);
+}
+
+.previewInner {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: #0e0e18;
+}
+
+/* ── Controls panel ── */
+.controlsPanel {
+  width: 260px;
+  flex-shrink: 0;
+  background: rgba(12, 12, 24, 0.97);
+  border-left: 1px solid rgba(138, 92, 255, 0.15);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.controlsPanelHead {
+  padding: 14px 16px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.controlsPanelBody {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Resize handles — absolutely positioned in canvas space ── */
+.handle {
+  position: absolute;
+  z-index: 10;
+  background: rgba(90, 50, 200, 0.5);
+  transition: background 0.12s;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.handle:hover, .handleActive {
+  background: rgba(138, 92, 255, 0.82);
+}
+
+.handleRight  { cursor: col-resize; }
+.handleBottom { cursor: row-resize; }
+.handleCorner { cursor: nwse-resize; }
+
+/* grip dots */
+.handleRight::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 40px;
+  border-radius: 99px;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 3px,
+    transparent 3px, transparent 7px
+  );
+}
+.handleBottom::after {
+  content: '';
+  display: block;
+  height: 4px;
+  width: 40px;
+  border-radius: 99px;
+  background: repeating-linear-gradient(
+    to right,
+    rgba(255,255,255,0.65) 0px, rgba(255,255,255,0.65) 3px,
+    transparent 3px, transparent 7px
+  );
+}
