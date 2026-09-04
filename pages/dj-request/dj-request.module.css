@@ -727,6 +727,11 @@
   margin: 0;
 }
 
+.pausedNotice {
+  text-align: center;
+  padding: 32px 16px 24px;
+}
+
 /* ── Tab rows ── */
 /* ── Dance group wrapper (name header + rows) ───────────────────────────── */
 .tabGroup {

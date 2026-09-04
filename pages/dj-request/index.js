@@ -587,22 +587,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     );
   }
 
-  if (sessionActive && !requestsEnabled) {
-    return (
-      <>
-        <Head><title>Request a Dance</title></Head>
-        <div className={styles.page}>
-          <div className={styles.card}>
-            <div className={styles.noSessionIcon}>🎵</div>
-            <h1 className={styles.noSessionTitle}>Requests Paused</h1>
-            <p className={styles.noSessionSub}>The DJ has paused requests for now. Check back in a moment!</p>
-            <p className={styles.noSessionHint}>This page will update automatically.</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   if (sessionChecked && !sessionActive) {
     return (
       <>
@@ -757,6 +741,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
               ) : null}
             </div>
           )}
+
+          {/* ── Submission form — hidden when requests are paused ── */}
+          {requestsEnabled && (<>
 
           {/* ── Line / Partner toggle — only shown when partner dances are enabled ── */}
           {partnerDancesEnabled && (
@@ -990,6 +977,8 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
             </button>
           </form>
 
+          </>)}
+
           {/* ── Direct tip ── */}
           <DirectTipSection />
         </div>
@@ -1077,7 +1066,14 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
               );
             })()}
             {activeTab === 'requests' && (
-              requestGroups.length === 0 ? (
+              !requestsEnabled ? (
+                <div className={styles.pausedNotice}>
+                  <div className={styles.noSessionIcon}>🎵</div>
+                  <h2 className={styles.noSessionTitle}>Requests Paused</h2>
+                  <p className={styles.noSessionSub}>The DJ has paused requests for now. Check back in a moment!</p>
+                  <p className={styles.noSessionHint}>This page will update automatically.</p>
+                </div>
+              ) : requestGroups.length === 0 ? (
                 <p className={styles.tabEmpty}>No active requests yet.</p>
               ) : requestGroups.map(group => {
                 const myOriginal = group.originals.find(r => r.clientId === clientId);
