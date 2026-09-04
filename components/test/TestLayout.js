@@ -76,18 +76,22 @@ export default function TestLayout({ title, crumbs = [], controls, children }) {
     return () => { document.body.style.userSelect = ''; };
   }, [draggingEdge]);
 
-  // Effective dimensions — clamped to canvas size
-  const effW = Math.min(previewWidth  ?? canvasSize.w, canvasSize.w);
-  const effH = Math.min(previewHeight ?? canvasSize.h, canvasSize.h);
+  // Effective dimensions — leave one handle-width of room on each side so
+  // handles always sit outside the preview within the canvas bounds
+  const maxW = Math.max(0, canvasSize.w - HANDLE * 2);
+  const maxH = Math.max(0, canvasSize.h - HANDLE * 2);
+  const effW = Math.min(previewWidth  ?? maxW, maxW);
+  const effH = Math.min(previewHeight ?? maxH, maxH);
 
-  // Preview is centred in both axes
+  // Preview is centred in both axes; centering pushes exactly HANDLE px of
+  // margin onto each side in the "full" case, which is where the handles live
   const previewLeft = canvasSize.w > 0 ? (canvasSize.w - effW) / 2 : 0;
   const previewTop  = canvasSize.h > 0 ? (canvasSize.h - effH) / 2 : 0;
 
-  // Handle positions in canvas coordinates
-  const rightHandleStyle  = { left: previewLeft + effW - HANDLE, top: previewTop,                   width: HANDLE,                     height: Math.max(0, effH - HANDLE) };
-  const bottomHandleStyle = { left: previewLeft,                 top: previewTop + effH - HANDLE,   width: Math.max(0, effW - HANDLE), height: HANDLE };
-  const cornerHandleStyle = { left: previewLeft + effW - HANDLE, top: previewTop + effH - HANDLE,   width: HANDLE,                     height: HANDLE };
+  // Handles sit just OUTSIDE the preview edges
+  const rightHandleStyle  = { left: previewLeft + effW,  top: previewTop,         width: HANDLE, height: effH };
+  const bottomHandleStyle = { left: previewLeft,          top: previewTop + effH,  width: effW,   height: HANDLE };
+  const cornerHandleStyle = { left: previewLeft + effW,   top: previewTop + effH,  width: HANDLE, height: HANDLE };
 
   const wStr = previewWidth  ? `${Math.round(previewWidth)}px`  : '100%';
   const hStr = previewHeight ? `${Math.round(previewHeight)}px` : '100%';

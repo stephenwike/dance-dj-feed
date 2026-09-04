@@ -1,0 +1,150 @@
+/* outer wrapper owns the container context */
+.outer {
+  container-type: size;
+  container-name: cta;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Default layout (column) ── */
+.cta {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 5cqw, 48px) clamp(12px, 6cqw, 48px);
+  gap: clamp(8px, 2cqh, 24px);
+  background: #13132a;
+  font-family: 'Montserrat', system-ui, sans-serif;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ── Title — font-size set via inline style (scales with QR) ── */
+.title {
+  font-weight: 800;
+  text-align: center;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  flex-shrink: 0;
+  order: 1;
+}
+
+/* words inline with a space between in column mode */
+.titleWord {
+  display: inline;
+}
+.titleWord + .titleWord::before {
+  content: '\00a0'; /* non-breaking space between words */
+}
+
+/* ── QR wrapper ── */
+.qrWrap {
+  background: #fff;
+  padding: clamp(6px, 2cqw, 18px);
+  border-radius: clamp(8px, 2cqw, 18px);
+  box-shadow:
+    0 0 0 1px rgba(138, 92, 255, 0.2),
+    0 0 clamp(20px, 5cqw, 60px) rgba(138, 92, 255, 0.22);
+  flex-shrink: 0;
+  order: 2;
+}
+
+.qrPlaceholder {
+  background: #eee;
+  border-radius: 4px;
+}
+
+/* ── Steps ── */
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.8cqh, 16px);
+  width: 100%;
+  flex-shrink: 0;
+  order: 3;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: clamp(10px, 2.5cqw, 18px);
+  font-size: clamp(0.9rem, 4.5cqw, 1.8rem);
+  font-weight: 700;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.stepNum {
+  flex-shrink: 0;
+  width: clamp(24px, 6cqw, 44px);
+  height: clamp(24px, 6cqw, 44px);
+  border-radius: 50%;
+  background: rgba(138, 92, 255, 0.2);
+  border: 1px solid rgba(138, 92, 255, 0.4);
+  color: #a78bfa;
+  font-size: clamp(0.7rem, 3cqw, 1.2rem);
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Hide steps when too short ── */
+@container cta (max-height: 650px) {
+  .steps { display: none; }
+}
+
+/* ── Scale down instruction text when very narrow ── */
+@container cta (max-width: 310px) {
+  .steps li {
+    font-size: clamp(0.6rem, 4.5cqw, 0.85rem);
+  }
+  .stepNum {
+    width: clamp(16px, 5cqw, 22px);
+    height: clamp(16px, 5cqw, 22px);
+    font-size: clamp(0.5rem, 2.5cqw, 0.65rem);
+  }
+}
+
+/* ── Side layout: QR left, title right, stacked words ── */
+@container cta (max-height: 450px) {
+  .cta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 2cqh, 20px) clamp(12px, 3cqw, 32px);
+    gap: clamp(12px, 3cqw, 28px);
+  }
+
+  /* QR moves to the left, no flex growth — its JS-computed size drives the layout */
+  .qrWrap {
+    order: 1;
+    flex-shrink: 0;
+  }
+
+  /* title moves to the right, takes only what it needs */
+  .title {
+    order: 2;
+    text-align: left;
+    flex-shrink: 0;
+    flex: 0 0 auto;
+  }
+
+  /* each word on its own line */
+  .titleWord {
+    display: block;
+  }
+  .titleWord + .titleWord::before {
+    content: '';
+  }
+}
