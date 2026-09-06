@@ -3305,6 +3305,63 @@
 .modalFoot .customSaveBtn { flex: 1; padding: 11px; font-size: 0.9rem; }
 .modalFoot .customCancelBtn { padding: 11px 18px; font-size: 0.85rem; }
 
+/* ── Song swap section (edit modal) ── */
+.swapToggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(255,255,255,0.45);
+  background: none;
+  border: 1px dashed rgba(255,255,255,0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.swapToggleBtn:hover { color: #a78bfa; border-color: rgba(138,92,255,0.4); }
+
+.swapSection {
+  margin-top: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(138,92,255,0.06);
+  border: 1px solid rgba(138,92,255,0.22);
+  border-radius: 8px;
+}
+
+.swapSectionHead {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.swapSectionTitle {
+  flex: 1;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a78bfa;
+}
+
+.swapClearBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  line-height: 1;
+}
+.swapClearBtn:hover { color: #ef4444; }
+
 /* ── Queue empty state ── */
 .queueEmpty {
   display: flex;

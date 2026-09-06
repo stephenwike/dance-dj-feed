@@ -371,6 +371,7 @@ function Controller() {
                       <div key={r._id} className={styles.histRow} style={{ padding: '6px 14px' }}>
                         <span className={styles.histDot} />
                         <span className={styles.histName}>{histDisplayName}</span>
+                        {r.danceType === 'partner' && <span className={styles.partnerBadge}>Partner</span>}
                         <span className={styles.histAge}>{(() => { const t = timeAgo(r.updatedAt); return t === 'just now' ? t : `${t} ago`; })()}</span>
                       </div>
                       );

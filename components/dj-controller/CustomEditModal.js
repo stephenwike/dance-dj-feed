@@ -3,8 +3,9 @@ import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor, DIFFICULTIES, PARTNER_STYLES } from './utils';
 
 export default function CustomEditModal({ group, onClose, onSave }) {
-  const [editType, setEditType] = useState(group.requests[0]?.danceType || 'partner');
-  const [editStyle, setEditStyle] = useState(group.requests[0]?.partnerStyle || '');
+  const firstReq = group.requests[0];
+  const [editType, setEditType] = useState(firstReq?.danceType || 'partner');
+  const [editStyle, setEditStyle] = useState(firstReq?.partnerStyle || '');
   const [editName, setEditName] = useState(group.danceName);
   const [editDifficulty, setEditDifficulty] = useState(group.difficulty || '');
   const [lineMode, setLineMode] = useState('search');
@@ -13,6 +14,11 @@ export default function CustomEditModal({ group, onClose, onSave }) {
   const [dbLoading, setDbLoading] = useState(false);
   const [selectedDb, setSelectedDb] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  // Song swap state — initialise from existing request data
+  const [isSongSwap, setIsSongSwap] = useState(group.isSongSwap || false);
+  const [swapSongName, setSwapSongName] = useState(group.swapSongName || '');
+  const [swapArtist, setSwapArtist] = useState(group.swapArtist || '');
 
   useEffect(() => {
     setDbLoading(true);
@@ -30,9 +36,17 @@ export default function CustomEditModal({ group, onClose, onSave }) {
     ).slice(0, 7);
   }, [dbDances, danceSearch]);
 
+  function clearSwap() {
+    setIsSongSwap(false);
+    setSwapSongName('');
+    setSwapArtist('');
+  }
+
   async function handleSave() {
     setSaving(true);
     const updates = {};
+    const isLineDance = selectedDb || editType === 'line';
+
     if (selectedDb) {
       Object.assign(updates, {
         danceId: selectedDb.id,
@@ -50,6 +64,12 @@ export default function CustomEditModal({ group, onClose, onSave }) {
       if (editType === 'partner') updates.partnerStyle = editStyle.trim();
       if (editType === 'line') updates.difficulty = editDifficulty;
     }
+
+    // Include swap fields for line dances; clear them when switching to partner
+    updates.isSongSwap = isLineDance && isSongSwap;
+    updates.swapSongName = (isLineDance && isSongSwap) ? swapSongName.trim() || null : null;
+    updates.swapArtist   = (isLineDance && isSongSwap) ? swapArtist.trim()   || null : null;
+
     await onSave(group.requests, updates);
     setSaving(false);
     onClose();
@@ -71,7 +91,7 @@ export default function CustomEditModal({ group, onClose, onSave }) {
           <label className={styles.modalLabel}>Dance type</label>
           <div className={styles.customTypeToggle}>
             <button className={`${styles.customTypeBtn} ${editType === 'partner' ? styles.customTypeBtnActive : ''}`}
-              onClick={() => setEditType('partner')}>👫 Partner Dance</button>
+              onClick={() => { setEditType('partner'); clearSwap(); }}>👫 Partner Dance</button>
             <button className={`${styles.customTypeBtn} ${editType === 'line' ? styles.customTypeBtnActive : ''}`}
               onClick={() => setEditType('line')}>💃 Line Dance</button>
           </div>
@@ -162,13 +182,46 @@ export default function CustomEditModal({ group, onClose, onSave }) {
                   </select>
                 </>
               )}
+
+              {/* ── Song swap ── */}
+              {!isSongSwap ? (
+                <button type="button" className={styles.swapToggleBtn} onClick={() => setIsSongSwap(true)}>
+                  🎵 Song Swap
+                </button>
+              ) : (
+                <div className={styles.swapSection}>
+                  <div className={styles.swapSectionHead}>
+                    <span className={styles.swapSectionTitle}>🎵 Song Swap</span>
+                    <button type="button" className={styles.swapClearBtn} onClick={clearSwap} title="Remove song swap">✕</button>
+                  </div>
+                  <label className={styles.modalLabel}>Song to play instead</label>
+                  <input
+                    className={styles.customEditInput}
+                    value={swapSongName}
+                    onChange={e => setSwapSongName(e.target.value)}
+                    placeholder="Song name…"
+                    autoFocus
+                  />
+                  <label className={styles.modalLabel}>Artist (optional)</label>
+                  <input
+                    className={styles.customEditInput}
+                    value={swapArtist}
+                    onChange={e => setSwapArtist(e.target.value)}
+                    placeholder="Artist name…"
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
 
         <div className={styles.modalFoot}>
           <button className={styles.customCancelBtn} onClick={onClose}>Cancel</button>
-          <button className={styles.customSaveBtn} onClick={handleSave} disabled={saving}>
+          <button
+            className={styles.customSaveBtn}
+            onClick={handleSave}
+            disabled={saving || (isSongSwap && !swapSongName.trim())}
+          >
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
