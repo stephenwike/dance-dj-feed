@@ -12,13 +12,19 @@ export default function QueueCard({ request, onAction, onEdit, resolvedName, dra
     ? <>{songName}{artist ? <span className={styles.danceGroupNameArtist}> — {artist}</span> : ''}</>
     : (partnerStyle || 'Partner Dance');
 
+  const nameTooltip = isMessage
+    ? danceName
+    : isPartner
+      ? (songName ? `${songName}${artist ? ` — ${artist}` : ''}` : (partnerStyle || 'Partner Dance'))
+      : danceName;
+
   return (
     <div className={`${styles.qCard} ${isMessage ? styles.qCardMessage : ''}`}>
       <div className={styles.qGrip} {...dragHandleProps} title="Drag to reorder">
         <span aria-hidden>⠿</span>
       </div>
       <div className={styles.qInfo}>
-        <div className={styles.qName}>
+        <div className={styles.qName} title={nameTooltip}>
           {isMessage
             ? <><span className={styles.qMsgIcon}>💬</span>{danceName}</>
             : isPartner

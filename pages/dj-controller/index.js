@@ -128,7 +128,10 @@ function Controller() {
     let groups = danceGroups;
     if (pendingFilter === 'line') groups = groups.filter(g => g.danceType !== 'partner');
     else if (pendingFilter === 'partner') groups = groups.filter(g => g.danceType === 'partner');
-    if (pendingSort === 'alpha') groups = [...groups].sort((a, b) => (a.danceName || '').localeCompare(b.danceName || ''));
+    if (pendingSort === 'alpha') groups = [...groups].sort((a, b) => {
+      const nameOf = g => g.danceName || g.songName || g.partnerStyle || '';
+      return nameOf(a).localeCompare(nameOf(b));
+    });
     return groups;
   }, [danceGroups, pendingFilter, pendingSort]);
 
@@ -349,21 +352,29 @@ function Controller() {
                     <p className={styles.empty} style={{ padding: '12px 14px' }}>No tracks played yet this session.</p>
                   ) : (
                     (() => {
+                      const histDisplayName = r => r.danceType === 'partner'
+                        ? (r.songName || r.partnerStyle || r.danceName || 'Partner Dance')
+                        : (r.danceName || r._id);
                       const seen = {};
                       return history.filter(r => {
-                        const key = (r.danceName || r._id).toLowerCase().trim();
+                        const key = histDisplayName(r).toLowerCase().trim();
                         const t = new Date(r.updatedAt).getTime();
                         if (seen[key] !== undefined && Math.abs(t - seen[key]) < 5 * 60 * 1000) return false;
                         seen[key] = t;
                         return true;
                       });
-                    })().map(r => (
+                    })().map(r => {
+                      const histDisplayName = r.danceType === 'partner'
+                        ? (r.songName || r.partnerStyle || r.danceName || 'Partner Dance')
+                        : (r.danceName || '');
+                      return (
                       <div key={r._id} className={styles.histRow} style={{ padding: '6px 14px' }}>
                         <span className={styles.histDot} />
-                        <span className={styles.histName}>{r.danceName}</span>
+                        <span className={styles.histName}>{histDisplayName}</span>
                         <span className={styles.histAge}>{(() => { const t = timeAgo(r.updatedAt); return t === 'just now' ? t : `${t} ago`; })()}</span>
                       </div>
-                    ))
+                      );
+                    })
                   )}
 
                 </div>
