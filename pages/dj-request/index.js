@@ -708,7 +708,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         >
                           <span className={styles.beatPkgLabel}>{pkg.label}{pkg.featured ? ' ⭐' : ''}</span>
                           <span className={styles.beatPkgBeats}>
-                            {pkg.base} <span className={styles.beatPkgBonus}>+{pkg.bonus}</span> Beats
+                            {pkg.bonus > 0
+                              ? <>{pkg.base} <span className={styles.beatPkgBonus}>+{pkg.bonus}</span> Beats</>
+                              : <>{pkg.beats} Beats</>}
                           </span>
                           <span className={styles.beatPkgPrice}>
                             ${(pkg.priceCents / 100).toFixed(2)}

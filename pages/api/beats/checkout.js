@@ -28,7 +28,9 @@ export default async function handler(req, res) {
         unit_amount: pkg.priceCents,
         product_data: {
           name: `${pkg.beats} Beats`,
-          description: `${pkg.base} base + ${pkg.bonus} bonus Beats`,
+          description: pkg.bonus > 0
+            ? `${pkg.base} base + ${pkg.bonus} bonus = ${pkg.beats} Beats`
+            : `${pkg.beats} Beats`,
         },
       },
       quantity: 1,

@@ -3,8 +3,8 @@ import { authOptions } from '../../../lib/server/authOptions';
 import { ObjectId } from 'mongodb';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 
-const BEAT_VALUE_CENTS = 5;  // 1 beat = $0.05
-const DJ_CUT = 0.9;          // DJ receives 90% of tip value
+const BEAT_VALUE_CENTS = 5;  // 1 beat = $0.05 face value
+const DJ_CUT = 1.0;          // DJ receives 100% of face value; platform revenue comes from purchase markup only
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
