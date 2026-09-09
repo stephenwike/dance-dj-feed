@@ -400,7 +400,11 @@ function Controller() {
                     onRetry={spotify.retry}
                   />
                 ) : (
-                  <RemoteControl playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession} />
+                  <RemoteControl
+                    playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession}
+                    danceRequestCounts={danceRequestCounts} danceBeats={danceBeats}
+                    danceScores={danceScores} partnerUpvoteCounts={partnerUpvoteCounts}
+                  />
                 )}
 
                 {isSpotify && playing.length === 0 && queue.length > 0 && (

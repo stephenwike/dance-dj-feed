@@ -4,8 +4,14 @@ import { diffColor, DIFFICULTIES, PARTNER_STYLES } from './utils';
 
 export default function CustomEditModal({ group, onClose, onSave }) {
   const firstReq = group.requests[0];
-  const [editType, setEditType] = useState(firstReq?.danceType || 'partner');
+  // null danceType means line dance (partner/message are always explicit)
+  const initialType = firstReq?.danceType;
+  const [editType, setEditType] = useState(
+    initialType === 'partner' || initialType === 'message' ? initialType : 'line'
+  );
   const [editStyle, setEditStyle] = useState(firstReq?.partnerStyle || '');
+  const [partnerSong, setPartnerSong] = useState(firstReq?.songName || '');
+  const [partnerArtist, setPartnerArtist] = useState(firstReq?.artist || '');
   const [editName, setEditName] = useState(group.danceName);
   const [editDifficulty, setEditDifficulty] = useState(group.difficulty || '');
   const [lineMode, setLineMode] = useState('search');
@@ -15,10 +21,10 @@ export default function CustomEditModal({ group, onClose, onSave }) {
   const [selectedDb, setSelectedDb] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  // Song swap state — initialise from existing request data
-  const [isSongSwap, setIsSongSwap] = useState(group.isSongSwap || false);
-  const [swapSongName, setSwapSongName] = useState(group.swapSongName || '');
-  const [swapArtist, setSwapArtist] = useState(group.swapArtist || '');
+  // Song swap state — read from firstReq (group-level fields absent on queue-card edits)
+  const [isSongSwap, setIsSongSwap] = useState(firstReq?.isSongSwap || false);
+  const [swapSongName, setSwapSongName] = useState(firstReq?.swapSongName || '');
+  const [swapArtist, setSwapArtist] = useState(firstReq?.swapArtist || '');
 
   useEffect(() => {
     setDbLoading(true);
@@ -27,6 +33,16 @@ export default function CustomEditModal({ group, onClose, onSave }) {
       setDbLoading(false);
     });
   }, []);
+
+  // Auto-select DB dance when danceId is already set on the request
+  useEffect(() => {
+    if (!dbDances || !firstReq?.danceId) return;
+    const match = dbDances.find(d => String(d.id) === String(firstReq.danceId));
+    if (match) {
+      setSelectedDb(match);
+      setDanceSearch(match.danceName);
+    }
+  }, [dbDances]);
 
   const filteredDb = useMemo(() => {
     if (!dbDances || !danceSearch.trim()) return [];
@@ -60,9 +76,15 @@ export default function CustomEditModal({ group, onClose, onSave }) {
       });
     } else {
       updates.danceType = editType;
-      updates.danceName = editName.trim() || group.danceName;
-      if (editType === 'partner') updates.partnerStyle = editStyle.trim();
-      if (editType === 'line') updates.difficulty = editDifficulty;
+      if (editType === 'partner') {
+        updates.partnerStyle = editStyle.trim();
+        updates.songName = partnerSong.trim();
+        updates.artist = partnerArtist.trim();
+      }
+      if (editType === 'line') {
+        updates.danceName = editName.trim() || group.danceName;
+        updates.difficulty = editDifficulty;
+      }
     }
 
     // Include swap fields for line dances; clear them when switching to partner
@@ -76,7 +98,7 @@ export default function CustomEditModal({ group, onClose, onSave }) {
   }
 
   return (
-    <div className={styles.modalOverlay} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className={styles.modalOverlay} onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         <div className={styles.modalHead}>
           <span className={styles.modalTitle}>Edit Request</span>
@@ -110,10 +132,14 @@ export default function CustomEditModal({ group, onClose, onSave }) {
               <datalist id="partner-styles">
                 {PARTNER_STYLES.map(s => <option key={s} value={s} />)}
               </datalist>
-              <label className={styles.modalLabel}>Description (optional)</label>
-              <input className={styles.customEditInput} value={editName}
-                onChange={e => setEditName(e.target.value)}
-                placeholder="e.g. that slow one they played last week" />
+              <label className={styles.modalLabel}>Song name</label>
+              <input className={styles.customEditInput} value={partnerSong}
+                onChange={e => setPartnerSong(e.target.value)}
+                placeholder="e.g. Dust on the Bottle…" />
+              <label className={styles.modalLabel}>Artist (optional)</label>
+              <input className={styles.customEditInput} value={partnerArtist}
+                onChange={e => setPartnerArtist(e.target.value)}
+                placeholder="e.g. David Lee Murphy…" />
             </>
           )}
 

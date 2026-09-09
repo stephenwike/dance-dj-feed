@@ -2,7 +2,7 @@ import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor, formatTimestamp } from './utils';
 
 export default function QueueCard({ request, onAction, onEdit, resolvedName, dragHandleProps, requesterCount, totalBeats = 0, estimatedPlayAt, score }) {
-  const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, partnerStyle, duration_ms } = request;
+  const { _id, danceName, songName, artist, difficulty, stepsheet, clientId, notes, createdAt, tipCents, danceType, partnerStyle, duration_ms, isSongSwap, swapSongName, swapArtist } = request;
   const isMessage = danceType === 'message';
   const isPartner = danceType === 'partner';
   const displayName = resolvedName || clientId || '';
@@ -43,7 +43,10 @@ export default function QueueCard({ request, onAction, onEdit, resolvedName, dra
           ) : (
             <>
               {difficulty && <span className={styles.diffPip} style={{ background: diffColor(difficulty) }}>{difficulty}</span>}
-              {songName && <span className={styles.qSong}>{songName}{artist ? ` — ${artist}` : ''}</span>}
+              {isSongSwap && <span className={styles.swapBadgePending}>↻ Swap</span>}
+              {isSongSwap && swapSongName
+                ? <span className={styles.qSong}>{swapSongName}{swapArtist ? ` — ${swapArtist}` : ''}</span>
+                : (!isSongSwap && songName && <span className={styles.qSong}>{songName}{artist ? ` — ${artist}` : ''}</span>)}
             </>
           )}
         </div>
