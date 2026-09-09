@@ -705,6 +705,154 @@
   flex-shrink: 0;
 }
 
+/* ── Reports / Monthly Statements panel ── */
+.stmtMonthNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.stmtNavBtn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.45);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: color 0.1s, background 0.1s;
+}
+.stmtNavBtn:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,0.08); }
+.stmtNavBtn:disabled { opacity: 0.2; cursor: default; }
+
+.stmtMonthLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 0.01em;
+}
+
+.stmtSummary {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.stmtSummaryItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stmtSummaryDivider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+.stmtSummaryLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255,255,255,0.3);
+}
+
+.stmtSummaryValue {
+  font-size: 1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stmtCredit { color: #a78bfa; }
+.stmtDebit  { color: rgba(255,255,255,0.38); }
+
+.stmtBalanceLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.stmtBalanceClose {
+  border-bottom: none;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-bottom: 0;
+}
+
+.stmtBalanceKind {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.3);
+}
+
+.stmtBalanceAmt {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.65);
+  font-variant-numeric: tabular-nums;
+}
+
+.stmtTxList {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stmtTxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.stmtTxRow:last-child { border-bottom: none; }
+
+.stmtTxDate {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.28);
+  white-space: nowrap;
+  width: 44px;
+  flex-shrink: 0;
+}
+
+.stmtTxType {
+  flex: 1;
+  font-size: 0.83rem;
+  color: rgba(255,255,255,0.75);
+}
+
+.stmtTxAmount {
+  font-size: 0.83rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.stmtRunning {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.35);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 /* ── Flyout panels (settings + messages) ── */
 .flyoutBackdrop {
   position: absolute;

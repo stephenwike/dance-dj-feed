@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import ws from '../../pages/dj-profile.module.css';
@@ -6,25 +6,28 @@ import ws from '../../pages/dj-profile.module.css';
 const fetcher = url => fetch(url).then(r => r.json());
 
 function formatCents(cents) {
-  return `$${(cents / 100).toFixed(2)}`;
+  return `$${(Math.abs(cents) / 100).toFixed(2)}`;
 }
 
 function txLabel(type) {
   switch (type) {
-    case 'beat_tip':         return 'Beat tip';
-    case 'direct_tip':       return 'Direct tip';
-    case 'withdrawal':       return 'Withdrawal';
-    case 'session_payment':  return 'Session payment';
+    case 'beat_tip':          return 'Beat tip';
+    case 'direct_tip':        return 'Direct tip';
+    case 'withdrawal':        return 'Withdrawal';
+    case 'session_payment':   return 'Session payment';
+    case 'dj_cut_correction': return 'Adjustment';
     default: return type;
   }
 }
 
-function timeAgo(date) {
-  const s = Math.floor((Date.now() - new Date(date)) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+function shortDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function monthLabel(key) {
+  const [year, month] = key.split('-').map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
 export default function WalletPanel({ connectNotice }) {
@@ -37,20 +40,54 @@ export default function WalletPanel({ connectNotice }) {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkError, setLinkError] = useState('');
   const [savingLinks, setSavingLinks] = useState(false);
+  const [selectedMonthIdx, setSelectedMonthIdx] = useState(null);
 
   const { data: wallet, mutate: mutateWallet } = useSWR('/api/dj/wallet', fetcher, { refreshInterval: 30000 });
-  const { data: connectStatus, mutate: mutateConnect } = useSWR('/api/dj/connect/status', fetcher, { refreshInterval: 60000 });
+  const { data: connectStatus } = useSWR('/api/dj/connect/status', fetcher, { refreshInterval: 60000 });
   const { data: profileData, mutate: mutateProfile } = useSWR('/api/dj/profile', fetcher);
+  const { data: stmtData } = useSWR('/api/dj/statements', fetcher, { revalidateOnFocus: false });
 
   const balance = wallet?.balance ?? 0;
   const stripeAvailable = wallet?.stripeAvailable ?? 0;
   const stripePending = wallet?.stripePending ?? 0;
   const withdrawable = Math.min(balance, stripeAvailable);
-  const transactions = wallet?.transactions ?? [];
   const payoutsEnabled = connectStatus?.payoutsEnabled ?? false;
   const detailsSubmitted = connectStatus?.detailsSubmitted ?? false;
   const paymentLinks = profileData?.paymentLinks ?? [];
 
+  // --- Statement data ---
+  const allTxns = stmtData?.transactions ?? [];
+
+  const months = useMemo(() => {
+    const keys = [...new Set(allTxns.map(t => (t.createdAt ?? '').slice(0, 7)))].filter(Boolean).sort();
+    return keys;
+  }, [allTxns]);
+
+  const effectiveIdx = selectedMonthIdx !== null ? selectedMonthIdx : months.length - 1;
+  const selectedMonth = months[effectiveIdx] ?? null;
+
+  const { openingBalance, monthTxns, closingBalance, totalEarned, totalWithdrawn } = useMemo(() => {
+    if (!selectedMonth) return { openingBalance: 0, monthTxns: [], closingBalance: 0, totalEarned: 0, totalWithdrawn: 0 };
+
+    const before = allTxns.filter(t => (t.createdAt ?? '').slice(0, 7) < selectedMonth);
+    const during = allTxns.filter(t => (t.createdAt ?? '').slice(0, 7) === selectedMonth);
+
+    const openingBalance = before.reduce((sum, t) => sum + (t.amountCents ?? 0), 0);
+    let running = openingBalance;
+    const monthTxns = during.map(t => {
+      running += (t.amountCents ?? 0);
+      return { ...t, runningBalance: running };
+    });
+
+    const totalEarned = during.filter(t => (t.amountCents ?? 0) > 0).reduce((sum, t) => sum + t.amountCents, 0);
+    const totalWithdrawn = Math.abs(during.filter(t => (t.amountCents ?? 0) < 0).reduce((sum, t) => sum + t.amountCents, 0));
+
+    return { openingBalance, monthTxns, closingBalance: running, totalEarned, totalWithdrawn };
+  }, [allTxns, selectedMonth]);
+
+  const net = closingBalance - openingBalance;
+
+  // --- Handlers ---
   async function startOnboarding() {
     setOnboarding(true);
     try {
@@ -120,7 +157,6 @@ export default function WalletPanel({ connectNotice }) {
       </div>
       <div className={`${styles.panelBody} ${styles.walletBody}`}>
 
-        {/* Connect notice from Stripe redirect */}
         {connectNotice && (
           <div className={styles.walletNotice}>{connectNotice}</div>
         )}
@@ -235,21 +271,74 @@ export default function WalletPanel({ connectNotice }) {
           </div>
         )}
 
-        {/* Transaction history */}
-        {transactions.length > 0 && (
+        {/* Monthly statement */}
+        {months.length > 0 && (
           <div className={styles.walletCard}>
-            <h2 className={ws.sectionTitle}>Recent transactions</h2>
-            <ul className={ws.txList}>
-              {transactions.map(t => (
-                <li key={t._id} className={ws.txRow}>
-                  <span className={ws.txType}>{txLabel(t.type)}</span>
-                  <span className={ws.txAge}>{timeAgo(t.createdAt)}</span>
-                  <span className={`${ws.txAmount} ${t.amountCents < 0 ? ws.txDebit : ws.txCredit}`}>
-                    {t.amountCents < 0 ? '−' : '+'}{formatCents(Math.abs(t.amountCents))}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className={styles.stmtMonthNav}>
+              <button
+                className={styles.stmtNavBtn}
+                onClick={() => setSelectedMonthIdx(Math.max(0, effectiveIdx - 1))}
+                disabled={effectiveIdx === 0}
+                aria-label="Previous month"
+              >‹</button>
+              <span className={styles.stmtMonthLabel}>{selectedMonth ? monthLabel(selectedMonth) : '—'}</span>
+              <button
+                className={styles.stmtNavBtn}
+                onClick={() => setSelectedMonthIdx(Math.min(months.length - 1, effectiveIdx + 1))}
+                disabled={effectiveIdx === months.length - 1}
+                aria-label="Next month"
+              >›</button>
+            </div>
+
+            {/* Summary row */}
+            <div className={styles.stmtSummary}>
+              <div className={styles.stmtSummaryItem}>
+                <span className={styles.stmtSummaryLabel}>Earned</span>
+                <span className={`${styles.stmtSummaryValue} ${styles.stmtCredit}`}>+{formatCents(totalEarned)}</span>
+              </div>
+              <div className={styles.stmtSummaryDivider} />
+              <div className={styles.stmtSummaryItem}>
+                <span className={styles.stmtSummaryLabel}>Withdrawn</span>
+                <span className={`${styles.stmtSummaryValue} ${styles.stmtDebit}`}>
+                  {totalWithdrawn > 0 ? `−${formatCents(totalWithdrawn)}` : '—'}
+                </span>
+              </div>
+              <div className={styles.stmtSummaryDivider} />
+              <div className={styles.stmtSummaryItem}>
+                <span className={styles.stmtSummaryLabel}>Net</span>
+                <span className={`${styles.stmtSummaryValue} ${net >= 0 ? styles.stmtCredit : styles.stmtDebit}`}>
+                  {net >= 0 ? '+' : '−'}{formatCents(net)}
+                </span>
+              </div>
+            </div>
+
+            {/* Ledger */}
+            <div className={styles.stmtBalanceLine}>
+              <span className={styles.stmtBalanceKind}>Opening balance</span>
+              <span className={styles.stmtBalanceAmt}>{formatCents(openingBalance)}</span>
+            </div>
+
+            {monthTxns.length > 0 ? (
+              <ul className={styles.stmtTxList}>
+                {monthTxns.map(t => (
+                  <li key={t._id} className={styles.stmtTxRow}>
+                    <span className={styles.stmtTxDate}>{shortDate(t.createdAt)}</span>
+                    <span className={styles.stmtTxType}>{txLabel(t.type)}</span>
+                    <span className={`${styles.stmtTxAmount} ${t.amountCents < 0 ? styles.stmtDebit : styles.stmtCredit}`}>
+                      {t.amountCents < 0 ? '−' : '+'}{formatCents(t.amountCents)}
+                    </span>
+                    <span className={styles.stmtRunning}>{formatCents(t.runningBalance)}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={ws.setupMsg} style={{ margin: '12px 0 4px' }}>No activity this month.</p>
+            )}
+
+            <div className={`${styles.stmtBalanceLine} ${styles.stmtBalanceClose}`}>
+              <span className={styles.stmtBalanceKind}>Closing balance</span>
+              <span className={styles.stmtBalanceAmt}>{formatCents(closingBalance)}</span>
+            </div>
           </div>
         )}
 

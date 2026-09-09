@@ -13,14 +13,16 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const client = await clientPromise;
-  const transactions = await client.db(DB_NAME)
-    .collection('dj_wallet_transactions')
-    .find({ ownerId: userId })
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .toArray();
+  const col = client.db(DB_NAME).collection('dj_wallet_transactions');
 
-  const balance = transactions.reduce((sum, t) => sum + (t.amountCents ?? 0), 0);
+  // Balance must sum ALL transactions — never limit this query
+  const allTransactions = await col.find({ ownerId: userId }).toArray();
+  const balance = allTransactions.reduce((sum, t) => sum + (t.amountCents ?? 0), 0);
+
+  // Only send the 50 most recent to the client for display
+  const transactions = allTransactions
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 50);
 
   let stripeAvailable = 0;
   let stripePending = 0;
