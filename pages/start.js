@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './start.module.css';
 import AppCard from '../components/AppCard';
+import { SESSION_DURATIONS_BY_MINUTES } from '../lib/dj/sessionPricing';
 
 const CONTROLLER_PATH = '/dj-controller';
 const SETUP_PATH = (sessionId) => `/dj-setup?sessionId=${sessionId}`;
@@ -19,8 +20,17 @@ export default function StartPage() {
   const [draftSessions, setDraftSessions] = useState(undefined);
   const [recentSessions, setRecentSessions] = useState([]);
   const [launchingId, setLaunchingId] = useState(null);
+  const [walletLaunchingId, setWalletLaunchingId] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(null);
   const [error, setError] = useState('');
   const [finishing, setFinishing] = useState(false);
+  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
+
+  useEffect(() => {
+    if (paymentsEnabled) {
+      fetch('/api/dj/wallet').then(r => r.json()).then(d => setWalletBalance(d.balance ?? 0)).catch(() => {});
+    }
+  }, [paymentsEnabled]);
 
   useEffect(() => {
     fetch('/api/dj/sessions')
@@ -75,6 +85,26 @@ export default function StartPage() {
       setDraftSessions(prev => prev.filter(d => d._id !== draftId));
     } catch {
       setError('Failed to delete session. Try again.');
+    }
+  }
+
+  async function handleWalletLaunch(draftId) {
+    setWalletLaunchingId(draftId);
+    setError('');
+    try {
+      const res = await fetch('/api/dj/sessions/wallet-pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draftSessionId: draftId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Wallet payment failed'); return; }
+      if (data.session) { router.push(SETUP_PATH(data.session._id)); return; }
+      setError('Unexpected response from server');
+    } catch {
+      setError('Something went wrong. Check your connection.');
+    } finally {
+      setWalletLaunchingId(null);
     }
   }
 
@@ -158,16 +188,36 @@ export default function StartPage() {
                           </div>
                         </div>
                         <div className={styles.sessionCardRight}>
-                          {dur ? (
-                            <button
-                              type="button"
-                              className={styles.btnLaunch}
-                              onClick={() => handleLaunch(d._id)}
-                              disabled={isLaunching}
-                            >
-                              {isLaunching ? '…' : '▶ Launch'}
-                            </button>
-                          ) : null}
+                          {dur ? (() => {
+                            const tier = SESSION_DURATIONS_BY_MINUTES[d.durationMinutes];
+                            const walletPrice = tier?.walletPriceCents;
+                            const savings = tier ? tier.priceCents - tier.walletPriceCents : 0;
+                            const canWallet = paymentsEnabled && walletBalance !== null && walletPrice !== undefined && walletBalance >= walletPrice;
+                            const isWalletLaunching = walletLaunchingId === d._id;
+                            return (
+                              <>
+                                {paymentsEnabled && walletPrice !== undefined && (
+                                  <button
+                                    type="button"
+                                    className={styles.btnWallet}
+                                    onClick={() => handleWalletLaunch(d._id)}
+                                    disabled={!canWallet || isWalletLaunching || isLaunching}
+                                    title={canWallet ? `Save $${(savings / 100).toFixed(2)} vs. Stripe` : walletBalance !== null ? 'Insufficient wallet balance' : 'Loading balance…'}
+                                  >
+                                    {isWalletLaunching ? '…' : `Wallet $${(walletPrice / 100).toFixed(2)}`}
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  className={styles.btnLaunch}
+                                  onClick={() => handleLaunch(d._id)}
+                                  disabled={isLaunching || isWalletLaunching}
+                                >
+                                  {isLaunching ? '…' : '▶ Launch'}
+                                </button>
+                              </>
+                            );
+                          })() : null}
                           <button
                             type="button"
                             className={styles.sessionCardEdit}

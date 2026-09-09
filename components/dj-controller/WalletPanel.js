@@ -16,6 +16,7 @@ function txLabel(type) {
     case 'withdrawal':        return 'Withdrawal';
     case 'session_payment':   return 'Session payment';
     case 'dj_cut_correction': return 'Adjustment';
+    case 'beat_gift':         return 'Beat gift';
     default: return type;
   }
 }
@@ -41,11 +42,17 @@ export default function WalletPanel({ connectNotice }) {
   const [linkError, setLinkError] = useState('');
   const [savingLinks, setSavingLinks] = useState(false);
   const [selectedMonthIdx, setSelectedMonthIdx] = useState(null);
+  const [giftEmail, setGiftEmail] = useState('');
+  const [giftBeats, setGiftBeats] = useState('');
+  const [gifting, setGifting] = useState(false);
+  const [giftError, setGiftError] = useState('');
+  const [giftSuccess, setGiftSuccess] = useState('');
 
   const { data: wallet, mutate: mutateWallet } = useSWR('/api/dj/wallet', fetcher, { refreshInterval: 30000 });
   const { data: connectStatus } = useSWR('/api/dj/connect/status', fetcher, { refreshInterval: 60000 });
   const { data: profileData, mutate: mutateProfile } = useSWR('/api/dj/profile', fetcher);
   const { data: stmtData } = useSWR('/api/dj/statements', fetcher, { revalidateOnFocus: false });
+  const { data: attendeesData } = useSWR('/api/dj/gift-attendees', fetcher, { revalidateOnFocus: false });
 
   const balance = wallet?.balance ?? 0;
   const stripeAvailable = wallet?.stripeAvailable ?? 0;
@@ -148,6 +155,31 @@ export default function WalletPanel({ connectNotice }) {
       mutateWallet();
       setTimeout(() => setWithdrawSuccess(false), 5000);
     } finally { setWithdrawing(false); }
+  }
+
+  const knownAttendees = attendeesData?.attendees ?? null; // null = loading
+  const giftCostCents = (Number(giftBeats) || 0) * 5;
+  const canGift = giftEmail.trim() && Number.isInteger(Number(giftBeats)) && Number(giftBeats) >= 1 && balance >= giftCostCents;
+
+  async function handleGift() {
+    setGifting(true);
+    setGiftError('');
+    setGiftSuccess('');
+    try {
+      const res = await fetch('/api/dj/gift-beats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientEmail: giftEmail.trim(), beats: Number(giftBeats) }),
+      });
+      const body = await res.json();
+      if (!res.ok) { setGiftError(body.error || 'Gift failed'); return; }
+      setGiftSuccess(`${body.beats} beats gifted to ${body.recipientName}`);
+      setGiftEmail('');
+      setGiftBeats('');
+      mutateWallet();
+    } finally {
+      setGifting(false);
+    }
   }
 
   return (
@@ -270,6 +302,50 @@ export default function WalletPanel({ connectNotice }) {
             {withdrawSuccess && <p className={ws.withdrawSuccess}>Transfer initiated — funds arrive in 1–3 business days.</p>}
           </div>
         )}
+
+        {/* Gift beats */}
+        <div className={styles.walletCard}>
+          <h2 className={ws.sectionTitle}>Gift beats</h2>
+          <p className={ws.setupMsg}>Send beats to an attendee from your wallet. Each beat costs 5¢.</p>
+          <div className={ws.linkForm}>
+            <select
+              className={`${ws.linkInput} ${ws.linkInputUrl}`}
+              value={giftEmail}
+              onChange={e => { setGiftEmail(e.target.value); setGiftError(''); setGiftSuccess(''); }}
+              disabled={gifting || knownAttendees === null}
+              style={{ cursor: 'pointer' }}
+            >
+              <option value="">
+                {knownAttendees === null ? 'Loading…' : knownAttendees.length === 0 ? 'No attendees yet' : '— Select attendee —'}
+              </option>
+              {(knownAttendees ?? []).map(a => (
+                <option key={a.id} value={a.email}>{a.name}</option>
+              ))}
+            </select>
+            <input
+              className={ws.linkInput}
+              type="number"
+              min="1"
+              step="1"
+              placeholder="Beats"
+              value={giftBeats}
+              onChange={e => { setGiftBeats(e.target.value); setGiftError(''); setGiftSuccess(''); }}
+              disabled={gifting}
+              style={{ width: 72 }}
+            />
+            <button className={ws.btn} onClick={handleGift} disabled={gifting || !canGift}>
+              {gifting ? 'Sending…' : 'Gift'}
+            </button>
+          </div>
+          {giftBeats > 0 && (
+            <p className={ws.withdrawHint} style={{ marginTop: 8 }}>
+              Cost: {giftBeats} × 5¢ = ${(giftCostCents / 100).toFixed(2)}
+              {giftCostCents > balance && ' — insufficient balance'}
+            </p>
+          )}
+          {giftError && <p className={ws.withdrawError}>{giftError}</p>}
+          {giftSuccess && <p className={ws.withdrawSuccess}>{giftSuccess}</p>}
+        </div>
 
         {/* Monthly statement */}
         {months.length > 0 && (
