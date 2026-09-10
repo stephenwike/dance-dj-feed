@@ -50,16 +50,30 @@ export default async function handler(req, res) {
         console.error('Missing direct_tip metadata on session', session.id);
         return res.status(400).end();
       }
-      await db.collection('dj_wallet_transactions').insertOne({
-        ownerId: djId,
-        type: 'direct_tip',
-        amountCents: parseInt(amountCents, 10),
-        attendeeId: null,
-        stripeSessionId: session.id,
-        senderName: session.customer_details?.name ?? null,
-        senderEmail: session.customer_details?.email ?? session.customer_email ?? null,
-        createdAt: new Date(),
-      });
+      const senderName = session.customer_details?.name ?? null;
+      const senderEmail = session.customer_details?.email ?? session.customer_email ?? null;
+      const tipAmountCents = parseInt(amountCents, 10);
+      await Promise.all([
+        db.collection('dj_wallet_transactions').insertOne({
+          ownerId: djId,
+          type: 'direct_tip',
+          amountCents: tipAmountCents,
+          attendeeId: null,
+          stripeSessionId: session.id,
+          senderName,
+          senderEmail,
+          createdAt: new Date(),
+        }),
+        db.collection('dj_notifications').insertOne({
+          ownerId: djId,
+          type: 'direct_tip',
+          amountCents: tipAmountCents,
+          senderName,
+          senderEmail,
+          read: false,
+          createdAt: new Date(),
+        }),
+      ]);
       return res.status(200).json({ received: true });
     }
 

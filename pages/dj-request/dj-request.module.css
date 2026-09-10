@@ -1373,3 +1373,67 @@
   color: #9ca3af;
   font-size: 0.78rem;
 }
+
+/* ── DJ broadcast message banner ── */
+.djBroadcastBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fef3c7;
+  border: 1.5px solid #f59e0b;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+}
+.djBroadcastIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.djBroadcastText {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #78350f;
+  line-height: 1.45;
+}
+
+/* ── Direct message from DJ ── */
+.djDirectMsg {
+  background: #ede9fe;
+  border: 1.5px solid #8b5cf6;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.djDirectMsgHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.djDirectMsgLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7c3aed;
+}
+.djDirectMsgClose {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  color: #a78bfa;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.djDirectMsgClose:hover { color: #7c3aed; }
+.djDirectMsgText {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4c1d95;
+  line-height: 1.45;
+  margin: 0;
+}

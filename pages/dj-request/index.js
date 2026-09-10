@@ -212,6 +212,36 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
 
   const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
 
+  // Broadcast (urgent) messages the DJ sent to all users
+  const broadcastUrl = sessionId ? `/api/dj/messages?sessionId=${sessionId}&audience=attendees` : null;
+  const { data: broadcastData } = useSWR(broadcastUrl, fetcher, {
+    refreshInterval: 15000,
+    revalidateOnFocus: false,
+  });
+  const broadcastMsg = (() => {
+    const m = broadcastData?.message;
+    if (!m) return null;
+    if (m.expiresAt && new Date(m.expiresAt) <= new Date()) return null;
+    return m;
+  })();
+
+  // Direct messages to this specific signed-in user
+  const { data: directMsgData, mutate: mutateDirectMsgs } = useSWR(
+    isSignedIn ? '/api/dj/direct-messages' : null,
+    fetcher,
+    { refreshInterval: 15000, revalidateOnFocus: false }
+  );
+  const directMessages = directMsgData?.messages ?? [];
+
+  async function clearDirectMessage(id) {
+    await fetch('/api/dj/direct-messages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    mutateDirectMsgs();
+  }
+
   const requestsUrl = sessionId ? `/api/dj/requests?sessionId=${sessionId}` : '/api/dj/requests';
   const { data: allRequests = [], mutate: mutateRequests } = useSWR(
     requestsUrl,
@@ -654,6 +684,25 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
             )}
           </h1>
           <p className={styles.sub}>What do you want to dance?</p>
+
+          {/* ── DJ broadcast message ── */}
+          {broadcastMsg && (
+            <div className={styles.djBroadcastBanner}>
+              <span className={styles.djBroadcastIcon}>📢</span>
+              <span className={styles.djBroadcastText}>{broadcastMsg.text}</span>
+            </div>
+          )}
+
+          {/* ── Direct messages from DJ ── */}
+          {directMessages.map(dm => (
+            <div key={dm._id} className={styles.djDirectMsg}>
+              <div className={styles.djDirectMsgHead}>
+                <span className={styles.djDirectMsgLabel}>Message from DJ</span>
+                <button className={styles.djDirectMsgClose} onClick={() => clearDirectMessage(dm._id)}>✕</button>
+              </div>
+              <p className={styles.djDirectMsgText}>{dm.text}</p>
+            </div>
+          ))}
 
           {/* ── Success banners ── */}
           {tippingEnabled && beatsSuccess && (

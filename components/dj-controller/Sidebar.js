@@ -6,6 +6,7 @@ export default function Sidebar({
   activePanel, onSetPanel,
   activeMsg,
   pendingCount,
+  unreadNotifCount,
   isSpotify, spotifyConnected,
 }) {
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
@@ -46,6 +47,21 @@ export default function Sidebar({
           )}
         </span>
         <span className={styles.sidebarLabel}>Requests</span>
+      </button>
+
+      {/* Notifications bell with unread badge */}
+      <button
+        className={`${styles.sidebarBtn} ${activePanel === 'notifications' ? styles.sidebarBtnActive : ''}`}
+        onClick={() => onSetPanel('notifications')}
+        title="Notifications"
+      >
+        <span className={styles.sidebarIcon}>
+          🔔
+          {unreadNotifCount > 0 && (
+            <span className={styles.sidebarBadge}>{unreadNotifCount}</span>
+          )}
+        </span>
+        <span className={styles.sidebarLabel}>Notifs</span>
       </button>
 
       {btn('dj-add', '➕', 'Add to Queue')}

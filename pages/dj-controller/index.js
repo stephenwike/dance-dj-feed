@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
@@ -26,6 +26,8 @@ import SettingsPanel from '../../components/dj-controller/SettingsPanel';
 import MessagePanel from '../../components/dj-controller/MessagePanel';
 import FeedConfigPanel from '../../components/dj-controller/FeedConfigPanel';
 import WalletPanel from '../../components/dj-controller/WalletPanel';
+import NotificationsPanel from '../../components/dj-controller/NotificationsPanel';
+import { useNotifications } from '../../lib/client/dj/hooks/useNotifications';
 import PendingDanceGroup from '../../components/dj-controller/PendingDanceGroup';
 import PendingRequesterGroup from '../../components/dj-controller/PendingRequesterGroup';
 import SessionWarningBanner from '../../components/dj-controller/SessionWarningBanner';
@@ -66,8 +68,49 @@ function Controller() {
     msgTab, setMsgTab,
     msgText, setMsgText,
     msgDuration, setMsgDuration,
-    postMessage, clearMessage, addQueueMessage,
+    sendToAll, setSendToAll,
+    dmRecipientId, setDmRecipientId,
+    dmText, setDmText,
+    dmDuration, setDmDuration,
+    postMessage, clearMessage, addQueueMessage, sendDirect,
   } = useAnnouncements({ activeSession, mutateRequests: mutate });
+
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
+
+  // Toast state: array of notification objects to show
+  const [toastQueue, setToastQueue] = useState([]);
+  const toastedIds = useRef(new Set());
+
+  useEffect(() => {
+    const newOnes = notifications.filter(n => !n.read && !toastedIds.current.has(n._id));
+    if (newOnes.length === 0) return;
+    for (const n of newOnes) toastedIds.current.add(n._id);
+    setToastQueue(q => [...q, ...newOnes]);
+  }, [notifications]);
+
+  function dismissToast(id) {
+    setToastQueue(q => q.filter(n => n._id !== id));
+  }
+
+  async function markSeenFromToast(id) {
+    await markRead(id);
+    dismissToast(id);
+  }
+
+  // Auto-dismiss toast after 120 seconds
+  useEffect(() => {
+    if (toastQueue.length === 0) return;
+    const oldest = toastQueue[0];
+    const timer = setTimeout(() => dismissToast(oldest._id), 120000);
+    return () => clearTimeout(timer);
+  }, [toastQueue]);
+
+  // Known attendees for direct messages (reuse gift-attendees endpoint)
+  const { data: attendeesData } = useSWR('/api/dj/gift-attendees', fetcher, {
+    revalidateOnFocus: false,
+    refreshInterval: 60000,
+  });
+  const knownAttendees = attendeesData?.attendees ?? [];
 
   const spotify = useSpotifyPlugin({ isActive: isSpotify, rawRequests, mutate });
 
@@ -185,6 +228,7 @@ function Controller() {
             onSetPanel={setActivePanel}
             activeMsg={activeMsg}
             pendingCount={pendingCount}
+            unreadNotifCount={unreadCount}
             isSpotify={isSpotify}
             spotifyConnected={spotify.connected}
           />
@@ -277,10 +321,29 @@ function Controller() {
                 setMsgText={setMsgText}
                 msgDuration={msgDuration}
                 setMsgDuration={setMsgDuration}
+                sendToAll={sendToAll}
+                setSendToAll={setSendToAll}
                 activeMsg={activeMsg}
                 clearMessage={clearMessage}
                 postMessage={postMessage}
                 addQueueMessage={addQueueMessage}
+                knownAttendees={knownAttendees}
+                dmRecipientId={dmRecipientId}
+                setDmRecipientId={setDmRecipientId}
+                dmText={dmText}
+                setDmText={setDmText}
+                dmDuration={dmDuration}
+                setDmDuration={setDmDuration}
+                sendDirect={sendDirect}
+              />
+            )}
+
+            {activePanel === 'notifications' && (
+              <NotificationsPanel
+                notifications={notifications}
+                unreadCount={unreadCount}
+                markRead={markRead}
+                markAllRead={markAllRead}
               />
             )}
 
@@ -465,6 +528,27 @@ function Controller() {
           </div>
         </div>
       </div>
+
+      {/* ── Tip toast notifications ── */}
+      {toastQueue.length > 0 && (() => {
+        const n = toastQueue[0];
+        const who = n.senderName || n.senderEmail || 'Someone';
+        return (
+          <div className={styles.tipToast}>
+            <span className={styles.tipToastIcon}>💰</span>
+            <div className={styles.tipToastContent}>
+              <span className={styles.tipToastTitle}>Direct Tip Received!</span>
+              <span className={styles.tipToastBody}>{who} sent ${(n.amountCents / 100).toFixed(2)}</span>
+            </div>
+            <div className={styles.tipToastActions}>
+              <button className={styles.tipToastSeen} onClick={() => markSeenFromToast(n._id)}>
+                Mark as seen
+              </button>
+              <button className={styles.tipToastDismiss} onClick={() => dismissToast(n._id)}>✕</button>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

@@ -4255,6 +4255,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .msgDurations {
@@ -4339,3 +4340,183 @@
   color: rgba(255,255,255,0.4);
   font-style: italic;
 }
+
+/* ── Send-to-all checkbox (urgent message footer) ── */
+.msgSendAllLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.msgSendAllCheck {
+  accent-color: #8A5CFF;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Direct message panel ── */
+.dmPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dmHint {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+.dmLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.3);
+}
+.dmSelect {
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.75);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: auto;
+}
+.dmSelect:focus { outline: none; border-color: rgba(138,92,255,0.5); }
+
+/* ── Notifications panel ── */
+.notifSection {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.25);
+  padding: 8px 14px 4px;
+  margin: 0;
+}
+.notifRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.notifRow:last-child { border-bottom: none; }
+.notifRowRead { opacity: 0.45; }
+.notifDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a78bfa;
+  flex-shrink: 0;
+}
+.notifText {
+  flex: 1;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.8);
+  min-width: 0;
+}
+.notifAge {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.28);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.notifMark {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.notifMark:hover { border-color: rgba(138,92,255,0.5); color: #a78bfa; }
+
+/* ── Tip toast ── */
+.tipToast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 500;
+  background: #1a1a2e;
+  border: 1px solid rgba(138,92,255,0.4);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 360px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastSlideIn 0.25s ease;
+}
+@keyframes toastSlideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.tipToastIcon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+.tipToastContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.tipToastTitle {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: -0.01em;
+}
+.tipToastBody {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.65);
+}
+.tipToastActions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.tipToastSeen {
+  background: #8A5CFF;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+.tipToastSeen:hover { background: #7c3aed; }
+.tipToastDismiss {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.tipToastDismiss:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.7); }

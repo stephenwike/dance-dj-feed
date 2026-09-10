@@ -17,16 +17,20 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     res.setHeader('Cache-Control', 'no-store');
-    const { sessionId } = req.query;
+    const { sessionId, audience } = req.query;
     const session = await getActiveSession(client, sessionId, null);
     if (!session) return res.status(200).json({ message: null });
 
     const now = new Date();
-    const message = await col.findOne({
+    const filter = {
       sessionId: String(session._id),
       status: 'active',
       $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
-    });
+    };
+    // Attendee-facing poll: only return broadcast messages
+    if (audience === 'attendees') filter.sendToAll = true;
+
+    const message = await col.findOne(filter);
 
     return res.status(200).json({
       message: message
@@ -40,7 +44,7 @@ export default async function handler(req, res) {
     const userId = authSession?.user?.id ?? null;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { text, duration } = req.body ?? {};
+    const { text, duration, sendToAll } = req.body ?? {};
     if (!text?.trim()) return res.status(400).json({ error: 'text is required' });
 
     const session = await getActiveSession(client, null, userId);
@@ -61,6 +65,7 @@ export default async function handler(req, res) {
       ownerId: userId,
       text: text.trim(),
       status: 'active',
+      sendToAll: !!sendToAll,
       duration: duration ?? null,
       createdAt: now,
       expiresAt,
