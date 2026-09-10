@@ -540,11 +540,9 @@ function Controller() {
               <span className={styles.tipToastTitle}>Direct Tip Received!</span>
               <span className={styles.tipToastBody}>{who} sent ${(n.amountCents / 100).toFixed(2)}</span>
             </div>
-            <div className={styles.tipToastActions}>
-              <button className={styles.tipToastSeen} onClick={() => markSeenFromToast(n._id)}>
-                Mark as seen
-              </button>
-            </div>
+            <button className={styles.tipToastSeen} onClick={() => markSeenFromToast(n._id)} title="Mark as seen">
+              ✓
+            </button>
           </div>
         );
       })()}

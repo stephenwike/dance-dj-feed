@@ -4488,23 +4488,19 @@
   font-size: 0.78rem;
   color: rgba(255,255,255,0.65);
 }
-.tipToastActions {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex-shrink: 0;
-}
 .tipToastSeen {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   background: #8A5CFF;
   border: none;
-  border-radius: 6px;
   color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 5px 10px;
+  font-size: 1rem;
   cursor: pointer;
-  white-space: nowrap;
-  font-family: inherit;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.12s;
 }
 .tipToastSeen:hover { background: #7c3aed; }
