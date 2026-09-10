@@ -2,24 +2,37 @@ import { useState } from 'react';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { timeAgo } from './utils';
 
-export default function PendingRequesterGroup({ group, playsPerClient }) {
+export default function PendingRequesterGroup({ group, playsPerClient, suppressedSet, onToggleSuppress }) {
   const [expanded, setExpanded] = useState(false);
+  const isSuppressed = suppressedSet?.has(group.clientId) ?? false;
   const effectivePlays = playsPerClient[group.clientId] ?? 0;
   const currentWeight = 1 / (1 + effectivePlays);
 
   return (
-    <div className={styles.requesterGroup}>
+    <div className={`${styles.requesterGroup} ${isSuppressed ? styles.requesterGroupSuppressed : ''}`}>
       <button className={styles.requesterRow} onClick={() => setExpanded(e => !e)}>
         <div className={styles.requesterLeft}>
-          <span className={styles.requesterName}>{group.displayName}</span>
-          {group.clientId && group.displayName !== group.clientId && (
-            <span className={styles.qClientId}>{group.clientId}</span>
+          <span className={styles.requesterName}>
+            {group.nickname || group.displayName}
+          </span>
+          {group.nickname && (
+            <span className={styles.qClientId}>{group.displayName}</span>
           )}
         </div>
         <div className={styles.requesterRight}>
-          <span className={styles.weightChip} title="Current vote weight">×{currentWeight.toFixed(2)}</span>
-          <span className={styles.reqPill}>{group.submitted} sent</span>
-          {group.fulfilled > 0 && <span className={styles.reqPillGreen}>{group.fulfilled} played</span>}
+          {!isSuppressed && (
+            <>
+              <span className={styles.weightChip} title="Current vote weight">×{currentWeight.toFixed(2)}</span>
+              <span className={styles.reqPill}>{group.submitted} sent</span>
+              {group.fulfilled > 0 && <span className={styles.reqPillGreen}>{group.fulfilled} played</span>}
+            </>
+          )}
+          <button
+            className={isSuppressed ? styles.reqPillGreen : styles.reqPillRed}
+            onClick={e => { e.stopPropagation(); onToggleSuppress?.(group.clientId, !isSuppressed); }}
+          >
+            {isSuppressed ? '✓ Re-enable' : '🚫 Disable'}
+          </button>
           <span className={styles.chevron}>{expanded ? '▲' : '▼'}</span>
         </div>
       </button>

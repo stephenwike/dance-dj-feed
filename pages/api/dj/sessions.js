@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       if (s.status === 'active' && getSessionTimeState(s, now).state === 'expired') {
         await col.updateOne(
           { _id: s._id },
-          { $set: { status: 'closed', closedAt: now, autoClosedAt: now } },
+          { $set: { status: 'closed', closedAt: now, autoClosedAt: now, suppressedClientIds: [] } },
         );
         s.status = 'closed';
         s.closedAt = now;

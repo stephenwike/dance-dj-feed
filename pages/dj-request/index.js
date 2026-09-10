@@ -27,10 +27,17 @@ function diffColor(d = '') {
 function getOrCreateClientId() {
   let id = localStorage.getItem('dj_client_id');
   if (!id) {
-    id = 'User_' + Math.floor(100 + Math.random() * 900);
+    const hex = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, '')
+      : Array.from({ length: 8 }, () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0')).join('');
+    id = 'anon_' + hex;
     localStorage.setItem('dj_client_id', id);
   }
   return id;
+}
+
+function generateUserName() {
+  return 'User_' + Math.floor(100 + Math.random() * 900);
 }
 
 function formatPlayTime(date) {
@@ -108,7 +115,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     const id = getOrCreateClientId();
     setLocalClientId(id);
     const saved = localStorage.getItem('dj_display_name');
-    setDisplayName(saved || id);
+    const name = saved || generateUserName();
+    if (!saved) localStorage.setItem('dj_display_name', name);
+    setDisplayName(name);
   }, []);
 
   useEffect(() => {
@@ -225,21 +234,29 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     return m;
   })();
 
-  // Direct messages to this specific signed-in user
+  // Direct messages — signed-in users get their own poll; anonymous users get DMs via the requests response
   const { data: directMsgData, mutate: mutateDirectMsgs } = useSWR(
     isSignedIn ? '/api/dj/direct-messages' : null,
     fetcher,
     { refreshInterval: 15000, revalidateOnFocus: false }
   );
-  const directMessages = directMsgData?.messages ?? [];
 
   async function clearDirectMessage(id) {
+    const body = { id, ...(!isSignedIn && clientId ? { clientId } : {}) };
+    if (!isSignedIn) {
+      mutateRequests(
+        prev => prev && typeof prev === 'object' && !Array.isArray(prev)
+          ? { ...prev, directMessages: (prev.directMessages ?? []).filter(m => m._id !== id) }
+          : prev,
+        { revalidate: true }
+      );
+    }
     await fetch('/api/dj/direct-messages', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify(body),
     });
-    mutateDirectMsgs();
+    if (isSignedIn) mutateDirectMsgs();
   }
 
   // Attendee notifications (beat gifts, etc.)
@@ -261,12 +278,40 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     mutateBalance(); // gift credits the beat balance
   }
 
-  const requestsUrl = sessionId ? `/api/dj/requests?sessionId=${sessionId}` : '/api/dj/requests';
-  const { data: allRequests = [], mutate: mutateRequests } = useSWR(
+  const requestsUrl = (() => {
+    const base = sessionId ? `/api/dj/requests?sessionId=${sessionId}` : '/api/dj/requests';
+    return clientId ? `${base}${sessionId ? '&' : '?'}clientId=${clientId}` : base;
+  })();
+  const { data: requestsData, mutate: mutateRequests } = useSWR(
     requestsUrl,
     fetcher,
     { refreshInterval: 10000, dedupingInterval: 2000, revalidateOnFocus: false }
   );
+  const allRequests = Array.isArray(requestsData) ? requestsData : (requestsData?.requests ?? []);
+  const isSuppressed = requestsData?.suppressed === true;
+  const mutateSuppressed = mutateRequests;
+  const directMessages = isSignedIn
+    ? (directMsgData?.messages ?? [])
+    : (requestsData?.directMessages ?? []);
+
+  // Collision detection — if another user has the same User_XXX display name, re-roll ours
+  useEffect(() => {
+    if (!allRequests.length || !localClientId || isSignedIn) return;
+    const othersNames = new Set(
+      allRequests
+        .filter(r => r.clientId !== localClientId)
+        .map(r => r.requesterName)
+        .filter(Boolean)
+    );
+    setDisplayName(prev => {
+      if (!/^User_\d+$/.test(prev) || !othersNames.has(prev)) return prev;
+      let name;
+      let tries = 0;
+      do { name = generateUserName(); tries++; } while (othersNames.has(name) && tries < 50);
+      localStorage.setItem('dj_display_name', name);
+      return name;
+    });
+  }, [allRequests, localClientId, isSignedIn]);
 
   // Dances this user has already requested (active requests only, exclude DJ queue messages)
   const myActiveRequests = useMemo(() =>
@@ -367,14 +412,10 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
 
   function commitName() {
     const trimmed = draftName.trim();
-    const effective = trimmed || localClientId;
+    const effective = trimmed || generateUserName();
     setDisplayName(effective);
     setEditingName(false);
-    if (trimmed && trimmed !== localClientId) {
-      localStorage.setItem('dj_display_name', trimmed);
-    } else {
-      localStorage.removeItem('dj_display_name');
-    }
+    localStorage.setItem('dj_display_name', effective);
   }
 
   function handleNameKeyDown(e) {
@@ -414,6 +455,10 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
       body: JSON.stringify({ requestId, beats }),
     });
     const body = await res.json();
+    if (res.status === 403) {
+      mutateSuppressed();
+      return;
+    }
     if (!res.ok) throw new Error(body.error || 'Tip failed');
     mutateBalance();
     mutateRequests();
@@ -643,6 +688,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
         <div className={styles.page}>
           <div className={styles.card}>
             {effectivelyEnded ? (
+
               <>
                 <div className={styles.noSessionIcon}>🎵</div>
                 <h1 className={styles.noSessionTitle}>Session has ended</h1>
@@ -661,6 +707,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
             )}
           </div>
         </div>
+        {isSuppressed && (
+          <div className={styles.suppressedOverlay}>
+            <div className={styles.suppressedCard}>
+              <span className={styles.suppressedIcon}>🎵</span>
+              <h2 className={styles.suppressedTitle}>Your requests have been paused</h2>
+              <p className={styles.suppressedMsg}>
+                The DJ has temporarily disabled your account. If you&apos;re still here, let the DJ know and they can re-enable you.
+              </p>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -684,7 +741,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                   onChange={e => setDraftName(e.target.value)}
                   onBlur={commitName}
                   onKeyDown={handleNameKeyDown}
-                  placeholder={localClientId}
+                  placeholder={displayName}
                   maxLength={60}
                 />
                 <button type="button" className={styles.nameAction} onClick={commitName} aria-label="Save name">
@@ -1344,6 +1401,19 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
         </div>
 
       </div>
+
+      {/* ── Suppression overlay ── */}
+      {isSuppressed && (
+        <div className={styles.suppressedOverlay}>
+          <div className={styles.suppressedCard}>
+            <span className={styles.suppressedIcon}>🎵</span>
+            <h2 className={styles.suppressedTitle}>Your requests have been paused</h2>
+            <p className={styles.suppressedMsg}>
+              The DJ has temporarily disabled your account. If you&apos;re still here, let the DJ know and they can re-enable you.
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

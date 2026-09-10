@@ -60,6 +60,7 @@ export default async function handler(req, res) {
     if (status === 'closed') {
       set.status = 'closed';
       set.closedAt = new Date();
+      set.suppressedClientIds = [];
     } else if (status === 'active') {
       await col.updateMany(
         { status: 'active', ownerId: userId, _id: { $ne: objId } },

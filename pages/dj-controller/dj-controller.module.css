@@ -2808,6 +2808,7 @@
   overflow: hidden;
   flex-shrink: 0;
 }
+.requesterGroupSuppressed { opacity: 0.5; }
 
 .requesterRow {
   width: 100%;
@@ -2828,8 +2829,9 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
+  overflow: hidden;
 }
 
 .requesterName {
@@ -2839,6 +2841,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.qClientId {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .requesterRight {
@@ -2864,7 +2875,24 @@
   border-radius: 20px;
   background: rgba(34,197,94,0.12);
   color: #4ade80;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
+.reqPillGreen:hover { background: rgba(34,197,94,0.22); }
+
+.reqPillRed {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(239,68,68,0.08);
+  color: rgba(239,68,68,0.6);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.reqPillRed:hover { background: rgba(239,68,68,0.16); color: #f87171; }
 
 .chevron { font-size: 0.55rem; color: rgba(255,255,255,0.25); }
 
@@ -4486,6 +4514,78 @@
   color: #f87171;
   margin: 0;
 }
+
+/* Nickname */
+.requesterNickname {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #a78bfa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.requesterNameSub {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.requesterNameRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.requesterNickBtn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  color: rgba(255,255,255,0.2);
+  font-size: 0.7rem;
+  line-height: 1;
+  border-radius: 3px;
+}
+.requesterNickBtn:hover { color: rgba(255,255,255,0.5); }
+.requesterNickInput {
+  font-size: 0.82rem;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(138,92,255,0.4);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.85);
+  padding: 2px 6px;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+}
+.requesterNickInput::placeholder { color: rgba(255,255,255,0.2); }
+.requesterNickActions {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.requesterNickSave {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  background: rgba(138,92,255,0.25);
+  border: 1px solid rgba(138,92,255,0.4);
+  border-radius: 4px;
+  color: #a78bfa;
+  cursor: pointer;
+}
+.requesterNickSave:hover { background: rgba(138,92,255,0.4); }
+.requesterNickCancel {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  background: none;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+}
+.requesterNickCancel:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.65); }
 
 /* ── Send-to-all checkbox (urgent message footer) ── */
 .msgSendAllLabel {

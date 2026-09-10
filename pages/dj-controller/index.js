@@ -63,6 +63,17 @@ function Controller() {
     refreshInterval: 5000, revalidateOnFocus: true, dedupingInterval: 2000,
   });
 
+  const requestersUrl = workingSession?._id ? `/api/dj/requesters?sessionId=${workingSession._id}` : null;
+  const { data: requestersData } = useSWR(requestersUrl, fetcher, {
+    refreshInterval: 15000, revalidateOnFocus: false,
+  });
+  const nicknameOverrides = useMemo(() => {
+    if (!requestersData?.requesters) return {};
+    return Object.fromEntries(
+      requestersData.requesters.filter(r => r.nickname).map(r => [r.clientId, r.nickname])
+    );
+  }, [requestersData]);
+
   const {
     activeMsg,
     showMessagePanel: _showMsg, setShowMessagePanel,
@@ -163,7 +174,7 @@ function Controller() {
     playing, queue, history,
     resolvedNames, danceRequestCounts, danceBeats, danceScores, partnerUpvoteCounts,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
-  } = useRequestGroups({ rawRequests: visibleRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
+  } = useRequestGroups({ rawRequests: visibleRequests, allRequests: rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, nicknameOverrides });
 
   const playingItem = playing[0] ?? null;
   const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
@@ -174,6 +185,16 @@ function Controller() {
   const { handleAction, clearHistory, saveGroupEdit } = useRequestActions({
     rawRequests, queue, nextQueuePos, history, isSpotify, spotify, mutate,
   });
+
+  async function toggleSuppress(clientId, suppress) {
+    if (!activeSession?._id) return;
+    await fetch('/api/dj/requesters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: String(activeSession._id), clientId, suppress }),
+    });
+    mutateSessions();
+  }
 
   const hasPartnerGroups = danceGroups.some(g => g.danceType === 'partner');
 
@@ -315,6 +336,8 @@ function Controller() {
                             key={group.key}
                             group={group}
                             playsPerClient={playsPerClient}
+                            suppressedSet={suppressedSet}
+                            onToggleSuppress={toggleSuppress}
                           />
                         ))
                   )}

@@ -93,6 +93,14 @@ export default async function handler(req, res) {
           requesterMap[p.id].directTipCents = directTipTotals[p.email?.toLowerCase()] ?? 0;
         }
       }
+
+      // DJ-assigned nicknames (persisted across sessions)
+      const nicknameDocs = await db.collection('dj_requester_nicknames')
+        .find({ djId: userId, clientId: { $in: clientIds } }, { projection: { clientId: 1, nickname: 1 } })
+        .toArray();
+      for (const n of nicknameDocs) {
+        if (requesterMap[n.clientId]) requesterMap[n.clientId].nickname = n.nickname;
+      }
     }
 
     const requesters = Object.values(requesterMap)
@@ -114,6 +122,23 @@ export default async function handler(req, res) {
       { _id: new ObjectId(sessionId), ownerId: userId },
       update
     );
+    return res.status(200).json({ ok: true });
+  }
+
+  // PUT — set or clear a DJ-assigned nickname for a requester
+  if (req.method === 'PUT') {
+    const { clientId, nickname } = req.body ?? {};
+    if (!clientId) return res.status(400).json({ error: 'clientId is required' });
+    const trimmed = (nickname ?? '').trim();
+    if (trimmed) {
+      await db.collection('dj_requester_nicknames').updateOne(
+        { djId: userId, clientId },
+        { $set: { nickname: trimmed, updatedAt: new Date() } },
+        { upsert: true }
+      );
+    } else {
+      await db.collection('dj_requester_nicknames').deleteOne({ djId: userId, clientId });
+    }
     return res.status(200).json({ ok: true });
   }
 

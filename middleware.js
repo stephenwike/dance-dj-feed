@@ -14,6 +14,7 @@ const publicPatterns = [
   /^\/api\/dj\/dances$/,
   /^\/api\/dj\/messages/,
   /^\/api\/dj\/requests/,
+  /^\/api\/dj\/direct-messages/,
   /^\/api\/beats\/webhook$/,
   /^\/api\/tips\/direct$/,
 ];

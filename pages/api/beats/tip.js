@@ -31,6 +31,19 @@ export default async function handler(req, res) {
   const request = await db.collection('dj_requests').findOne({ _id: requestObjId });
   if (!request) return res.status(404).json({ error: 'Request not found' });
 
+  // Block tipping if the user is suppressed in this session
+  if (request.sessionId) {
+    try {
+      const djSession = await db.collection('dj_sessions').findOne(
+        { _id: new ObjectId(request.sessionId) },
+        { projection: { suppressedClientIds: 1 } }
+      );
+      if (djSession?.suppressedClientIds?.includes(userId)) {
+        return res.status(403).json({ error: 'Your account has been disabled for this session' });
+      }
+    } catch { /* invalid sessionId shape — skip suppression check */ }
+  }
+
   // Atomically deduct beats — fails cleanly if balance is insufficient
   const updated = await db.collection('beat_balances').findOneAndUpdate(
     { attendeeId: userId, beats: { $gte: beats } },
