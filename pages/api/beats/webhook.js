@@ -109,13 +109,22 @@ export default async function handler(req, res) {
         console.error('Missing dj_session metadata on checkout session', session.id);
         return res.status(400).end();
       }
-      if (draftSessionId) {
-        await activateDraftSession(client, draftSessionId, { durationMinutes: Number(durationMinutes) });
-      } else {
-        await createSession(client, {
-          ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
-        });
-      }
+      const sessionDoc = draftSessionId
+        ? await activateDraftSession(client, draftSessionId, { durationMinutes: Number(durationMinutes) })
+        : await createSession(client, {
+            ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
+          });
+      await db.collection('session_transactions').insertOne({
+        ownerId,
+        type: 'session_purchase',
+        sessionId: String(sessionDoc._id),
+        sessionName: sessionDoc.name ?? name ?? null,
+        durationMinutes: Number(durationMinutes),
+        amountCents: session.amount_total,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: session.payment_intent ?? null,
+        createdAt: new Date(),
+      });
       return res.status(200).json({ received: true });
     }
 
