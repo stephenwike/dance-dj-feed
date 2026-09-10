@@ -544,7 +544,6 @@ function Controller() {
               <button className={styles.tipToastSeen} onClick={() => markSeenFromToast(n._id)}>
                 Mark as seen
               </button>
-              <button className={styles.tipToastDismiss} onClick={() => dismissToast(n._id)}>✕</button>
             </div>
           </div>
         );

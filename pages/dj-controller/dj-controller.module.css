@@ -4508,15 +4508,3 @@
   transition: background 0.12s;
 }
 .tipToastSeen:hover { background: #7c3aed; }
-.tipToastDismiss {
-  background: none;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 6px;
-  color: rgba(255,255,255,0.4);
-  font-size: 0.72rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  font-family: inherit;
-  transition: all 0.12s;
-}
-.tipToastDismiss:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.7); }
