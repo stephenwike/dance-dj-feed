@@ -105,6 +105,15 @@ function Controller() {
     return () => clearTimeout(timer);
   }, [toastQueue]);
 
+  // Mark all notifications read when navigating away from the notifications panel
+  const prevPanel = useRef(activePanel);
+  useEffect(() => {
+    if (prevPanel.current === 'notifications' && activePanel !== 'notifications' && unreadCount > 0) {
+      markAllRead();
+    }
+    prevPanel.current = activePanel;
+  }, [activePanel]);
+
   // Known attendees for direct messages (reuse gift-attendees endpoint)
   const { data: attendeesData } = useSWR('/api/dj/gift-attendees', fetcher, {
     revalidateOnFocus: false,
