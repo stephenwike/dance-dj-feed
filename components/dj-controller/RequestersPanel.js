@@ -30,6 +30,7 @@ export default function RequestersPanel({ workingSession, mutateSessions }) {
 
   const [expandedGift, setExpandedGift] = useState(null);
   const [giftBeats, setGiftBeats] = useState('');
+  const [giftMessage, setGiftMessage] = useState('');
   const [giftSending, setGiftSending] = useState(false);
   const [giftError, setGiftError] = useState('');
 
@@ -70,11 +71,12 @@ export default function RequestersPanel({ workingSession, mutateSessions }) {
       const res = await fetch('/api/dj/gift-beats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipientEmail, beats: b }),
+        body: JSON.stringify({ recipientEmail, beats: b, message: giftMessage.trim() || undefined }),
       });
       const json = await res.json();
       if (!res.ok) { setGiftError(json.error || 'Gift failed'); return; }
       setGiftBeats('');
+      setGiftMessage('');
       setExpandedGift(null);
     } finally {
       setGiftSending(false);
@@ -91,6 +93,7 @@ export default function RequestersPanel({ workingSession, mutateSessions }) {
   function toggleGift(clientId) {
     setExpandedGift(prev => prev === clientId ? null : clientId);
     setGiftBeats('');
+    setGiftMessage('');
     setGiftError('');
     setExpandedDm(null);
   }
@@ -199,6 +202,14 @@ export default function RequestersPanel({ workingSession, mutateSessions }) {
                 </span>
               )}
             </div>
+            <textarea
+              className={styles.requesterTextarea}
+              placeholder="Add a message (optional)…"
+              value={giftMessage}
+              onChange={e => setGiftMessage(e.target.value)}
+              rows={2}
+              maxLength={160}
+            />
             {giftError && <p className={styles.requesterGiftError}>{giftError}</p>}
             <button
               className={styles.requesterSendBtn}

@@ -242,6 +242,25 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     mutateDirectMsgs();
   }
 
+  // Attendee notifications (beat gifts, etc.)
+  const { data: attendeeNotifData, mutate: mutateAttendeeNotifs } = useSWR(
+    isSignedIn ? '/api/attendee/notifications' : null,
+    fetcher,
+    { refreshInterval: 20000, revalidateOnFocus: false }
+  );
+  const attendeeNotifs = attendeeNotifData?.notifications ?? [];
+  const unreadNotifCount = attendeeNotifData?.unreadCount ?? 0;
+
+  async function dismissAttendeeNotif(id) {
+    await fetch('/api/attendee/notifications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    mutateAttendeeNotifs();
+    mutateBalance(); // gift credits the beat balance
+  }
+
   const requestsUrl = sessionId ? `/api/dj/requests?sessionId=${sessionId}` : '/api/dj/requests';
   const { data: allRequests = [], mutate: mutateRequests } = useSWR(
     requestsUrl,
@@ -701,6 +720,20 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                 <button className={styles.djDirectMsgClose} onClick={() => clearDirectMessage(dm._id)}>✕</button>
               </div>
               <p className={styles.djDirectMsgText}>{dm.text}</p>
+            </div>
+          ))}
+
+          {/* ── Attendee notifications (beat gifts) ── */}
+          {attendeeNotifs.filter(n => !n.read).map(n => (
+            <div key={n._id} className={styles.attendeeNotif}>
+              <div className={styles.attendeeNotifHead}>
+                <span className={styles.attendeeNotifIcon}>🎁</span>
+                <span className={styles.attendeeNotifTitle}>
+                  {n.fromName} gifted you {n.beats} beat{n.beats !== 1 ? 's' : ''}!
+                </span>
+                <button className={styles.attendeeNotifDismiss} onClick={() => dismissAttendeeNotif(n._id)}>✓</button>
+              </div>
+              {n.message && <p className={styles.attendeeNotifMsg}>{n.message}</p>}
             </div>
           ))}
 

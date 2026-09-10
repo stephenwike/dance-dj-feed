@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   const djId = session?.user?.id ?? null;
   if (!djId) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { recipientEmail, beats } = req.body ?? {};
+  const { recipientEmail, beats, message } = req.body ?? {};
   if (!recipientEmail || !Number.isInteger(beats) || beats < 1) {
     return res.status(400).json({ error: 'recipientEmail and a positive integer beats are required' });
   }
@@ -39,6 +39,14 @@ export default async function handler(req, res) {
     });
   }
 
+  // Look up DJ's registered name for the notification
+  const djProfile = await db.collection('user_profiles').findOne(
+    { id: djId },
+    { projection: { name: 1 } }
+  );
+  const djName = djProfile?.name || 'The DJ';
+  const giftMessage = message?.trim() || null;
+
   const now = new Date();
 
   await Promise.all([
@@ -64,6 +72,17 @@ export default async function handler(req, res) {
       type: 'gift',
       beats,
       fromDjId: djId,
+      createdAt: now,
+    }),
+    // Notify recipient
+    db.collection('attendee_notifications').insertOne({
+      recipientId: recipient.id,
+      type: 'beat_gift',
+      fromDjId: djId,
+      fromName: djName,
+      beats,
+      message: giftMessage,
+      read: false,
       createdAt: now,
     }),
   ]);

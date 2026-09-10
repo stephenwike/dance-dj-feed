@@ -1397,6 +1397,56 @@
   line-height: 1.45;
 }
 
+/* ── Attendee notification (beat gift) ── */
+.attendeeNotif {
+  background: #fdf4ff;
+  border: 1.5px solid #d946ef;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.attendeeNotifHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.attendeeNotifIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.attendeeNotifTitle {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #86198f;
+}
+.attendeeNotifDismiss {
+  background: none;
+  border: 1px solid #d946ef;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 0.75rem;
+  color: #d946ef;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.attendeeNotifDismiss:hover { background: #d946ef; color: #fff; }
+.attendeeNotifMsg {
+  font-size: 0.88rem;
+  color: #6b21a8;
+  line-height: 1.45;
+  margin: 0;
+  font-style: italic;
+}
+
 /* ── Direct message from DJ ── */
 .djDirectMsg {
   background: #ede9fe;
