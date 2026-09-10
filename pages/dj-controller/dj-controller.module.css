@@ -4341,6 +4341,152 @@
   font-style: italic;
 }
 
+/* ── Requesters panel ── */
+.requesterCard {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.requesterCard:last-child { border-bottom: none; }
+.requesterCardSuppressed { opacity: 0.55; }
+
+.requesterRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.requesterInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.requesterName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.requesterBadge {
+  font-size: 0.63rem;
+  font-weight: 700;
+  color: #6ee7b7;
+  letter-spacing: 0.04em;
+}
+.requesterStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.requesterStat {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.requesterActions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.requesterBtn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.requesterBtn:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.75); }
+.requesterBtnActive { border-color: rgba(138,92,255,0.5); color: #a78bfa; background: rgba(138,92,255,0.12); }
+.requesterBtnSuppress { border-color: rgba(239,68,68,0.25); color: rgba(239,68,68,0.55); }
+.requesterBtnSuppress:hover { border-color: rgba(239,68,68,0.5); color: #f87171; background: rgba(239,68,68,0.08); }
+.requesterBtnEnable { border-color: rgba(110,231,183,0.3); color: #6ee7b7; }
+.requesterBtnEnable:hover { border-color: rgba(110,231,183,0.5); background: rgba(110,231,183,0.07); }
+
+.requesterExpand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 2px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 2px;
+}
+.requesterTextarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.82rem;
+  font-family: inherit;
+  padding: 6px 8px;
+  resize: none;
+}
+.requesterTextarea:focus { outline: none; border-color: rgba(138,92,255,0.4); }
+.requesterExpandRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.requesterSendBtn {
+  background: #8A5CFF;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.12s;
+  margin-left: auto;
+}
+.requesterSendBtn:hover:not(:disabled) { background: #7c3aed; }
+.requesterSendBtn:disabled { opacity: 0.4; cursor: default; }
+
+.requesterGiftRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.requesterBeatsInput {
+  width: 72px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.82rem;
+  font-family: inherit;
+  padding: 5px 7px;
+}
+.requesterBeatsInput:focus { outline: none; border-color: rgba(138,92,255,0.4); }
+.requesterGiftCost {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.38);
+  flex: 1;
+}
+.requesterGiftError {
+  font-size: 0.72rem;
+  color: #f87171;
+  margin: 0;
+}
+
 /* ── Send-to-all checkbox (urgent message footer) ── */
 .msgSendAllLabel {
   display: flex;

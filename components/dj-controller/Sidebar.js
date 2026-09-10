@@ -49,6 +49,10 @@ export default function Sidebar({
         <span className={styles.sidebarLabel}>Requests</span>
       </button>
 
+      {btn('requesters', '👥', 'Requesters')}
+      {btn('dj-add', '➕', 'Add to Queue')}
+      {btn('messages', '💬', 'Messages', activeMsg && activePanel !== 'messages' ? styles.sidebarBtnAlert : '')}
+
       {/* Notifications bell with unread badge */}
       <button
         className={`${styles.sidebarBtn} ${activePanel === 'notifications' ? styles.sidebarBtnActive : ''}`}
@@ -64,8 +68,6 @@ export default function Sidebar({
         <span className={styles.sidebarLabel}>Notifs</span>
       </button>
 
-      {btn('dj-add', '➕', 'Add to Queue')}
-      {btn('messages', '💬', 'Messages', activeMsg && activePanel !== 'messages' ? styles.sidebarBtnAlert : '')}
       {btn('feed-config', '📺', 'Feed')}
       {btn('settings', '⚙️', 'Settings')}
       {btn('history', '📋', 'History')}

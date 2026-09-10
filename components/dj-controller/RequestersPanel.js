@@ -1,0 +1,249 @@
+import { useState } from 'react';
+import useSWR from 'swr';
+import styles from '../../pages/dj-controller/dj-controller.module.css';
+
+const fetcher = url => fetch(url).then(r => r.json());
+
+const DM_DURATIONS = [
+  { label: '15m', seconds: 900 },
+  { label: '30m', seconds: 1800 },
+  { label: '1h',  seconds: 3600 },
+  { label: 'No timeout', seconds: null },
+];
+
+export default function RequestersPanel({ workingSession, mutateSessions }) {
+  const sessionId = workingSession?._id ? String(workingSession._id) : null;
+
+  const { data, mutate } = useSWR(
+    sessionId ? `/api/dj/requesters?sessionId=${sessionId}` : null,
+    fetcher,
+    { refreshInterval: 15000 }
+  );
+
+  const { data: walletData } = useSWR('/api/dj/wallet', fetcher, { revalidateOnFocus: false });
+  const walletBalance = walletData?.balance ?? 0;
+
+  const [expandedDm, setExpandedDm] = useState(null);
+  const [dmText, setDmText] = useState('');
+  const [dmDuration, setDmDuration] = useState(null);
+  const [dmSending, setDmSending] = useState(false);
+
+  const [expandedGift, setExpandedGift] = useState(null);
+  const [giftBeats, setGiftBeats] = useState('');
+  const [giftSending, setGiftSending] = useState(false);
+  const [giftError, setGiftError] = useState('');
+
+  const requesters = data?.requesters ?? [];
+  const active = requesters.filter(r => !r.suppressed);
+  const suppressed = requesters.filter(r => r.suppressed);
+
+  async function toggleSuppress(clientId, suppress) {
+    await fetch('/api/dj/requesters', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, clientId, suppress }),
+    });
+    mutate();
+    mutateSessions?.();
+  }
+
+  async function sendDm(recipientId) {
+    if (!dmText.trim()) return;
+    setDmSending(true);
+    await fetch('/api/dj/direct-messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipientId, text: dmText.trim(), duration: dmDuration }),
+    });
+    setDmText('');
+    setDmDuration(null);
+    setExpandedDm(null);
+    setDmSending(false);
+  }
+
+  async function sendGift(recipientEmail) {
+    const b = parseInt(giftBeats, 10);
+    if (!b || b < 1) return;
+    setGiftError('');
+    setGiftSending(true);
+    try {
+      const res = await fetch('/api/dj/gift-beats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientEmail, beats: b }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setGiftError(json.error || 'Gift failed'); return; }
+      setGiftBeats('');
+      setExpandedGift(null);
+    } finally {
+      setGiftSending(false);
+    }
+  }
+
+  function toggleDm(clientId) {
+    setExpandedDm(prev => prev === clientId ? null : clientId);
+    setDmText('');
+    setDmDuration(null);
+    setExpandedGift(null);
+  }
+
+  function toggleGift(clientId) {
+    setExpandedGift(prev => prev === clientId ? null : clientId);
+    setGiftBeats('');
+    setGiftError('');
+    setExpandedDm(null);
+  }
+
+  function RequesterCard({ r }) {
+    const isDmOpen = expandedDm === r.clientId;
+    const isGiftOpen = expandedGift === r.clientId;
+    const giftCost = (parseInt(giftBeats, 10) || 0) * 5;
+
+    return (
+      <div className={`${styles.requesterCard} ${r.suppressed ? styles.requesterCardSuppressed : ''}`}>
+        <div className={styles.requesterRow}>
+          <div className={styles.requesterInfo}>
+            <span className={styles.requesterName}>{r.displayName}</span>
+            {r.isRegistered && <span className={styles.requesterBadge}>✓ Registered</span>}
+          </div>
+          <div className={styles.requesterStats}>
+            <span className={styles.requesterStat}>{r.requestCount} req</span>
+            {r.beatsSpent > 0 && <span className={styles.requesterStat}>{r.beatsSpent} beats</span>}
+            {r.directTipCents > 0 && (
+              <span className={styles.requesterStat}>${(r.directTipCents / 100).toFixed(2)} tipped</span>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.requesterActions}>
+          {r.isRegistered && (
+            <button
+              className={`${styles.requesterBtn} ${isDmOpen ? styles.requesterBtnActive : ''}`}
+              onClick={() => toggleDm(r.clientId)}
+              title="Send direct message"
+            >
+              📩 DM
+            </button>
+          )}
+          {r.isRegistered && r.email && (
+            <button
+              className={`${styles.requesterBtn} ${isGiftOpen ? styles.requesterBtnActive : ''}`}
+              onClick={() => toggleGift(r.clientId)}
+              title="Gift beats"
+            >
+              🎁 Gift
+            </button>
+          )}
+          <button
+            className={`${styles.requesterBtn} ${r.suppressed ? styles.requesterBtnEnable : styles.requesterBtnSuppress}`}
+            onClick={() => toggleSuppress(r.clientId, !r.suppressed)}
+            title={r.suppressed ? 'Re-enable requests' : 'Suppress all requests'}
+          >
+            {r.suppressed ? '✓ Re-enable' : '🚫 Suppress'}
+          </button>
+        </div>
+
+        {isDmOpen && (
+          <div className={styles.requesterExpand}>
+            <textarea
+              className={styles.requesterTextarea}
+              placeholder="Type a message…"
+              value={dmText}
+              onChange={e => setDmText(e.target.value)}
+              rows={2}
+              maxLength={200}
+              autoFocus
+            />
+            <div className={styles.requesterExpandRow}>
+              <div className={styles.msgDurations}>
+                {DM_DURATIONS.map(d => (
+                  <button
+                    key={d.label}
+                    className={`${styles.msgDuration} ${dmDuration === d.seconds ? styles.msgDurationActive : ''}`}
+                    onClick={() => setDmDuration(d.seconds)}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                className={styles.requesterSendBtn}
+                onClick={() => sendDm(r.clientId)}
+                disabled={!dmText.trim() || dmSending}
+              >
+                {dmSending ? '…' : 'Send'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isGiftOpen && (
+          <div className={styles.requesterExpand}>
+            <div className={styles.requesterGiftRow}>
+              <input
+                type="number"
+                min="1"
+                className={styles.requesterBeatsInput}
+                placeholder="Beats"
+                value={giftBeats}
+                onChange={e => setGiftBeats(e.target.value)}
+                autoFocus
+              />
+              {giftCost > 0 && (
+                <span className={styles.requesterGiftCost}>
+                  ${(giftCost / 100).toFixed(2)} · {walletBalance >= giftCost
+                    ? `balance $${(walletBalance / 100).toFixed(2)}`
+                    : <span style={{ color: '#f87171' }}>need ${((giftCost - walletBalance) / 100).toFixed(2)} more</span>
+                  }
+                </span>
+              )}
+            </div>
+            {giftError && <p className={styles.requesterGiftError}>{giftError}</p>}
+            <button
+              className={styles.requesterSendBtn}
+              onClick={() => sendGift(r.email)}
+              disabled={!giftBeats || parseInt(giftBeats) < 1 || walletBalance < giftCost || giftSending}
+            >
+              {giftSending ? '…' : 'Gift Beats'}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!workingSession) {
+    return (
+      <div className={styles.panel}>
+        <div className={styles.panelHead}><span className={styles.panelTitle}>Requesters</span></div>
+        <div className={styles.panelBody}><p className={styles.empty}>No active session.</p></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.panel}>
+      <div className={styles.panelHead}>
+        <span className={styles.panelTitle}>Requesters</span>
+        {active.length > 0 && <span className={styles.colCount}>{active.length}</span>}
+      </div>
+      <div className={styles.panelBody} style={{ padding: 0 }}>
+        {active.length === 0 && suppressed.length === 0 ? (
+          <p className={styles.empty} style={{ padding: '12px 14px' }}>No active requesters yet.</p>
+        ) : (
+          <>
+            {active.map(r => <RequesterCard key={r.clientId} r={r} />)}
+
+            {suppressed.length > 0 && (
+              <>
+                <p className={styles.notifSection} style={{ marginTop: 8 }}>Suppressed</p>
+                {suppressed.map(r => <RequesterCard key={r.clientId} r={r} />)}
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

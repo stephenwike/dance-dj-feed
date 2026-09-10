@@ -1,13 +1,6 @@
 import { URGENT_TEMPLATES, QUEUE_TEMPLATES, URGENT_DURATIONS, QUEUE_DURATIONS } from '../../lib/messages/templates';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 
-const DM_DURATIONS = [
-  { label: '15m', seconds: 900 },
-  { label: '30m', seconds: 1800 },
-  { label: '1h', seconds: 3600 },
-  { label: 'No timeout', seconds: null },
-];
-
 export default function MessagePanel({
   activeSession,
   msgTab, setMsgTab,
@@ -15,12 +8,6 @@ export default function MessagePanel({
   msgDuration, setMsgDuration,
   sendToAll, setSendToAll,
   activeMsg, clearMessage, postMessage, addQueueMessage,
-  // Direct message props
-  knownAttendees,
-  dmRecipientId, setDmRecipientId,
-  dmText, setDmText,
-  dmDuration, setDmDuration,
-  sendDirect,
 }) {
   return (
     <div className={styles.panel}>
@@ -37,12 +24,6 @@ export default function MessagePanel({
             onClick={() => setMsgTab('queue')}
           >
             💬 In-queue
-          </button>
-          <button
-            className={`${styles.msgTab} ${msgTab === 'direct' ? styles.msgTabActive : ''}`}
-            onClick={() => setMsgTab('direct')}
-          >
-            📩 Direct
           </button>
         </div>
       </div>
@@ -164,63 +145,6 @@ export default function MessagePanel({
               </>
             )}
 
-            {/* ── Direct message tab ── */}
-            {msgTab === 'direct' && (
-              <div className={styles.dmPanel}>
-                <p className={styles.dmHint}>
-                  Send a private message to a specific user. It appears on their app until the timeout or they clear it.
-                </p>
-
-                {(!knownAttendees || knownAttendees.length === 0) ? (
-                  <p className={styles.empty}>No known attendees yet — they appear here after someone tips.</p>
-                ) : (
-                  <>
-                    <label className={styles.dmLabel}>Recipient</label>
-                    <select
-                      className={styles.dmSelect}
-                      value={dmRecipientId}
-                      onChange={e => setDmRecipientId(e.target.value)}
-                    >
-                      <option value="">— Select attendee —</option>
-                      {knownAttendees.map(a => (
-                        <option key={a.id} value={a.id}>{a.name || a.email}</option>
-                      ))}
-                    </select>
-
-                    <label className={styles.dmLabel}>Message</label>
-                    <textarea
-                      className={styles.msgInput}
-                      placeholder="Type a message…"
-                      value={dmText}
-                      onChange={e => setDmText(e.target.value)}
-                      rows={3}
-                      maxLength={200}
-                    />
-
-                    <label className={styles.dmLabel}>Timeout</label>
-                    <div className={styles.msgDurations} style={{ marginBottom: 12 }}>
-                      {DM_DURATIONS.map(d => (
-                        <button
-                          key={d.label}
-                          className={`${styles.msgDuration} ${dmDuration === d.seconds ? styles.msgDurationActive : ''}`}
-                          onClick={() => setDmDuration(d.seconds)}
-                        >
-                          {d.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      className={styles.msgPostBtn}
-                      onClick={sendDirect}
-                      disabled={!dmRecipientId || !dmText.trim()}
-                    >
-                      Send Message
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
           </>
         )}
       </div>

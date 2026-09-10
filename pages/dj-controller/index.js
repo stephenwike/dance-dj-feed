@@ -27,6 +27,7 @@ import MessagePanel from '../../components/dj-controller/MessagePanel';
 import FeedConfigPanel from '../../components/dj-controller/FeedConfigPanel';
 import WalletPanel from '../../components/dj-controller/WalletPanel';
 import NotificationsPanel from '../../components/dj-controller/NotificationsPanel';
+import RequestersPanel from '../../components/dj-controller/RequestersPanel';
 import { useNotifications } from '../../lib/client/dj/hooks/useNotifications';
 import PendingDanceGroup from '../../components/dj-controller/PendingDanceGroup';
 import PendingRequesterGroup from '../../components/dj-controller/PendingRequesterGroup';
@@ -69,10 +70,7 @@ function Controller() {
     msgText, setMsgText,
     msgDuration, setMsgDuration,
     sendToAll, setSendToAll,
-    dmRecipientId, setDmRecipientId,
-    dmText, setDmText,
-    dmDuration, setDmDuration,
-    postMessage, clearMessage, addQueueMessage, sendDirect,
+    postMessage, clearMessage, addQueueMessage,
   } = useAnnouncements({ activeSession, mutateRequests: mutate });
 
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
@@ -114,13 +112,6 @@ function Controller() {
     prevPanel.current = activePanel;
   }, [activePanel]);
 
-  // Known attendees for direct messages (reuse gift-attendees endpoint)
-  const { data: attendeesData } = useSWR('/api/dj/gift-attendees', fetcher, {
-    revalidateOnFocus: false,
-    refreshInterval: 60000,
-  });
-  const knownAttendees = attendeesData?.attendees ?? [];
-
   const spotify = useSpotifyPlugin({ isActive: isSpotify, rawRequests, mutate });
 
   const { timeState, countdown, isGrace } = useSessionTimeState(activeSession);
@@ -158,11 +149,21 @@ function Controller() {
     await continueSessionBase(id, async () => { mutate(); setActivePanel('requests'); });
   }
 
+  // Filter out suppressed requesters from the pending/queue display
+  const suppressedSet = useMemo(
+    () => new Set(activeSession?.suppressedClientIds ?? []),
+    [activeSession?.suppressedClientIds]
+  );
+  const visibleRequests = useMemo(
+    () => suppressedSet.size > 0 ? rawRequests.filter(r => !suppressedSet.has(r.clientId)) : rawRequests,
+    [rawRequests, suppressedSet]
+  );
+
   const {
     playing, queue, history,
     resolvedNames, danceRequestCounts, danceBeats, danceScores, partnerUpvoteCounts,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
-  } = useRequestGroups({ rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
+  } = useRequestGroups({ rawRequests: visibleRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes });
 
   const playingItem = playing[0] ?? null;
   const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
@@ -321,6 +322,13 @@ function Controller() {
               </div>
             )}
 
+            {activePanel === 'requesters' && (
+              <RequestersPanel
+                workingSession={workingSession}
+                mutateSessions={mutateSessions}
+              />
+            )}
+
             {activePanel === 'messages' && (
               <MessagePanel
                 activeSession={activeSession}
@@ -336,14 +344,6 @@ function Controller() {
                 clearMessage={clearMessage}
                 postMessage={postMessage}
                 addQueueMessage={addQueueMessage}
-                knownAttendees={knownAttendees}
-                dmRecipientId={dmRecipientId}
-                setDmRecipientId={setDmRecipientId}
-                dmText={dmText}
-                setDmText={setDmText}
-                dmDuration={dmDuration}
-                setDmDuration={setDmDuration}
-                sendDirect={sendDirect}
               />
             )}
 
