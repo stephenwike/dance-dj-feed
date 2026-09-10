@@ -50,9 +50,19 @@ export default async function handler(req, res) {
         console.error('Missing direct_tip metadata on session', session.id);
         return res.status(400).end();
       }
-      const senderName = session.customer_details?.name ?? null;
+      const stripeName = session.customer_details?.name ?? null;
       const senderEmail = session.customer_details?.email ?? session.customer_email ?? null;
       const tipAmountCents = parseInt(amountCents, 10);
+
+      // Prefer the registered profile name over whatever Stripe captured at checkout
+      const profile = senderEmail
+        ? await db.collection('user_profiles').findOne(
+            { email: senderEmail.toLowerCase() },
+            { projection: { name: 1 } }
+          )
+        : null;
+      const senderName = profile?.name || stripeName;
+
       await Promise.all([
         db.collection('dj_wallet_transactions').insertOne({
           ownerId: djId,
