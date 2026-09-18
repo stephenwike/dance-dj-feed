@@ -64,9 +64,26 @@ export default async function handler(req, res) {
     const filter = userId ? { _id: objId, ownerId: userId } : { _id: objId };
     await col.updateOne(filter, { $set: set });
 
-    // Partner dances are each unique — no sibling concept.
-    if (status === 'played' && thisReq && thisReq.danceType !== 'partner') {
-      await markSiblingsPlayed(col, objId, buildSiblingDanceMatch(thisReq), thisReq.sessionId);
+    if (status === 'played' && thisReq) {
+      if (thisReq.danceType === 'partner') {
+        // Partner group: mark all requests sharing the same groupId as played.
+        // groupId is the _id of the original request; upvotes store it in partnerGroupId.
+        const groupId = thisReq.partnerGroupId ?? String(thisReq._id);
+        await col.updateMany(
+          {
+            sessionId: thisReq.sessionId,
+            _id: { $ne: objId },
+            status: { $in: ['pending', 'approved', 'skipped'] },
+            $or: [
+              { _id: new ObjectId(groupId) },   // the original (when playing an upvote)
+              { partnerGroupId: groupId },        // all upvotes
+            ],
+          },
+          { $set: { status: 'played', updatedAt: new Date() } }
+        );
+      } else {
+        await markSiblingsPlayed(col, objId, buildSiblingDanceMatch(thisReq), thisReq.sessionId);
+      }
     }
 
     return res.status(200).json({ ok: true });

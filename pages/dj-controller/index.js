@@ -165,8 +165,11 @@ function Controller() {
     () => new Set(activeSession?.suppressedClientIds ?? []),
     [activeSession?.suppressedClientIds]
   );
+  const SUPPRESS_STATUSES = new Set(['pending', 'approved']);
   const visibleRequests = useMemo(
-    () => suppressedSet.size > 0 ? rawRequests.filter(r => !suppressedSet.has(r.clientId)) : rawRequests,
+    () => suppressedSet.size > 0
+      ? rawRequests.filter(r => !suppressedSet.has(r.clientId) || !SUPPRESS_STATUSES.has(r.status))
+      : rawRequests,
     [rawRequests, suppressedSet]
   );
 
@@ -203,7 +206,9 @@ function Controller() {
     if (pendingFilter === 'line') groups = groups.filter(g => g.danceType !== 'partner');
     else if (pendingFilter === 'partner') groups = groups.filter(g => g.danceType === 'partner');
     if (pendingSort === 'alpha') groups = [...groups].sort((a, b) => {
-      const nameOf = g => g.danceName || g.songName || g.partnerStyle || '';
+      const nameOf = g => g.danceType === 'partner'
+        ? (g.songName || g.partnerStyle || g.danceName || '')
+        : (g.danceName || g.songName || '');
       return nameOf(a).localeCompare(nameOf(b));
     });
     return groups;
