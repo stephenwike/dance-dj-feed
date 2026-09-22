@@ -122,6 +122,7 @@ export default async function handler(req, res) {
       { _id: new ObjectId(sessionId), ownerId: userId },
       update
     );
+
     return res.status(200).json({ ok: true });
   }
 

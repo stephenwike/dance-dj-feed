@@ -165,7 +165,7 @@ function Controller() {
     () => new Set(activeSession?.suppressedClientIds ?? []),
     [activeSession?.suppressedClientIds]
   );
-  const SUPPRESS_STATUSES = new Set(['pending', 'approved']);
+  const SUPPRESS_STATUSES = new Set(['pending']);
   const visibleRequests = useMemo(
     () => suppressedSet.size > 0
       ? rawRequests.filter(r => !suppressedSet.has(r.clientId) || !SUPPRESS_STATUSES.has(r.status))

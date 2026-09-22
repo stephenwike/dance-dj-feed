@@ -5,9 +5,10 @@ import { authOptions } from '../../../lib/server/authOptions';
 import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
 import { ObjectId } from 'mongodb';
 
-// Statuses that are hidden for suppressed requesters.
-// played/playing are kept so dances still show the REPEAT indicator when re-enabled.
-const SUPPRESS_STATUSES = new Set(['pending', 'approved']);
+// Only pending requests are hidden for suppressed requesters.
+// Approved (queued) dances stay visible — the DJ approved the dance, not just
+// the requester, and others may have requested it too.
+const SUPPRESS_STATUSES = new Set(['pending']);
 
 export default async function handler(req, res) {
   const client = await clientPromise;
