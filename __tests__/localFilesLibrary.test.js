@@ -1,7 +1,7 @@
 'use strict';
 const {
   isAudioFile, normalizeText, parseFilename, requestTrack,
-  buildLibraryIndex, matchTrack, searchLibrary, EMPTY_INDEX,
+  buildLibraryIndex, explainMatch, matchTrack, searchLibrary, EMPTY_INDEX,
 } = require('../lib/client/dj/plugins/localFiles/library');
 
 function entry(key, title, artist = '', album = '') {
@@ -150,5 +150,54 @@ describe('searchLibrary', () => {
 
   test('respects the limit', () => {
     expect(searchLibrary(lib, 'country', 1)).toHaveLength(1);
+  });
+});
+
+describe('explainMatch — catalog requests', () => {
+  const withLen = (key, title, artist, durationMs, isrcs = []) => ({ ...entry(key, title, artist), durationMs, isrcs });
+  const lib = buildLibraryIndex([
+    withLen('radio.mp3', 'Copperhead Road', 'Steve Earle', 270_000, ['USMC18826253']),
+    withLen('extended.mp3', 'Copperhead Road', 'Steve Earle', 388_000),
+    withLen('other.mp3', 'Wagon Wheel', 'Darius Rucker', 296_000),
+  ]);
+  const catalogRequest = { songName: 'Copperhead Road', artist: 'Steve Earle', catalogTrackId: 'musicbrainz:1' };
+
+  test('an assigned file beats everything', () => {
+    const r = { ...catalogRequest, localTrackKey: 'other.mp3', isrcs: ['USMC18826253'] };
+    expect(explainMatch(lib, r, { 'musicbrainz:1': 'extended.mp3' })).toEqual({ entry: expect.objectContaining({ key: 'other.mp3' }), via: 'assigned' });
+  });
+
+  test('a remembered catalog link beats ISRC and name matching', () => {
+    const r = { ...catalogRequest, isrcs: ['USMC18826253'] };
+    expect(explainMatch(lib, r, { 'musicbrainz:1': 'extended.mp3' })).toMatchObject({ entry: { key: 'extended.mp3' }, via: 'linked' });
+  });
+
+  test('ignores a link to a file that is gone', () => {
+    const r = { ...catalogRequest, isrcs: ['USMC18826253'] };
+    expect(explainMatch(lib, r, { 'musicbrainz:1': 'deleted.mp3' })).toMatchObject({ via: 'isrc' });
+  });
+
+  test('matches the exact recording by ISRC, case-insensitively', () => {
+    const r = { songName: 'Something Else Entirely', isrcs: ['usmc18826253'] };
+    expect(explainMatch(lib, r)).toMatchObject({ entry: { key: 'radio.mp3' }, via: 'isrc' });
+  });
+
+  test('uses length to choose between versions of the same song', () => {
+    expect(explainMatch(lib, { ...catalogRequest, duration_ms: 389_500 })).toMatchObject({ entry: { key: 'extended.mp3' }, via: 'name' });
+    expect(explainMatch(lib, { ...catalogRequest, duration_ms: 271_000 })).toMatchObject({ entry: { key: 'radio.mp3' }, via: 'name' });
+  });
+
+  test('compares against the recording length, not the tempo-adjusted one', () => {
+    // 388s played at 80% is served as 485s
+    expect(matchTrack(lib, { ...catalogRequest, duration_ms: 485_000, tempo: 0.8 }).key).toBe('extended.mp3');
+  });
+
+  test('falls back to the first match when no length is close', () => {
+    expect(matchTrack(lib, { ...catalogRequest, duration_ms: 100_000 }).key).toBe('extended.mp3');
+  });
+
+  test('without an artist, length can settle an ambiguous title', () => {
+    expect(matchTrack(lib, { songName: 'Copperhead Road', duration_ms: 388_500 }).key).toBe('extended.mp3');
+    expect(matchTrack(lib, { songName: 'Copperhead Road' })).toBeNull();
   });
 });

@@ -9,6 +9,7 @@ import { estimateQueueTimes, timeAgo, diffColor } from '../../components/dj-cont
 import { BEAT_PACKAGES } from '../../lib/beats/packages';
 import BeatTipper from '../../components/BeatTipper';
 import DirectTipSection from '../../components/dj-request/DirectTipSection';
+import CatalogSongPicker from '../../components/dj-request/CatalogSongPicker';
 import { RequestRowActions, RequestRowPanels, SuppressedOverlay } from '../../components/dj-request/RequestRowControls';
 import { danceKey, isActive, sortedQueue } from '../../lib/client/dj/queue';
 import { beatsFromCents } from '../../lib/beats/constants';
@@ -74,6 +75,7 @@ export default function DJRequestPage({
   const [requestType, setRequestType] = useState('line'); // 'line' | 'partner'
   const [isSongSwap, setIsSongSwap] = useState(false);
   const [partnerStyle, setPartnerStyle] = useState('');
+  const [partnerTrack, setPartnerTrack] = useState(null); // song picked from the music catalog
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
   const [swapSongName, setSwapSongName] = useState('');
@@ -432,6 +434,7 @@ export default function DJRequestPage({
           partnerStyle: partnerStyle || null,
           songName: swapSongName.trim() || null,
           artist: swapArtist.trim() || null,
+          catalogTrackId: partnerTrack?.id ?? null,
           notes: notes.trim(),
         });
       } else {
@@ -472,6 +475,7 @@ export default function DJRequestPage({
     setSearch('');
     setIsSongSwap(false);
     setPartnerStyle('');
+    setPartnerTrack(null);
     setSwapSongName('');
     setSwapArtist('');
     setNotes('');
@@ -485,6 +489,7 @@ export default function DJRequestPage({
     setRequestType(type);
     setIsSongSwap(false);
     setPartnerStyle('');
+    setPartnerTrack(null);
     setSelected(null);
     setSearch('');
     setSwapSongName('');
@@ -933,21 +938,13 @@ export default function DJRequestPage({
                     ) : null;
                   })()}</div>
                 <label className={styles.label}>Song <span className={styles.optionalLabel}>(optional)</span></label>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Song name"
-                  value={swapSongName}
-                  onChange={e => setSwapSongName(e.target.value)}
-                  maxLength={100}
-                />
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Artist (optional)"
-                  value={swapArtist}
-                  onChange={e => setSwapArtist(e.target.value)}
-                  maxLength={100}
+                <CatalogSongPicker
+                  text={swapSongName}
+                  onTextChange={setSwapSongName}
+                  track={partnerTrack}
+                  onTrackChange={setPartnerTrack}
+                  artist={swapArtist}
+                  onArtistChange={setSwapArtist}
                 />
               </div>
             )}

@@ -36,13 +36,18 @@
 
 ## Matching Requests to Files
 
-A request plays the file named by its `localTrackKey` (path relative to the music folder) if that file exists. Otherwise it is matched by song:
+The strongest evidence wins (`explainMatch` in `library.js`). The queue panel shows which method was used for **Now** and **Next**:
 
-- Title must match exactly after normalising (case, accents, punctuation, `(Radio Edit)`-style suffixes and `feat.` credits are ignored). Song swaps use the swap song.
-- If the request names an artist, the file's artist must match it, contain it (or be contained by it), or be missing. The same title by a different artist is treated as a different recording.
-- Without an artist, only a title that matches exactly one file is used.
+| Method | Label | Meaning |
+|---|---|---|
+| Assigned | chosen by you | The request's `localTrackKey`, set with **Find file** / **Change file** |
+| Linked | your usual file for this song | A file the DJ chose before for the same catalog song (`catalogTrackId`). Stored in IndexedDB, so it is per-computer |
+| ISRC | exact recording (ISRC) | A file whose ISRC tag matches one of the request's `isrcs` (copied from the music catalog) |
+| Name | matched by name | Normalised title must match, and the artist must match, contain, or be missing. Among equals, the file within 3s of the request's length wins, which picks the right version (radio edit vs extended) |
 
-The queue panel shows the file chosen for **Now** and **Next**. **Find file** / **Change file** pins a file by setting `localTrackKey`. A request with no file is timed, not played: it advances after its `duration_ms`, like Standard.
+Without an artist, a title only matches if it is unambiguous or one file is within 3s of the length. Song swaps use the swap song. A request with no file is timed, not played: it advances after its `duration_ms`, like Standard.
+
+Picking a file for a catalog request also records the link, so later requests for that song match automatically.
 
 ---
 

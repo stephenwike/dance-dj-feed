@@ -4,6 +4,14 @@ import LibrarySearch from './LibrarySearch';
 import DeckControls from './DeckControls';
 import { requestTrack } from '../../../../lib/client/dj/plugins/localFiles/library';
 
+// How the file was found, strongest first (see library.explainMatch).
+const MATCH_LABELS = {
+  assigned: 'chosen by you',
+  linked: 'your usual file for this song',
+  isrc: 'exact recording (ISRC)',
+  name: 'matched by name',
+};
+
 function displayName(r) {
   const { title, artist } = requestTrack(r);
   return [title || r.danceName, artist].filter(Boolean).join(' — ');
@@ -91,7 +99,8 @@ function PlaybackNotices({ playback }) {
  */
 function TrackCheck({ label, request, runtime }) {
   const [picking, setPicking] = useState(false);
-  const entry = runtime.matchFor(request);
+  const match = runtime.explainFor(request);
+  const entry = match?.entry;
 
   return (
     <div className={s.check}>
@@ -103,7 +112,7 @@ function TrackCheck({ label, request, runtime }) {
         )}
       </div>
       {entry
-        ? <span className={s.fileOk} title={entry.key}>♪ {entry.key}</span>
+        ? <span className={s.fileOk} title={entry.key}>♪ {entry.key} · {MATCH_LABELS[match.via]}</span>
         : <span className={s.fileMissing}>No matching file — it will be timed, not played</span>}
       {picking && (
         <LibrarySearch
@@ -111,7 +120,7 @@ function TrackCheck({ label, request, runtime }) {
           initialQuery={requestTrack(request).title}
           placeholder="Find the file for this track…"
           onClose={() => setPicking(false)}
-          onPick={async picked => { setPicking(false); await runtime.assignFile(request._id, picked); }}
+          onPick={async picked => { setPicking(false); await runtime.assignFile(request, picked); }}
         />
       )}
     </div>

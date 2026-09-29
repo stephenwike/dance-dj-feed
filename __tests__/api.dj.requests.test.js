@@ -4,7 +4,7 @@ const { createRequest, listRequests, toLocalTrackKey } = require('../lib/server/
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
 // ── Minimal MongoDB client factory ────────────────────────────────────────────
-function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [] } = {}) {
+function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [], tracks = [] } = {}) {
   const insertedDocs = [];
 
   function makeCol(docs) {
@@ -27,6 +27,7 @@ function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing
       collection: jest.fn((colName) => {
         if (colName === 'dj_sessions') return makeCol(session ? [session] : []);
         if (colName === 'dj_requests') return makeCol(existing);
+        if (colName === 'tracks') return makeCol(tracks);
         return makeCol([]);
       }),
     })),
@@ -270,3 +271,35 @@ describe('listRequests — tempo', () => {
   });
 });
 
+describe('createRequest — music catalog', () => {
+  const track = {
+    _id: 'musicbrainz:mb1', title: 'Wagon Wheel', artist: 'Darius Rucker',
+    durationMs: 296000, isrcs: ['USUM71300001'],
+  };
+
+  test('copies title, artist, length and ISRCs from the picked catalog track', async () => {
+    const client = makeMockClient({ tracks: [track] });
+    const doc = await createRequest(client, SESSION, {
+      danceName: 'Partner Dance', danceType: 'partner', clientId: 'anon_1',
+      catalogTrackId: 'musicbrainz:mb1', songName: 'wagon wheel', artist: 'darius',
+    });
+    expect(doc).toMatchObject({
+      catalogTrackId: 'musicbrainz:mb1', songName: 'Wagon Wheel', artist: 'Darius Rucker',
+      duration_ms: 296000, isrcs: ['USUM71300001'],
+    });
+  });
+
+  test('keeps an explicit duration over the catalog one', async () => {
+    const client = makeMockClient({ tracks: [track] });
+    const doc = await createRequest(client, SESSION, { danceName: 'X', catalogTrackId: 'musicbrainz:mb1', duration_ms: 1000 });
+    expect(doc.duration_ms).toBe(1000);
+  });
+
+  test('ignores unknown or malformed catalog ids and keeps the typed song', async () => {
+    const client = makeMockClient({ tracks: [track] });
+    const unknown = await createRequest(client, SESSION, { danceName: 'X', catalogTrackId: 'musicbrainz:nope', songName: 'Typed' });
+    expect(unknown).toMatchObject({ catalogTrackId: null, isrcs: [], songName: 'Typed' });
+    const bogus = await createRequest(client, SESSION, { danceName: 'Y', catalogTrackId: { $ne: null } });
+    expect(bogus.catalogTrackId).toBeNull();
+  });
+});
