@@ -1,5 +1,5 @@
 'use strict';
-const { createRequest } = require('../lib/server/dj/requestLogic');
+const { createRequest, toLocalTrackKey } = require('../lib/server/dj/requestLogic');
 
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
@@ -225,5 +225,35 @@ describe('createRequest — deduplication', () => {
     });
     expect(doc._id).not.toBe('existing-id');
     expect(client._inserted.length).toBe(1);
+  });
+});
+
+describe('createRequest — local files', () => {
+  test('stores the localTrackKey a DJ adds from their music folder', async () => {
+    const client = makeMockClient();
+    const doc = await createRequest(client, SESSION, {
+      danceName: 'Wagon Wheel', clientId: 'dj', status: 'approved', localTrackKey: 'Country/Wagon Wheel.mp3',
+    });
+    expect(doc.localTrackKey).toBe('Country/Wagon Wheel.mp3');
+  });
+
+  test('defaults localTrackKey to null', async () => {
+    const doc = await createRequest(makeMockClient(), SESSION, { danceName: 'Waterfall' });
+    expect(doc.localTrackKey).toBeNull();
+  });
+});
+
+describe('toLocalTrackKey', () => {
+  test('keeps non-empty strings up to 1024 characters', () => {
+    expect(toLocalTrackKey('a/b.mp3')).toBe('a/b.mp3');
+    expect(toLocalTrackKey('x'.repeat(1024))).toHaveLength(1024);
+  });
+
+  test('rejects empty, oversized and non-string values', () => {
+    expect(toLocalTrackKey('')).toBeNull();
+    expect(toLocalTrackKey('x'.repeat(1025))).toBeNull();
+    expect(toLocalTrackKey(42)).toBeNull();
+    expect(toLocalTrackKey({ $ne: null })).toBeNull();
+    expect(toLocalTrackKey(undefined)).toBeNull();
   });
 });

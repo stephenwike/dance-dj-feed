@@ -25,8 +25,9 @@
  */
 import standard from './standard';
 import spotify from './spotify';
+import localFiles from './localFiles';
 
-export const PLUGIN_LIST = [standard, spotify];
+export const PLUGIN_LIST = [standard, spotify, localFiles];
 
 const BY_ID = Object.fromEntries(PLUGIN_LIST.map(p => [p.id, p]));
 

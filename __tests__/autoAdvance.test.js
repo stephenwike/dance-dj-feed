@@ -1,5 +1,5 @@
 'use strict';
-const { remainingMs } = require('../lib/client/dj/autoAdvance');
+const { remainingMs, elapsedMs } = require('../lib/client/dj/autoAdvance');
 
 // Note: the "should the timer fire?" gate was previously tested here via
 // shouldTimerAdvance(). That logic now lives in StandardAdapter.shouldAutoAdvance
@@ -35,5 +35,25 @@ describe('remainingMs', () => {
     const now = 1_000_000;
     const playing = { _id: 'r1', playStartedAt: new Date(now - 60_000).toISOString(), duration_ms: 180_000 };
     expect(remainingMs(playing, now)).toBe(120_000);
+  });
+});
+
+describe('elapsedMs', () => {
+  const start = new Date('2026-01-01T20:00:00Z');
+  const at = secs => start.getTime() + secs * 1000;
+
+  test('measures from playStartedAt to now', () => {
+    expect(elapsedMs({ playStartedAt: start.toISOString() }, at(42))).toBe(42_000);
+  });
+
+  test('freezes at pausedAt while paused', () => {
+    const playing = { playStartedAt: start.toISOString(), pausedAt: new Date(at(10)).toISOString() };
+    expect(elapsedMs(playing, at(99))).toBe(10_000);
+  });
+
+  test('is 0 without a start time, and never negative', () => {
+    expect(elapsedMs({}, at(5))).toBe(0);
+    expect(elapsedMs(null, at(5))).toBe(0);
+    expect(elapsedMs({ playStartedAt: start.toISOString() }, at(-5))).toBe(0);
   });
 });

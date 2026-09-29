@@ -15,9 +15,9 @@ describe('isSessionOwner', () => {
 });
 
 describe('sanitizeCreateBody', () => {
-  const body = { danceName: 'Waterfall', status: 'approved', queuePosition: 1, tipCents: 500, clientId: 'anon_1' };
+  const body = { danceName: 'Waterfall', status: 'approved', queuePosition: 1, tipCents: 500, localTrackKey: 'a.mp3', clientId: 'anon_1' };
 
-  test('attendees cannot set status, queuePosition or tipCents', () => {
+  test('attendees cannot set status, queuePosition, tipCents or localTrackKey', () => {
     const clean = sanitizeCreateBody(body, { isOwner: false });
     expect(clean).toEqual({ danceName: 'Waterfall', clientId: 'anon_1' });
   });
