@@ -1,14 +1,10 @@
 import Stripe from 'stripe';
 import { safeReturnUrl } from '../../../lib/server/safeReturnUrl';
+import { stripeFeeCents } from '../../../lib/payments/fees';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const MIN_AMOUNT_CENTS = 100; // $1 minimum
-
-// Stripe fee: 2.9% + $0.30, rounded up to the nearest cent
-function stripeFee(amountCents) {
-  return Math.ceil(amountCents * 0.029 + 30);
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -23,7 +19,7 @@ export default async function handler(req, res) {
 
   const safeReturn = safeReturnUrl(returnUrl);
 
-  const fee = stripeFee(amountCents);
+  const fee = stripeFeeCents(amountCents);
   const totalCents = amountCents + fee;
 
   const session = await stripe.checkout.sessions.create({
