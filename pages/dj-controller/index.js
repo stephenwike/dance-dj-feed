@@ -36,6 +36,29 @@ import ExtendSessionModal from '../../components/dj-controller/ExtendSessionModa
 import useSessionTimeState from '../../lib/client/dj/hooks/useSessionTimeState';
 import { fetcher } from '../../lib/client/fetcher';
 
+// Suppressed requesters' pending requests are hidden; approved ones stay (see /api/dj/requests).
+const SUPPRESS_STATUSES = new Set(['pending']);
+
+// The Stripe CLI health banner is a local-development aid only.
+const STRIPE_STATUS_URL = process.env.NODE_ENV === 'development' ? '/api/dev/stripe-status' : null;
+
+const historyName = r => r.danceType === 'partner'
+  ? (r.songName || r.partnerStyle || r.danceName || 'Partner Dance')
+  : (r.danceName || '');
+
+// Collapse repeat entries of the same dance played within 5 minutes of each
+// other (e.g. several requests for one play that were marked individually).
+function dedupeHistory(history) {
+  const lastSeen = {};
+  return history.filter(r => {
+    const key = historyName(r).toLowerCase().trim();
+    const t = new Date(r.updatedAt).getTime();
+    if (lastSeen[key] !== undefined && Math.abs(t - lastSeen[key]) < 5 * 60 * 1000) return false;
+    lastSeen[key] = t;
+    return true;
+  });
+}
+
 // ── Main Controller ───────────────────────────────────────────────────────────
 function Controller() {
   const router = useRouter();
@@ -48,7 +71,7 @@ function Controller() {
   const [connectNotice, setConnectNotice] = useState('');
 
   const {
-    sessions, liveSessions, activeSession, draftSession, workingSession, isSpotify, mutateSessions,
+    sessions, liveSessions, workingSession, isSpotify, mutateSessions,
     selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleRequestsEnabled, toggleWeighting, cycleDecay,
     toggleQueueVisibility, setQueueVisibleCount,
@@ -56,6 +79,9 @@ function Controller() {
     tippingEnabled, partnerDancesEnabled, requestsEnabled, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, decayLabel,
     queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId,
   } = useSessionManager();
+  // The selected session, when it is live (drafts can be configured and
+  // pre-loaded, but not played or announced to).
+  const liveSession = workingSession?.status === 'active' ? workingSession : null;
 
   const requestsUrl = workingSession?._id ? `/api/dj/requests?sessionId=${workingSession._id}` : '/api/dj/requests';
   const { data: rawRequests = [], mutate } = useSWR(requestsUrl, fetcher, {
@@ -81,7 +107,7 @@ function Controller() {
     msgDuration, setMsgDuration,
     sendToAll, setSendToAll,
     postMessage, clearMessage, addQueueMessage,
-  } = useAnnouncements({ activeSession, mutateRequests: mutate });
+  } = useAnnouncements({ session: liveSession, mutateRequests: mutate });
 
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
 
@@ -122,9 +148,9 @@ function Controller() {
     prevPanel.current = activePanel;
   }, [activePanel]);
 
-  const spotify = useSpotifyPlugin({ isActive: isSpotify, rawRequests, mutate });
+  const spotify = useSpotifyPlugin({ isActive: isSpotify, sessionId: liveSession?._id, rawRequests, mutate });
 
-  const { timeState, countdown, isGrace } = useSessionTimeState(activeSession);
+  const { timeState, countdown, isGrace } = useSessionTimeState(liveSession);
 
   useEffect(() => {
     if (router.query.extension_success) {
@@ -144,14 +170,14 @@ function Controller() {
   }, [router.query.extension_success, router.query.connect_success, router.query.connect_refresh]);
 
   const [stripeDismissed, setStripeDismissed] = useState(false);
-  const { data: stripeStatus } = useSWR('/api/dev/stripe-status', fetcher, {
+  const { data: stripeStatus } = useSWR(STRIPE_STATUS_URL, fetcher, {
     refreshInterval: 10000, shouldRetryOnError: false,
     onSuccess: (data) => { if (data?.active) setStripeDismissed(false); },
   });
   const stripeWarning = stripeStatus && !stripeStatus.active && !stripeDismissed;
 
-  async function closeSession() {
-    await closeSessionBase(isSpotify ? () => spotify.onCloseSession() : undefined);
+  async function closeSession(id) {
+    await closeSessionBase({ id, onBeforeMutate: isSpotify ? () => spotify.onCloseSession() : undefined });
     mutate();
   }
 
@@ -161,10 +187,9 @@ function Controller() {
 
   // Filter out suppressed requesters from the pending/queue display
   const suppressedSet = useMemo(
-    () => new Set(activeSession?.suppressedClientIds ?? []),
-    [activeSession?.suppressedClientIds]
+    () => new Set(workingSession?.suppressedClientIds ?? []),
+    [workingSession?.suppressedClientIds]
   );
-  const SUPPRESS_STATUSES = new Set(['pending']);
   const visibleRequests = useMemo(
     () => suppressedSet.size > 0
       ? rawRequests.filter(r => !suppressedSet.has(r.clientId) || !SUPPRESS_STATUSES.has(r.status))
@@ -180,7 +205,7 @@ function Controller() {
 
   const playingItem = playing[0] ?? null;
   const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
-  useStandardAutoAdvance({ isSpotify, playingItem, mutate, sessionId: activeSession?._id });
+  useStandardAutoAdvance({ isSpotify, playingItem, mutate, sessionId: liveSession?._id });
 
   const { sensors, handleDragEnd } = useQueueReorder({ queue, mutate });
 
@@ -189,11 +214,11 @@ function Controller() {
   });
 
   async function toggleSuppress(clientId, suppress) {
-    if (!activeSession?._id) return;
+    if (!workingSession?._id) return;
     await fetch('/api/dj/requesters', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId: String(activeSession._id), clientId, suppress }),
+      body: JSON.stringify({ sessionId: String(workingSession._id), clientId, suppress }),
     });
     mutateSessions();
   }
@@ -233,12 +258,10 @@ function Controller() {
           </div>
         )}
         <TopBar
-          activeSession={activeSession}
-          draftSession={draftSession}
           workingSession={workingSession}
           liveSessions={liveSessions}
           selectSession={selectSession}
-          closeSession={closeSession}
+          closeSession={() => closeSession()}
           discardDraft={discardDraft}
           timeState={timeState}
           countdown={countdown}
@@ -248,9 +271,9 @@ function Controller() {
           countdown={countdown}
           onExtend={() => setShowExtendModal(true)}
         />
-        {showExtendModal && activeSession && (
+        {showExtendModal && liveSession && (
           <ExtendSessionModal
-            sessionId={activeSession._id}
+            sessionId={liveSession._id}
             onClose={() => setShowExtendModal(false)}
             onExtended={() => mutateSessions()}
           />
@@ -258,7 +281,7 @@ function Controller() {
 
         <div className={styles.body}>
           <Sidebar
-            activeSession={activeSession}
+            activeSession={liveSession}
             activePanel={activePanel}
             onSetPanel={setActivePanel}
             activeMsg={activeMsg}
@@ -358,7 +381,7 @@ function Controller() {
 
             {activePanel === 'messages' && (
               <MessagePanel
-                activeSession={activeSession}
+                activeSession={liveSession}
                 msgTab={msgTab}
                 setMsgTab={setMsgTab}
                 msgText={msgText}
@@ -385,7 +408,7 @@ function Controller() {
 
             {activePanel === 'settings' && (
               <SettingsPanel
-                activeSession={activeSession}
+                activeSession={workingSession}
                 requestsEnabled={requestsEnabled}
                 toggleRequestsEnabled={toggleRequestsEnabled}
                 partnerDancesEnabled={partnerDancesEnabled}
@@ -430,7 +453,7 @@ function Controller() {
               <SessionsPanel
                 sessions={sessions}
                 onContinue={continueSession}
-                onCloseSession={async (id) => { await closeSession(); setActivePanel('requests'); }}
+                onCloseSession={async (id) => { await closeSession(id); setActivePanel('requests'); }}
               />
             )}
 
@@ -450,31 +473,14 @@ function Controller() {
                   {history.length === 0 ? (
                     <p className={styles.empty} style={{ padding: '12px 14px' }}>No tracks played yet this session.</p>
                   ) : (
-                    (() => {
-                      const histDisplayName = r => r.danceType === 'partner'
-                        ? (r.songName || r.partnerStyle || r.danceName || 'Partner Dance')
-                        : (r.danceName || r._id);
-                      const seen = {};
-                      return history.filter(r => {
-                        const key = histDisplayName(r).toLowerCase().trim();
-                        const t = new Date(r.updatedAt).getTime();
-                        if (seen[key] !== undefined && Math.abs(t - seen[key]) < 5 * 60 * 1000) return false;
-                        seen[key] = t;
-                        return true;
-                      });
-                    })().map(r => {
-                      const histDisplayName = r.danceType === 'partner'
-                        ? (r.songName || r.partnerStyle || r.danceName || 'Partner Dance')
-                        : (r.danceName || '');
-                      return (
+                    dedupeHistory(history).map(r => (
                       <div key={r._id} className={styles.histRow} style={{ padding: '6px 14px' }}>
                         <span className={styles.histDot} />
-                        <span className={styles.histName}>{histDisplayName}</span>
+                        <span className={styles.histName}>{historyName(r)}</span>
                         {r.danceType === 'partner' && <span className={styles.partnerBadge}>Partner</span>}
                         <span className={styles.histAge}>{(() => { const t = timeAgo(r.updatedAt); return t === 'just now' ? t : `${t} ago`; })()}</span>
                       </div>
-                      );
-                    })
+                    ))
                   )}
 
                 </div>
@@ -500,7 +506,7 @@ function Controller() {
                   />
                 ) : (
                   <RemoteControl
-                    playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession}
+                    playing={playing} queue={queue} onAction={handleAction} activeSession={liveSession}
                     stats={statsFor(playing[0])}
                   />
                 )}

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 
 export default function TopBar({
-  activeSession, draftSession, workingSession, liveSessions = [],
+  workingSession, liveSessions = [],
   selectSession, closeSession, discardDraft, timeState, countdown,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -94,11 +94,11 @@ export default function TopBar({
 
       {/* ── Right: end time, action buttons, quick links ── */}
       <div className={styles.topBarRight}>
-        {activeSession?.endsAt && (
+        {workingSession?.endsAt && (
           <span className={styles.topBarEndsAt}>
             {timeState && timeState !== 'active'
               ? countdown
-              : `ends ${new Date(activeSession.endsAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+              : `ends ${new Date(workingSession.endsAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
           </span>
         )}
         {isActive && (
