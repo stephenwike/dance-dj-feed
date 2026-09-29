@@ -1,12 +1,18 @@
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../lib/server/authOptions';
 import { spotifyFetch } from '../../../lib/server/spotify';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
+  const session = await getServerSession(req, res, authOptions);
+  const ownerId = session?.user?.id ?? null;
+  if (!ownerId) return res.status(401).json({ error: 'Unauthorized' });
   const { q } = req.query;
   if (!q?.trim()) return res.status(400).json({ error: 'query required' });
 
   try {
     const data = await spotifyFetch(
+      ownerId,
       `/search?q=${encodeURIComponent(q)}&type=track&limit=8`
     );
     const tracks = (data?.tracks?.items ?? []).map(t => ({
