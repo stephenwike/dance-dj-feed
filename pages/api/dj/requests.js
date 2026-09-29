@@ -1,89 +1,100 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { listRequests, createRequest, getActiveSession } from '../../../lib/server/dj/requestLogic';
+import {
+  isSessionOwner, sanitizeCreateBody, createBlockedReason, redactForViewer,
+} from '../../../lib/server/dj/requestAccess';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
-import { ObjectId } from 'mongodb';
+import { toObjectId } from '../../../lib/server/db';
 
 // Only pending requests are hidden for suppressed requesters.
 // Approved (queued) dances stay visible — the DJ approved the dance, not just
 // the requester, and others may have requested it too.
 const SUPPRESS_STATUSES = new Set(['pending']);
 
+// Session settings an attendee's page needs to render (live, so the DJ's
+// toggles take effect mid-event without a reload).
+function publicSessionInfo(session) {
+  return {
+    status: session.status,
+    requestsEnabled: session.requestsEnabled !== false,
+    partnerDancesEnabled: session.partnerDancesEnabled !== false,
+    tippingEnabled: session.tippingEnabled !== false,
+  };
+}
+
+// Resolve the target session: an explicit sessionId, or — for a signed-in DJ
+// only — their own active session.
+async function resolveSession(db, client, sessionId, userId) {
+  if (sessionId) {
+    const oid = toObjectId(sessionId);
+    return oid ? db.collection('dj_sessions').findOne({ _id: oid }) : null;
+  }
+  return getActiveSession(client, userId);
+}
+
 export default async function handler(req, res) {
   const client = await clientPromise;
+  const db = client.db(DB_NAME);
+  const authSession = await getServerSession(req, res, authOptions);
+  const userId = authSession?.user?.id ?? null;
 
   if (req.method === 'GET') {
     res.setHeader('Cache-Control', 'no-store');
     const { sessionId, clientId } = req.query;
-    const db = client.db(DB_NAME);
 
-    const authSession = await getServerSession(req, res, authOptions);
-    const userId = authSession?.user?.id ?? null;
+    const session = await resolveSession(db, client, sessionId, userId);
+    if (!session) return res.status(200).json(clientId ? { requests: [], suppressed: false, directMessages: [] } : []);
 
-    const requests = await listRequests(client, sessionId ?? null, null);
+    const requests = await listRequests(client, String(session._id));
 
-    // Fetch session for suppression data. Also grab ownerId so we can skip
-    // filtering for the DJ's own controller view (they need to see everyone).
-    let suppressedClientIds = [];
-    let djSessionDoc = null;
-    if (sessionId) {
-      try {
-        djSessionDoc = await db.collection('dj_sessions').findOne(
-          { _id: new ObjectId(sessionId) },
-          { projection: { suppressedClientIds: 1, ownerId: 1 } }
-        );
-        suppressedClientIds = djSessionDoc?.suppressedClientIds ?? [];
-      } catch { /* invalid sessionId — leave suppressedClientIds empty */ }
-    }
+    // The owner's controller/feed sees everything. A request carrying a
+    // clientId comes from the attendee app (even if the DJ is testing it while
+    // signed in), so it gets the attendee view.
+    const isOwnerView = !clientId && isSessionOwner(session, userId);
+    if (isOwnerView) return res.status(200).json(requests);
 
-    // Only skip filtering for the DJ's controller view: authenticated owner with no clientId.
-    // If clientId is present the request is from the requester app (even if the DJ is testing
-    // it while logged in), so filtering still applies.
-    const isOwner = !clientId && userId && djSessionDoc?.ownerId === userId;
-    const filteredRequests = (!isOwner && suppressedClientIds.length > 0)
+    const suppressedClientIds = session.suppressedClientIds ?? [];
+    const visible = suppressedClientIds.length > 0
       ? requests.filter(r => !suppressedClientIds.includes(r.clientId) || !SUPPRESS_STATUSES.has(r.status))
       : requests;
+    const redacted = redactForViewer(visible, clientId ?? null);
 
-    // When the requester is an anonymous attendee, also return suppression
-    // status and any active DMs addressed to them.
-    if (clientId && sessionId) {
-      try {
-        const now = new Date();
-        const directMessages = await db.collection('dj_direct_messages').find({
-          recipientClientId: clientId,
-          status: 'active',
-          $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
-        }).sort({ createdAt: -1 }).toArray();
+    if (!clientId) return res.status(200).json(redacted);
 
-        const suppressed = suppressedClientIds.includes(clientId);
-        return res.status(200).json({
-          requests: filteredRequests,
-          suppressed,
-          directMessages: directMessages.map(m => ({ ...m, _id: String(m._id) })),
-        });
-      } catch { /* fall through to plain response */ }
-    }
+    // Attendee view: include their suppression status, live session settings,
+    // and any active DMs addressed to their anonymous clientId.
+    const now = new Date();
+    const directMessages = await db.collection('dj_direct_messages').find({
+      recipientClientId: clientId,
+      status: 'active',
+      $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+    }).sort({ createdAt: -1 }).toArray();
 
-    return res.status(200).json(filteredRequests);
+    return res.status(200).json({
+      requests: redacted,
+      suppressed: suppressedClientIds.includes(clientId),
+      session: publicSessionInfo(session),
+      directMessages: directMessages.map(m => ({ ...m, _id: String(m._id) })),
+    });
   }
 
   if (req.method === 'POST') {
-    const targetSessionId = req.body?.sessionId;
-    if (targetSessionId) {
-      try {
-        const djSession = await client.db(DB_NAME).collection('dj_sessions')
-          .findOne({ _id: new ObjectId(targetSessionId) });
-        if (djSession) {
-          const { state } = getSessionTimeState(djSession);
-          if (state === 'grace' || state === 'expired') {
-            return res.status(403).json({ error: 'Session expired', timeState: state });
-          }
-        }
-      } catch { /* invalid ObjectId, let createRequest handle it */ }
+    const session = await resolveSession(db, client, req.body?.sessionId, userId);
+    const isOwner = isSessionOwner(session, userId);
+    const body = sanitizeCreateBody(req.body, { isOwner });
+
+    const blocked = createBlockedReason(session, body.clientId, { isOwner });
+    if (blocked) return res.status(session ? 403 : 404).json({ error: blocked });
+
+    const { state } = getSessionTimeState(session);
+    if (state === 'grace' || state === 'expired') {
+      return res.status(403).json({ error: 'Session expired', timeState: state });
     }
+
     try {
-      const doc = await createRequest(client, req.body);
+      const doc = await createRequest(client, session, body);
       return res.status(201).json(doc);
     } catch (err) {
       return res.status(err.statusCode ?? 500).json({ error: err.message });

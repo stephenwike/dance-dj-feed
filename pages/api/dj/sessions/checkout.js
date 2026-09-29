@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import clientPromise from '../../../../lib/server/mongodb';
-import { createSession, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
+import { createSession, findDraft, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
 import { isFreeSessionEmail } from '../../../../lib/server/dj/sessionAccess';
 import { safeReturnUrl } from '../../../../lib/server/safeReturnUrl';
 import { SESSION_DURATIONS_BY_MINUTES, SESSION_PLUGINS } from '../../../../lib/dj/sessionPricing';
@@ -22,14 +22,11 @@ export default async function handler(req, res) {
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
   const client = await clientPromise;
 
-  // If launching a draft that has a configured duration, use it
-  if (!durationMinutes && draftSessionId) {
-    const { ObjectId } = require('mongodb');
-    try {
-      const draft = await client.db(process.env.MONGODB_DB || 'djfeed').collection('dj_sessions')
-        .findOne({ _id: new ObjectId(String(draftSessionId)) });
-      if (draft?.durationMinutes) durationMinutes = draft.durationMinutes;
-    } catch { /* bad id — will fail at tier check below */ }
+  if (draftSessionId) {
+    const draft = await findDraft(client, draftSessionId, userId);
+    if (!draft) return res.status(404).json({ error: 'Draft session not found' });
+    // If launching a draft that has a configured duration, use it
+    if (!durationMinutes) durationMinutes = draft.durationMinutes;
   }
 
   const tier = SESSION_DURATIONS_BY_MINUTES[Number(durationMinutes)];
@@ -40,16 +37,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid plugin' });
   }
 
-  if (!paymentsEnabled) {
+  if (!paymentsEnabled || await isFreeSessionEmail(client, authSession.user.email)) {
     const doc = draftSessionId
-      ? await activateDraftSession(client, draftSessionId, { durationMinutes: tier.minutes })
-      : await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
-    return res.status(201).json({ session: doc });
-  }
-
-  if (await isFreeSessionEmail(client, authSession.user.email)) {
-    const doc = draftSessionId
-      ? await activateDraftSession(client, draftSessionId, { durationMinutes: tier.minutes })
+      ? await activateDraftSession(client, draftSessionId, { ownerId: userId, durationMinutes: tier.minutes })
       : await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
     return res.status(201).json({ session: doc });
   }

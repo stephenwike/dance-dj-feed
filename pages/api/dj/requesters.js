@@ -1,7 +1,7 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
-import { ObjectId } from 'mongodb';
+import { toObjectId } from '../../../lib/server/db';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -14,10 +14,11 @@ export default async function handler(req, res) {
   // GET — list requester stats for a session
   if (req.method === 'GET') {
     const { sessionId } = req.query;
-    if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
+    const sessionOid = toObjectId(sessionId);
+    if (!sessionOid) return res.status(400).json({ error: 'A valid sessionId is required' });
 
     const djSession = await db.collection('dj_sessions').findOne(
-      { _id: new ObjectId(sessionId), ownerId: userId },
+      { _id: sessionOid, ownerId: userId },
       { projection: { suppressedClientIds: 1 } }
     );
     if (!djSession) return res.status(404).json({ error: 'Session not found' });
@@ -112,14 +113,15 @@ export default async function handler(req, res) {
   // POST — suppress or unsuppress a requester
   if (req.method === 'POST') {
     const { sessionId, clientId, suppress } = req.body ?? {};
-    if (!sessionId || !clientId) return res.status(400).json({ error: 'sessionId and clientId are required' });
+    const sessionOid = toObjectId(sessionId);
+    if (!sessionOid || !clientId) return res.status(400).json({ error: 'sessionId and clientId are required' });
 
     const update = suppress
       ? { $addToSet: { suppressedClientIds: clientId } }
       : { $pull: { suppressedClientIds: clientId } };
 
     await db.collection('dj_sessions').updateOne(
-      { _id: new ObjectId(sessionId), ownerId: userId },
+      { _id: sessionOid, ownerId: userId },
       update
     );
 

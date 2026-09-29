@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
-import { createSession, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
+import { createSession, findDraft, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
 import { SESSION_DURATIONS_BY_MINUTES, SESSION_PLUGINS } from '../../../../lib/dj/sessionPricing';
 
 export default async function handler(req, res) {
@@ -18,13 +18,11 @@ export default async function handler(req, res) {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
 
-  // If activating a draft, fall back to its configured duration
-  if (!durationMinutes && draftSessionId) {
-    const { ObjectId } = require('mongodb');
-    try {
-      const draft = await db.collection('dj_sessions').findOne({ _id: new ObjectId(String(draftSessionId)) });
-      if (draft?.durationMinutes) durationMinutes = draft.durationMinutes;
-    } catch { /* bad id — fails at tier check below */ }
+  if (draftSessionId) {
+    const draft = await findDraft(client, draftSessionId, userId);
+    if (!draft) return res.status(404).json({ error: 'Draft session not found' });
+    // If activating a draft, fall back to its configured duration
+    if (!durationMinutes) durationMinutes = draft.durationMinutes;
   }
 
   const tier = SESSION_DURATIONS_BY_MINUTES[Number(durationMinutes)];
@@ -45,7 +43,7 @@ export default async function handler(req, res) {
 
   // Create or activate session
   const doc = draftSessionId
-    ? await activateDraftSession(client, draftSessionId, { durationMinutes: tier.minutes })
+    ? await activateDraftSession(client, draftSessionId, { ownerId: userId, durationMinutes: tier.minutes })
     : await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
 
   // Debit wallet

@@ -120,7 +120,7 @@ export default async function handler(req, res) {
         return res.status(400).end();
       }
       const sessionDoc = draftSessionId
-        ? await activateDraftSession(client, draftSessionId, { durationMinutes: Number(durationMinutes) })
+        ? await activateDraftSession(client, draftSessionId, { ownerId, durationMinutes: Number(durationMinutes) })
         : await createSession(client, {
             ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
           });

@@ -587,7 +587,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   }
 
   async function handlePanelRemove(requestId) {
-    await fetch(`/api/dj/requests/${requestId}`, { method: 'DELETE' });
+    await fetch(`/api/dj/requests/${requestId}?clientId=${encodeURIComponent(clientId)}`, { method: 'DELETE' });
     setPendingRemoveId(null);
     mutateRequests();
   }

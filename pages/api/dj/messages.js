@@ -1,24 +1,35 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
+import { getActiveSession } from '../../../lib/server/dj/requestLogic';
+import { toObjectId } from '../../../lib/server/db';
 
-async function getActiveSession(client, sessionId, ownerId) {
-  const col = client.db(DB_NAME).collection('dj_sessions');
-  if (sessionId) return col.findOne({ _id: require('mongodb').ObjectId.createFromHexString(sessionId) });
-  const filter = { status: 'active' };
-  if (ownerId) filter.ownerId = ownerId;
-  return col.findOne(filter);
+// An explicit session by id (optionally restricted to an owner), or the
+// signed-in owner's active session. Never an arbitrary DJ's session.
+async function findSession(client, sessionId, ownerId) {
+  if (sessionId) {
+    const oid = toObjectId(sessionId);
+    if (!oid) return null;
+    const filter = ownerId ? { _id: oid, ownerId } : { _id: oid };
+    return client.db(DB_NAME).collection('dj_sessions').findOne(filter);
+  }
+  return getActiveSession(client, ownerId);
 }
 
 export default async function handler(req, res) {
   const client = await clientPromise;
-  const db = client.db(DB_NAME);
-  const col = db.collection('dj_messages');
+  const col = client.db(DB_NAME).collection('dj_messages');
 
   if (req.method === 'GET') {
     res.setHeader('Cache-Control', 'no-store');
     const { sessionId, audience } = req.query;
-    const session = await getActiveSession(client, sessionId, null);
+    // Without a sessionId, fall back to the signed-in DJ's active session.
+    let ownerId = null;
+    if (!sessionId) {
+      const authSession = await getServerSession(req, res, authOptions);
+      ownerId = authSession?.user?.id ?? null;
+    }
+    const session = await findSession(client, sessionId, ownerId);
     if (!session) return res.status(200).json({ message: null });
 
     const now = new Date();
@@ -44,10 +55,10 @@ export default async function handler(req, res) {
     const userId = authSession?.user?.id ?? null;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { text, duration, sendToAll } = req.body ?? {};
+    const { text, duration, sendToAll, sessionId: bodySessionId } = req.body ?? {};
     if (!text?.trim()) return res.status(400).json({ error: 'text is required' });
 
-    const session = await getActiveSession(client, null, userId);
+    const session = await findSession(client, bodySessionId, userId);
     if (!session) return res.status(400).json({ error: 'No active session' });
 
     const sessionId = String(session._id);
@@ -76,4 +87,3 @@ export default async function handler(req, res) {
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
-

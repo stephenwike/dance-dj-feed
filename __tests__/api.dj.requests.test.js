@@ -1,6 +1,8 @@
 'use strict';
 const { createRequest } = require('../lib/server/dj/requestLogic');
 
+const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
+
 // ── Minimal MongoDB client factory ────────────────────────────────────────────
 function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [] } = {}) {
   const insertedDocs = [];
@@ -54,7 +56,7 @@ function matches(doc, filter) {
 describe('createRequest — duplicate queue prevention', () => {
   test('creates a pending request when dance is not yet in the queue', async () => {
     const client = makeMockClient({ existing: [] });
-    const doc = await createRequest(client, { danceName: 'Waterfall' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
     expect(doc.status).toBe('pending');
   });
 
@@ -64,7 +66,7 @@ describe('createRequest — duplicate queue prevention', () => {
         { _id: 'r1', sessionId: 'sess1', danceName: 'Waterfall', status: 'approved', queuePosition: 1 },
       ],
     });
-    const doc = await createRequest(client, { danceName: 'Waterfall' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
     expect(doc.status).toBe('pending');  // was 'approved' before the fix
   });
 
@@ -74,7 +76,7 @@ describe('createRequest — duplicate queue prevention', () => {
         { _id: 'r1', sessionId: 'sess1', danceName: 'Waterfall', status: 'approved', queuePosition: 1 },
       ],
     });
-    const doc = await createRequest(client, { danceName: 'Waterfall' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
     expect(doc.queuePosition).not.toBe(1);  // was 1 before the fix (same as existing)
   });
 
@@ -84,7 +86,7 @@ describe('createRequest — duplicate queue prevention', () => {
         { _id: 'r1', sessionId: 'sess1', danceName: 'Waterfall', status: 'playing', queuePosition: 1 },
       ],
     });
-    const doc = await createRequest(client, { danceName: 'Waterfall' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
     expect(doc.status).toBe('pending');
   });
 
@@ -94,25 +96,37 @@ describe('createRequest — duplicate queue prevention', () => {
         { _id: 'r1', sessionId: 'sess1', danceName: 'Waterfall', status: 'played', updatedAt: new Date() },
       ],
     });
-    const doc = await createRequest(client, { danceName: 'Waterfall' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
     expect(doc.isRepeat).toBe(true);
   });
 
   test('marks isRepeat=false for a dance never played in the session', async () => {
     const client = makeMockClient({ existing: [] });
-    const doc = await createRequest(client, { danceName: 'Waterfall' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
     expect(doc.isRepeat).toBe(false);
   });
 
   test('throws 400 when danceName is missing', async () => {
     const client = makeMockClient();
-    await expect(createRequest(client, {})).rejects.toMatchObject({ statusCode: 400 });
+    await expect(createRequest(client, SESSION, {})).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  test("throws 404 when no session is given (never falls back to another DJ's session)", async () => {
+    const client = makeMockClient();
+    await expect(createRequest(client, null, { danceName: 'Waterfall' })).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  test('stamps the session id and owner on the new request', async () => {
+    const client = makeMockClient();
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall' });
+    expect(doc.sessionId).toBe('sess1');
+    expect(doc.ownerId).toBe('dj1');
   });
 
   // ── Song swap ─────────────────────────────────────────────────────────────
   test('stores isSongSwap and swap song details when provided', async () => {
     const client = makeMockClient({ existing: [] });
-    const doc = await createRequest(client, {
+    const doc = await createRequest(client, SESSION, {
       danceName: 'Electric Slide',
       isSongSwap: true,
       swapSongName: 'Boots On',
@@ -125,13 +139,13 @@ describe('createRequest — duplicate queue prevention', () => {
 
   test('defaults isSongSwap to false when not provided', async () => {
     const client = makeMockClient({ existing: [] });
-    const doc = await createRequest(client, { danceName: 'Electric Slide' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Electric Slide' });
     expect(doc.isSongSwap).toBe(false);
   });
 
   test('respects forced status when caller passes status explicitly (DJ-added tracks)', async () => {
     const client = makeMockClient({ existing: [] });
-    const doc = await createRequest(client, { danceName: 'Waterfall', status: 'approved', queuePosition: 1 });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall', status: 'approved', queuePosition: 1 });
     expect(doc.status).toBe('approved');
     expect(doc.queuePosition).toBe(1);
   });
@@ -145,7 +159,7 @@ describe('createRequest — deduplication', () => {
         status: 'pending', isSongSwap: false, queuePosition: 1 },
     ];
     const client = makeMockClient({ existing });
-    const doc = await createRequest(client, { danceName: 'Waterfall', clientId: 'User_123' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall', clientId: 'User_123' });
     expect(doc._id).toBe('existing-id');
     expect(client._inserted.length).toBe(0);
   });
@@ -156,7 +170,7 @@ describe('createRequest — deduplication', () => {
         status: 'pending', isSongSwap: false, queuePosition: 1 },
     ];
     const client = makeMockClient({ existing });
-    const doc = await createRequest(client, { danceName: 'Waterfall', clientId: 'User_123' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall', clientId: 'User_123' });
     expect(doc._id).not.toBe('existing-id');
     expect(client._inserted.length).toBe(1);
   });
@@ -167,7 +181,7 @@ describe('createRequest — deduplication', () => {
         status: 'played', isSongSwap: false },
     ];
     const client = makeMockClient({ existing });
-    const doc = await createRequest(client, { danceName: 'Waterfall', clientId: 'User_123' });
+    const doc = await createRequest(client, SESSION, { danceName: 'Waterfall', clientId: 'User_123' });
     expect(doc._id).not.toBe('existing-id');
     expect(client._inserted.length).toBe(1);
   });
@@ -178,7 +192,7 @@ describe('createRequest — deduplication', () => {
         status: 'pending', isSongSwap: true, swapSongName: 'Boots On' },
     ];
     const client = makeMockClient({ existing });
-    const doc = await createRequest(client, {
+    const doc = await createRequest(client, SESSION, {
       danceName: 'Electric Slide', clientId: 'User_123',
       isSongSwap: true, swapSongName: 'Boots On',
     });
@@ -192,7 +206,7 @@ describe('createRequest — deduplication', () => {
         status: 'pending', isSongSwap: true, swapSongName: 'Boots On' },
     ];
     const client = makeMockClient({ existing });
-    const doc = await createRequest(client, {
+    const doc = await createRequest(client, SESSION, {
       danceName: 'Electric Slide', clientId: 'User_123',
       isSongSwap: true, swapSongName: 'Different Song',
     });
@@ -206,7 +220,7 @@ describe('createRequest — deduplication', () => {
         status: 'approved', isSongSwap: false, queuePosition: 1 },
     ];
     const client = makeMockClient({ existing });
-    const doc = await createRequest(client, {
+    const doc = await createRequest(client, SESSION, {
       danceName: 'Waterfall', clientId: 'dj', status: 'approved', queuePosition: 2,
     });
     expect(doc._id).not.toBe('existing-id');

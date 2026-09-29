@@ -1,9 +1,10 @@
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
-import { ObjectId } from 'mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
 import { normalizeSession } from '../../../../lib/server/dj/reportLogic';
+import { makeSlug } from '../../../../lib/server/dj/sessionLogic';
+import { toObjectId, exactCaseInsensitive } from '../../../../lib/server/db';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -14,11 +15,11 @@ export default async function handler(req, res) {
   const col = client.db(DB_NAME).collection('dj_sessions');
   const { id } = req.query;
 
-  let objId;
-  try { objId = new ObjectId(id); } catch { return res.status(400).json({ error: 'Invalid id' }); }
+  const objId = toObjectId(id);
+  if (!objId) return res.status(400).json({ error: 'Invalid id' });
 
   if (req.method === 'GET') {
-    const session = await col.findOne({ _id: objId });
+    const session = await col.findOne({ _id: objId, ownerId: userId });
     if (!session) return res.status(404).json({ error: 'Not found' });
 
     const report = await client.db(DB_NAME).collection('session_reports')
@@ -45,33 +46,39 @@ export default async function handler(req, res) {
     if (name !== undefined) {
       const trimmed = String(name).trim();
       if (!trimmed) return res.status(400).json({ error: 'Name cannot be empty' });
-      const { makeSlug } = require('../../../../lib/server/dj/sessionLogic');
       const collision = await col.findOne({
         ownerId: userId,
         _id: { $ne: objId },
         status: { $in: ['draft', 'active'] },
-        name: { $regex: `^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+        name: exactCaseInsensitive(trimmed),
       });
       if (collision) return res.status(409).json({ error: `A session named "${trimmed}" already exists` });
       set.name = trimmed;
       set.slug = makeSlug(trimmed);
     }
 
+    // Only the filter below matters for writes, but status transitions depend
+    // on the current state, so load it first.
+    const current = await col.findOne({ _id: objId, ownerId: userId }, { projection: { status: 1, startedAt: 1 } });
+    if (!current) return res.status(404).json({ error: 'Not found' });
+
     if (status === 'closed') {
       set.status = 'closed';
       set.closedAt = new Date();
       set.suppressedClientIds = [];
     } else if (status === 'active') {
-      await col.updateMany(
-        { status: 'active', ownerId: userId, _id: { $ne: objId } },
-        { $set: { status: 'closed', closedAt: new Date() } }
-      );
+      // "Continue" re-opens a session that already ran (and was paid for).
+      // Drafts must go through checkout / wallet-pay, which set endsAt;
+      // activating one here would create a session with no end time.
+      if (current.status !== 'closed' || !current.startedAt) {
+        return res.status(409).json({ error: 'Only a previously started session can be continued' });
+      }
       set.status = 'active';
       set.closedAt = null;
     }
 
     if (durationMinutes !== undefined) set.durationMinutes = Number(durationMinutes) || null;
-    if (partnerDancesEnabled !== undefined) set.partnerDancesEnabled = partnerDancesEnabled;
+    if (partnerDancesEnabled !== undefined) set.partnerDancesEnabled = !!partnerDancesEnabled;
     if (tippingEnabled !== undefined) set.tippingEnabled = !!tippingEnabled;
     if (requestsEnabled !== undefined) set.requestsEnabled = !!requestsEnabled;
     if (weightDecayEnabled !== undefined) set.weightDecayEnabled = !!weightDecayEnabled;
