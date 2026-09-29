@@ -1,5 +1,5 @@
 'use strict';
-const { createRequest, toLocalTrackKey } = require('../lib/server/dj/requestLogic');
+const { createRequest, listRequests, toLocalTrackKey } = require('../lib/server/dj/requestLogic');
 
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
@@ -257,3 +257,16 @@ describe('toLocalTrackKey', () => {
     expect(toLocalTrackKey(undefined)).toBeNull();
   });
 });
+
+describe('listRequests — tempo', () => {
+  test('serves wall-clock durations for requests played at a different tempo', async () => {
+    const client = makeMockClient({ existing: [
+      { _id: 'slow', sessionId: 'sess1', danceName: 'A', duration_ms: 180_000, tempo: 0.9 },
+      { _id: 'normal', sessionId: 'sess1', danceName: 'B', duration_ms: 180_000 },
+    ] });
+    const byId = Object.fromEntries((await listRequests(client, 'sess1')).map(r => [r._id, r]));
+    expect(byId.slow.duration_ms).toBe(200_000);
+    expect(byId.normal.duration_ms).toBe(180_000);
+  });
+});
+

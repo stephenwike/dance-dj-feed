@@ -66,6 +66,22 @@ The player belongs to the session whose track it holds. Switching the controller
 
 ---
 
+## Mixing Controls
+
+Shown in the queue panel on the computer playing the music.
+
+- **Tempo** (75%–125%, pitch preserved), for the current track only; each new track starts at 100%. It is stored on the request as `tempo`. The server's `joinDurations` serves `duration_ms` as wall-clock time (`duration / tempo`), so countdowns, queue ETAs and the feed stay correct without knowing about tempo. Changing tempo also moves `playStartedAt` so the song keeps its place (`lib/dj/tempo.js`).
+- **Fade → Next**: a 5s crossfade into the next track, which advances the queue straight away.
+- **Fade out**: fades over 5s, then pauses the track in the queue. Resuming plays at full volume.
+- **Crossfade** (Off / 3s / 6s / 10s): starts the next track that many seconds before the current one ends, with equal-power curves. It only applies when the next track's file is already loaded, and never on tracks shorter than 3× the crossfade.
+- **Speakers**: sends audio to a chosen output device (`setSinkId`). Chrome only names devices after a microphone permission prompt; nothing is recorded.
+
+Crossfade length and speakers are per-computer preferences, kept in `localStorage`.
+
+The player has two decks. One plays the current track; the other preloads the next track's file, so changes are gapless even with crossfade off. During a crossfade the second deck carries the outgoing track.
+
+---
+
 ## Plugin Architecture (all plugins)
 
 `components/dj-controller/plugins/registry.js` lists plugin descriptors: `{ id, label, description, adapter, useRuntime, slots }`. The controller never branches on plugin ids; it renders the active plugin's components into named slots (`PluginSlot.js`):
@@ -87,4 +103,4 @@ Adding a plugin means adding a descriptor to the registry and its id to `SESSION
 - Chrome/Edge only (File System Access API).
 - Controls respond after the queue PATCH and refetch (typically well under a second), not instantly.
 - The feed's countdown uses the catalog `duration_ms`, which can differ slightly from the file's real length.
-- Not yet built: tempo control, output-device selection, crossfade/gapless preload.
+- Tempo is per track; there is no remembered per-song tempo yet.

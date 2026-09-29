@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import s from './LocalFiles.module.css';
 import LibrarySearch from './LibrarySearch';
+import DeckControls from './DeckControls';
 import { requestTrack } from '../../../../lib/client/dj/plugins/localFiles/library';
 
 function displayName(r) {
@@ -117,7 +118,7 @@ function TrackCheck({ label, request, runtime }) {
   );
 }
 
-/** QUEUE_HEADER slot: library status, playback prompts, and now/next file checks. */
+/** QUEUE_HEADER slot: library status, playback prompts, now/next file checks and mixing controls. */
 export default function LocalFilesStatus({ runtime, controller }) {
   const { library, playback } = runtime;
   const nowPlaying = controller.playing[0];
@@ -130,6 +131,7 @@ export default function LocalFilesStatus({ runtime, controller }) {
       {ready && <PlaybackNotices playback={playback} />}
       {ready && nowPlaying && <TrackCheck key={nowPlaying._id} label="Now" request={nowPlaying} runtime={runtime} />}
       {ready && upNext && <TrackCheck key={upNext._id} label="Next" request={upNext} runtime={runtime} />}
+      {ready && <DeckControls runtime={runtime} nowPlaying={nowPlaying} />}
     </div>
   );
 }

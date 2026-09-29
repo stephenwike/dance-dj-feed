@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import { getSessionTimeState } from '../../../../lib/dj/sessionTimeState';
 import { toObjectId } from '../../../../lib/server/db';
+import { normalizeTempo } from '../../../../lib/dj/tempo';
 
 // Fields the DJ may edit on a request. Each maps the raw body value to what is stored.
 const EDITABLE_FIELDS = {
@@ -23,6 +24,7 @@ const EDITABLE_FIELDS = {
   duration_ms:   v => v ?? null,
   spotifyUri:    v => v ?? null,
   localTrackKey: toLocalTrackKey,
+  tempo:         normalizeTempo,
   isSongSwap:    v => !!v,
   swapSongName:  v => v ?? null,
   swapArtist:    v => v ?? null,
