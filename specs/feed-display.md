@@ -1,7 +1,7 @@
 # Workflow: Feed Display (TV / Projector)
 
 **Actor:** Passive display (no user interaction) — viewed by attendees in the room  
-**Entry point:** `/dj-feed` or `/feed/[slug]`  
+**Entry point:** `/feed-preview?sessionId=…` (via the stable `/feed/[slug]` redirect)  
 **Outcome:** Attendees can see what's playing now, what's coming up, and the QR code to submit requests.
 
 ---
@@ -78,7 +78,7 @@ When the DJ posts an announcement via the controller:
 
 - Server-side: resolves session by `slug` from `dj_sessions`
 - Props pass `sessionId` and `djId` to the page component
-- Otherwise identical to `/dj-feed`
+- Otherwise identical to the session-less preview
 - Shareable and stable — the same URL works every time the DJ uses the same session name pattern
 
 ---

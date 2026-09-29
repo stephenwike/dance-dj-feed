@@ -4,10 +4,10 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import styles from './dj-setup.module.css';
+import { fetcher } from '../lib/client/fetcher';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false });
 
-const fetcher = url => fetch(url).then(r => r.json());
 const CONTROLLER_PATH = '/dj-controller';
 const STEPS = ['The Feed Screen', 'Attendees & Requests', 'Your Controller'];
 

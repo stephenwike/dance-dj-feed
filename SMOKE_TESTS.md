@@ -19,10 +19,10 @@ Run this checklist before any significant release or after completing a phase of
 | # | Step | Expected | Pass |
 |---|------|----------|------|
 | 1.1 | Visit `/dj-controller` while logged out | Redirected to Clerk sign-in page | ☐ |
-| 1.2 | Visit `/dj-spotify` while logged out | Redirected to Clerk sign-in page | ☐ |
+| 1.2 | Visit `/reports` while logged out | Redirected to sign-in page | ☐ |
 | 1.3 | Visit `/start` while logged out | Redirected to Clerk sign-in page | ☐ |
 | 1.4 | Sign in as DJ A | Lands on controller, no PIN prompt | ☐ |
-| 1.5 | Visit `/dj-feed` while logged out | Feed page loads (public) | ☐ |
+| 1.5 | Visit `/feed/<slug>` for an active session | Redirects to `/feed-preview` (sign-in required) | ☐ |
 | 1.6 | Visit `/dj-request` while logged out | Request page loads (public) | ☐ |
 | 1.7 | Click UserButton → Sign out | Redirected away from controller | ☐ |
 

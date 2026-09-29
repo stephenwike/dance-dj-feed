@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
 
 const DM_DURATIONS = [
   { label: '3m',  seconds: 180 },

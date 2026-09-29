@@ -1,8 +1,8 @@
-﻿import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
+import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
-import { createSession } from '../../../lib/server/dj/sessionLogic';
-import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
+import { createSession, closeSession } from '../../../lib/server/dj/sessionLogic';
+import { getSessionTimeState } from '../../../lib/dj/sessionTimeState';
 import { normalizeSession } from '../../../lib/server/dj/reportLogic';
 
 export default async function handler(req, res) {
@@ -19,13 +19,7 @@ export default async function handler(req, res) {
 
     for (const s of sessions) {
       if (s.status === 'active' && getSessionTimeState(s, now).state === 'expired') {
-        await col.updateOne(
-          { _id: s._id },
-          { $set: { status: 'closed', closedAt: now, autoClosedAt: now, suppressedClientIds: [] } },
-        );
-        s.status = 'closed';
-        s.closedAt = now;
-        s.autoClosedAt = now;
+        Object.assign(s, await closeSession(client, s._id, { auto: true, now }));
         normalizeSession(client, String(s._id)).catch(err =>
           console.error('Auto-close report normalization failed:', err)
         );

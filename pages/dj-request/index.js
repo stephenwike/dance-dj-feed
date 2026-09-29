@@ -5,24 +5,14 @@ import { Pencil, Check } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import styles from './dj-request.module.css';
 import { filterAvailableDances } from '../../lib/client/dj/availableDances';
-import { estimateQueueTimes, timeAgo } from '../../components/dj-controller/utils';
+import { estimateQueueTimes, timeAgo, diffColor } from '../../components/dj-controller/utils';
 import { BEAT_PACKAGES } from '../../lib/beats/packages';
 import BeatTipper from '../../components/BeatTipper';
-import BeatBooster from '../../components/BeatBooster';
-
-const fetcher = url => fetch(url).then(r => r.json());
-
-const DIFF_COLORS = {
-  beginner: '#22c55e',
-  improver: '#3b82f6',
-  intermediate: '#f59e0b',
-  advanced: '#ef4444',
-};
-
-function diffColor(d = '') {
-  const key = Object.keys(DIFF_COLORS).find(k => d.toLowerCase().includes(k));
-  return key ? DIFF_COLORS[key] : '#8A5CFF';
-}
+import DirectTipSection from '../../components/dj-request/DirectTipSection';
+import { RequestRowActions, RequestRowPanels, SuppressedOverlay } from '../../components/dj-request/RequestRowControls';
+import { danceKey, isActive, sortedQueue } from '../../lib/client/dj/queue';
+import { beatsFromCents } from '../../lib/beats/constants';
+import { fetcher } from '../../lib/client/fetcher';
 
 function getOrCreateClientId() {
   let id = localStorage.getItem('dj_client_id');
@@ -48,9 +38,7 @@ function getRowStatus(requests, queueTimes) {
   if (requests.find(r => r.status === 'playing')) {
     return { label: 'Now playing', type: 'Playing' };
   }
-  const approved = requests
-    .filter(r => r.status === 'approved')
-    .sort((a, b) => (a.queuePosition ?? 999) - (b.queuePosition ?? 999))[0];
+  const approved = sortedQueue(requests)[0];
   if (approved) {
     const est = queueTimes[approved._id];
     return { label: est ? `In queue · ~${formatPlayTime(est)}` : 'In queue', type: 'Queued' };
@@ -65,7 +53,12 @@ function getRowStatus(requests, queueTimes) {
   return null;
 }
 
-export default function DJRequestPage({ sessionId = null, djId: djIdProp = null, sessionEnded = false, requestsEnabled: requestsEnabledProp = true, tippingEnabled: tippingEnabledProp = null, queueVisibleToRequesters = true, queueVisibleCount = 4 }) {
+export default function DJRequestPage({
+  sessionId = null, djId: djIdProp = null, sessionEnded = false,
+  requestsEnabled: requestsEnabledProp = true, tippingEnabled: tippingEnabledProp = null,
+  partnerDancesEnabled: partnerDancesEnabledProp = true,
+  queueVisibleToRequesters = true, queueVisibleCount = 4,
+}) {
   const { data: authSession, status: authStatus } = useSession();
   const isLoaded = authStatus !== 'loading';
   const isSignedIn = !!authSession;
@@ -96,10 +89,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   const [buyingPackage, setBuyingPackage] = useState(null);
   const [beatsSuccess, setBeatsSuccess] = useState(false);
 
-  // Direct tip state
-  const [directTipCents, setDirectTipCents] = useState(null);
-  const [directTipCustom, setDirectTipCustom] = useState('');
-  const [directTipping, setDirectTipping] = useState(false);
   const [tipSuccess, setTipSuccess] = useState(false);
 
   // Beat tipping state
@@ -155,25 +144,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     }
   }, []);
 
-  async function sendDirectTip() {
-    const cents = directTipCents === 'custom'
-      ? Math.round(parseFloat(directTipCustom) * 100)
-      : directTipCents;
-    if (!cents || cents < 100 || !djId) return;
-    setDirectTipping(true);
-    try {
-      const res = await fetch('/api/tips/direct', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ djId, amountCents: cents, returnUrl: window.location.href }),
-      });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-    } finally {
-      setDirectTipping(false);
-    }
-  }
-
   async function buyBeats(pkg) {
     setBuyingPackage(pkg.id);
     try {
@@ -188,36 +158,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
       setBuyingPackage(null);
     }
   }
-
-  const { data: sessions } = useSWR('/api/dj/sessions', fetcher, {
-    refreshInterval: 20000,
-    revalidateOnFocus: true,
-    dedupingInterval: 5000,
-  });
-  const sessionList = Array.isArray(sessions) ? sessions : [];
-  const activeSession = sessionList.find(s => s.status === 'active') ?? null;
-
-  // Detect session ending mid-visit: only fire if THIS specific session appears in the
-  // DJ's list AND has been closed. Checking for "any active session" was wrong — if the
-  // authenticated user's sessions don't include this session (e.g. ownerId mismatch after
-  // auth changes), the old check would incorrectly show "session ended" to the DJ while
-  // everyone else (unauthenticated) still saw the form.
-  const thisSession = sessionId ? sessionList.find(s => s._id === sessionId) : null;
-  const sessionEndedMidVisit = !!thisSession && thisSession.status !== 'active';
-  const effectivelyEnded = sessionEnded || sessionEndedMidVisit;
-
-  // sessionActive: use sessionId (server truth) as the primary signal so unauthenticated
-  // attendees see the form without needing access to the protected /api/dj/sessions route.
-  const sessionActive = !!sessionId && !effectivelyEnded;
-  const sessionChecked = true;
-  const partnerDancesEnabled = activeSession?.partnerDancesEnabled !== false; // default true
-  // djId: from slug prop (works even after session ends) or from live active session
-  const djId = djIdProp ?? activeSession?.ownerId ?? null;
-  // tippingEnabled: from slug prop (server-rendered) or from live session (non-slug page)
-  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
-  const tippingEnabled = paymentsEnabled && (tippingEnabledProp ?? (activeSession?.tippingEnabled !== false));
-  // requestsEnabled: live session overrides the SSR prop so the DJ can toggle mid-event
-  const requestsEnabled = thisSession ? thisSession.requestsEnabled !== false : requestsEnabledProp;
 
   const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
 
@@ -289,7 +229,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   );
   const allRequests = Array.isArray(requestsData) ? requestsData : (requestsData?.requests ?? []);
   const isSuppressed = requestsData?.suppressed === true;
-  const mutateSuppressed = mutateRequests;
+
+  // Session settings: server-rendered props first, then the live values that
+  // come back with every requests poll, so the DJ's toggles apply mid-event.
+  const liveSession = requestsData?.session ?? null;
+  const effectivelyEnded = sessionEnded || (!!liveSession && liveSession.status !== 'active');
+  const sessionActive = !!sessionId && !effectivelyEnded;
+  const djId = djIdProp;
+  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
+  const tippingEnabled = paymentsEnabled && (liveSession ? liveSession.tippingEnabled : (tippingEnabledProp ?? true));
+  const requestsEnabled = liveSession ? liveSession.requestsEnabled : requestsEnabledProp;
+  const partnerDancesEnabled = liveSession ? liveSession.partnerDancesEnabled : partnerDancesEnabledProp;
   const directMessages = isSignedIn
     ? (directMsgData?.messages ?? [])
     : (requestsData?.directMessages ?? []);
@@ -316,9 +266,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   // Dances this user has already requested (active requests only, exclude DJ queue messages)
   const myActiveRequests = useMemo(() =>
     allRequests.filter(r =>
-      r.clientId === clientId &&
-      r.danceType !== 'message' &&
-      ['pending', 'approved', 'playing'].includes(r.status)
+      r.clientId === clientId && r.danceType !== 'message' && isActive(r)
     ), [allRequests, clientId]);
 
   function alreadyRequested(dance) {
@@ -329,15 +277,13 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   }
 
   const requestGroups = useMemo(() => {
-    const active = allRequests.filter(r => r.danceType !== 'message' && ['pending', 'approved', 'playing'].includes(r.status));
+    const active = allRequests.filter(r => r.danceType !== 'message' && isActive(r));
     const map = {};
     for (const r of active) {
-      const danceKey = r.danceType === 'partner'
-        ? (r.partnerGroupId || r._id)
-        : (r.danceName || '').toLowerCase().trim();
-      if (!map[danceKey]) {
-        map[danceKey] = {
-          danceKey, danceId: r.danceId, danceName: r.danceName,
+      const key = danceKey(r);
+      if (!map[key]) {
+        map[key] = {
+          danceKey: key, danceId: r.danceId, danceName: r.danceName,
           songName: r.songName, artist: r.artist,
           difficulty: r.difficulty, stepsheet: r.stepsheet,
           duration_ms: r.duration_ms,
@@ -348,15 +294,11 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
         };
       }
       if (!r.isSongSwap) {
-        map[danceKey].originals.push(r);
+        map[key].originals.push(r);
       } else {
         const swapKey = (r.swapSongName || '').toLowerCase().trim();
-        if (!map[danceKey].swaps[swapKey]) {
-          map[danceKey].swaps[swapKey] = {
-            swapSongName: r.swapSongName, swapArtist: r.swapArtist, requests: [],
-          };
-        }
-        map[danceKey].swaps[swapKey].requests.push(r);
+        map[key].swaps[swapKey] ??= { swapSongName: r.swapSongName, swapArtist: r.swapArtist, requests: [] };
+        map[key].swaps[swapKey].requests.push(r);
       }
     }
     return Object.values(map)
@@ -366,19 +308,24 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
 
   const queueItems = useMemo(() => {
     const playing = allRequests.filter(r => r.status === 'playing' && r.danceType !== 'message');
-    const queued = allRequests
-      .filter(r => r.status === 'approved' && r.danceType !== 'message')
-      .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0));
+    const queued = sortedQueue(allRequests).filter(r => r.danceType !== 'message');
     return { playing, queued };
   }, [allRequests]);
 
-  const queueTimes = useMemo(() => {
-    const playing = allRequests.filter(r => r.status === 'playing');
-    const queued = allRequests
-      .filter(r => r.status === 'approved')
-      .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0));
-    return estimateQueueTimes(playing, queued);
+  const queueTimes = useMemo(
+    () => estimateQueueTimes(allRequests.filter(r => r.status === 'playing'), sortedQueue(allRequests)),
+    [allRequests]);
+
+  // Beats tipped per dance (all live requests), keyed like the controller.
+  const beatsByDance = useMemo(() => {
+    const cents = {};
+    for (const r of allRequests) {
+      if (!isActive(r) || r.danceType === 'message') continue;
+      cents[danceKey(r)] = (cents[danceKey(r)] ?? 0) + (r.tipCents ?? 0);
+    }
+    return cents;
   }, [allRequests]);
+  const beatsFor = r => beatsFromCents(beatsByDance[danceKey(r)]);
 
   const playedHistory = useMemo(() => {
     const map = {};
@@ -456,7 +403,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     });
     const body = await res.json();
     if (res.status === 403) {
-      mutateSuppressed();
+      mutateRequests(); // picks up the suppressed flag
       return;
     }
     if (!res.ok) throw new Error(body.error || 'Tip failed');
@@ -587,7 +534,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
   }
 
   async function handlePanelRemove(requestId) {
-    await fetch(`/api/dj/requests/${requestId}`, { method: 'DELETE' });
+    await fetch(`/api/dj/requests/${requestId}?clientId=${encodeURIComponent(clientId)}`, { method: 'DELETE' });
     setPendingRemoveId(null);
     mutateRequests();
   }
@@ -598,6 +545,43 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     } else {
       handlePanelRemove(request._id);
     }
+  }
+
+  // Controls for one request row (original dance or a song-swap variant).
+  // `mine` is the attendee's own request in that row, if any.
+  function renderRowActions(mine, count, onAdd, addTitle) {
+    return (
+      <RequestRowActions
+        myRequest={mine}
+        count={count}
+        canTip={tippingEnabled && isSignedIn}
+        beatBalance={beatBalance}
+        boosterOpen={!!mine && boosterOpenId === mine._id}
+        onToggleBooster={() => setBoosterOpenId(id => (id === mine._id ? null : mine._id))}
+        onGetBeats={() => setShowBeatShop(true)}
+        onAdd={onAdd}
+        addDisabled={submittingPanel}
+        addTitle={addTitle}
+        onRemove={() => requestRemoveClick(mine, count === 1)}
+      />
+    );
+  }
+
+  function renderRowPanels(mine, isLast, lastLabel) {
+    return (
+      <RequestRowPanels
+        myRequest={mine}
+        isLast={isLast}
+        lastLabel={lastLabel}
+        beatBalance={beatBalance}
+        boosterOpen={!!mine && boosterOpenId === mine._id}
+        confirmingRemove={!!mine && pendingRemoveId === mine._id}
+        onTip={async (beats) => { await tipRequest(mine._id, beats); setBoosterOpenId(null); }}
+        onCloseBooster={() => setBoosterOpenId(null)}
+        onCancelRemove={() => setPendingRemoveId(null)}
+        onConfirmRemove={() => handlePanelRemove(mine._id)}
+      />
+    );
   }
 
   if (submitted) {
@@ -620,68 +604,17 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
     );
   }
 
-  function DirectTipSection() {
-    if (!djId || !tippingEnabled) return null;
-    const PRESETS = [100, 200, 500, 1000];
-    const tipCents = directTipCents === 'custom'
-      ? Math.round(parseFloat(directTipCustom || '0') * 100)
-      : directTipCents;
-    const fee = tipCents >= 100 ? Math.ceil(tipCents * 0.029 + 30) : 0;
-    const canSend = tipCents >= 100 && !directTipping;
-    return (
-      <div className={styles.directTipSection}>
-        <p className={styles.directTipLabel}>Tip the DJ</p>
-        {sessionActive && tippingEnabled && (
-          <div className={styles.directTipBeatsNudge}>
-            <span>💡 Beats tip your specific request with no processing fee — 100% goes to the DJ and boosts your dance in the queue.</span>
-            {isSignedIn
-              ? <button className={styles.directTipBeatsLink} onClick={() => setShowBeatShop(true)}>Get Beats →</button>
-              : <button className={styles.directTipBeatsLink} onClick={() => signIn('ldco', { callbackUrl: window.location.href })}>Sign in to use Beats →</button>
-            }
-          </div>
-        )}
-        <div className={styles.directTipPresets}>
-          {PRESETS.map(c => (
-            <button
-              key={c}
-              className={`${styles.directTipChip} ${directTipCents === c ? styles.directTipChipActive : ''}`}
-              onClick={() => { setDirectTipCents(c); setDirectTipCustom(''); }}
-            >
-              ${c / 100}
-            </button>
-          ))}
-          <button
-            className={`${styles.directTipChip} ${directTipCents === 'custom' ? styles.directTipChipActive : ''}`}
-            onClick={() => setDirectTipCents('custom')}
-          >
-            Custom
-          </button>
-        </div>
-        {directTipCents === 'custom' && (
-          <div className={styles.directTipCustomWrap}>
-            <span className={styles.directTipDollar}>$</span>
-            <input
-              className={styles.directTipCustomInput}
-              type="number" min="1" step="1" placeholder="0"
-              value={directTipCustom}
-              onChange={e => setDirectTipCustom(e.target.value)}
-              autoFocus
-            />
-          </div>
-        )}
-        {tipCents >= 100 && (
-          <p className={styles.directTipFee}>
-            You pay ${((tipCents + fee) / 100).toFixed(2)} · DJ receives ${(tipCents / 100).toFixed(2)}
-          </p>
-        )}
-        <button className={styles.directTipBtn} onClick={sendDirectTip} disabled={!canSend}>
-          {directTipping ? 'Redirecting…' : 'Tip the DJ'}
-        </button>
-      </div>
-    );
-  }
+  const directTip = djId && tippingEnabled ? (
+    <DirectTipSection
+      djId={djId}
+      showBeatsNudge={sessionActive}
+      isSignedIn={isSignedIn}
+      onGetBeats={() => setShowBeatShop(true)}
+      onSignIn={() => signIn('ldco', { callbackUrl: window.location.href })}
+    />
+  ) : null;
 
-  if (sessionChecked && !sessionActive) {
+  if (!sessionActive) {
     return (
       <>
         <Head><title>Request a Dance</title></Head>
@@ -693,7 +626,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                 <div className={styles.noSessionIcon}>🎵</div>
                 <h1 className={styles.noSessionTitle}>Session has ended</h1>
                 <p className={styles.noSessionSub}>The DJ has closed the request queue for tonight. Thanks for coming out!</p>
-                <DirectTipSection />
+                {directTip}
               </>
             ) : (
               <>
@@ -708,15 +641,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
           </div>
         </div>
         {isSuppressed && (
-          <div className={styles.suppressedOverlay}>
-            <div className={styles.suppressedCard}>
-              <span className={styles.suppressedIcon}>🎵</span>
-              <h2 className={styles.suppressedTitle}>Your requests have been paused</h2>
-              <p className={styles.suppressedMsg}>
-                The DJ has temporarily disabled your account. If you&apos;re still here, let the DJ know and they can re-enable you.
-              </p>
-            </div>
-          </div>
+          <SuppressedOverlay />
         )}
       </>
     );
@@ -1121,7 +1046,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
           </>)}
 
           {/* ── Direct tip ── */}
-          <DirectTipSection />
+          {directTip}
         </div>
 
         {/* ── Tabbed section ── */}
@@ -1167,19 +1092,6 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
               }
               const limit = queueVisibleCount === 0 ? queued.length : Math.max(0, queueVisibleCount - playing.length);
               const visibleQueued = queued.slice(0, limit);
-              const queueBeats = {};
-              for (const r of allRequests) {
-                if (!['pending', 'approved', 'playing'].includes(r.status)) continue;
-                if (r.danceType === 'message') continue;
-                const key = r.danceType === 'partner'
-                  ? (r.partnerGroupId || r._id)
-                  : (r.danceId || (r.danceName || '').toLowerCase().trim());
-                queueBeats[key] = (queueBeats[key] ?? 0) + Math.round((r.tipCents ?? 0) / 5);
-              }
-              function beatsForItem(r) {
-                if (r.danceType === 'partner') return queueBeats[r.partnerGroupId || r._id] ?? 0;
-                return queueBeats[r.danceId || (r.danceName || '').toLowerCase().trim()] ?? 0;
-              }
               return (
                 <div className={styles.queueList}>
                   {playing.map((r, i) => (
@@ -1189,7 +1101,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
+                      {beatsFor(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsFor(r)}</span>}
                       <span className={styles.queueItemStatus}>Now Playing</span>
                     </div>
                   ))}
@@ -1200,7 +1112,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsForItem(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsForItem(r)}</span>}
+                      {beatsFor(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsFor(r)}</span>}
                     </div>
                   ))}
                 </div>
@@ -1219,10 +1131,10 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
               ) : requestGroups.map(group => {
                 const myOriginal = group.originals.find(r => r.clientId === clientId);
                 const totalOriginals = group.originals.length;
-                const totalBeats = [
+                const totalBeats = beatsFromCents([
                   ...group.originals,
                   ...group.swaps.flatMap(s => s.requests),
-                ].reduce((sum, r) => sum + Math.round((r.tipCents ?? 0) / 5), 0);
+                ].reduce((sum, r) => sum + (r.tipCents ?? 0), 0));
                 return (
                   <div key={group.danceKey} className={styles.tabGroup}>
                     {/* Dance name / partner song header */}
@@ -1258,57 +1170,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                             )}
                             {(() => { const s = getRowStatus(group.originals, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
                           </div>
-                          <div className={styles.tabRowActions}>
-                            {myOriginal ? (
-                              <>
-                                {tippingEnabled && isSignedIn && (() => {
-                                  const displayBeats = Math.round((myOriginal.tipCents ?? 0) / 5);
-                                  const hasTip = displayBeats > 0;
-                                  const isOpen = boosterOpenId === myOriginal._id;
-                                  return (
-                                    <div className={`${styles.splitBoostWrap} ${hasTip ? styles.splitBoostWrapTipped : ''} ${isOpen ? styles.splitBoostWrapOpen : ''}`}>
-                                      <button
-                                        className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''}`}
-                                        onClick={() => beatBalance === 0 ? setShowBeatShop(true) : setBoosterOpenId(isOpen ? null : myOriginal._id)}
-                                        title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
-                                      >
-                                        <img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{hasTip ? displayBeats : ''}
-                                      </button>
-                                    </div>
-                                  );
-                                })()}
-                                <span className={styles.reqCount}>{totalOriginals}</span>
-                                <button className={styles.minusBtn} onClick={() => requestRemoveClick(myOriginal, totalOriginals === 1)} title="Remove your request">−</button>
-                              </>
-                            ) : (
-                              <>
-                                <span className={styles.reqCount}>{totalOriginals}</span>
-                                <button className={styles.plusBtn} onClick={() => handlePanelRequest(group)} disabled={submittingPanel} title="Add your request">+</button>
-                              </>
-                            )}
-                          </div>
+                          {renderRowActions(myOriginal, totalOriginals, () => handlePanelRequest(group), 'Add your request')}
                         </div>
-                        {boosterOpenId === myOriginal?._id && (
-                          <BeatBooster
-                            balance={beatBalance}
-                            onTip={async (beats) => { await tipRequest(myOriginal._id, beats); setBoosterOpenId(null); }}
-                            onClose={() => setBoosterOpenId(null)}
-                          />
-                        )}
-                        {pendingRemoveId === myOriginal?._id && (() => {
-                          const hasTip = (myOriginal.tipCents ?? 0) > 0;
-                          const isLast = totalOriginals === 1;
-                          return (
-                            <div className={styles.removeWarning}>
-                              {isLast && <p className={styles.removeWarningText}>You are the last person requesting this dance — removing it will remove it from the list for everyone.</p>}
-                              {hasTip && <p className={styles.removeWarningText}>You have spent {Math.round(myOriginal.tipCents / 5)} Beats on this request that will not be refunded.</p>}
-                              <div className={styles.removeWarningActions}>
-                                <button className={styles.removeWarningCancel} onClick={() => setPendingRemoveId(null)}>Keep request</button>
-                                <button className={styles.removeWarningConfirm} onClick={() => handlePanelRemove(myOriginal._id)}>Remove</button>
-                              </div>
-                            </div>
-                          );
-                        })()}
+                        {renderRowPanels(myOriginal, totalOriginals === 1, 'dance')}
                       </>
                     )}
 
@@ -1323,57 +1187,9 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
                               {swap.swapArtist && <span className={styles.tabRowSong}>{swap.swapArtist}</span>}
                               {(() => { const s = getRowStatus(swap.requests, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
                             </div>
-                            <div className={styles.tabRowActions}>
-                              {mySwap ? (
-                                <>
-                                  {tippingEnabled && isSignedIn && (() => {
-                                    const displayBeats = Math.round((mySwap.tipCents ?? 0) / 5);
-                                    const hasTip = displayBeats > 0;
-                                    const isOpen = boosterOpenId === mySwap._id;
-                                    return (
-                                      <div className={`${styles.splitBoostWrap} ${hasTip ? styles.splitBoostWrapTipped : ''} ${isOpen ? styles.splitBoostWrapOpen : ''}`}>
-                                        <button
-                                          className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''}`}
-                                          onClick={() => beatBalance === 0 ? setShowBeatShop(true) : setBoosterOpenId(isOpen ? null : mySwap._id)}
-                                          title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
-                                        >
-                                          <img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{hasTip ? displayBeats : ''}
-                                        </button>
-                                      </div>
-                                    );
-                                  })()}
-                                  <span className={styles.reqCount}>{swap.requests.length}</span>
-                                  <button className={styles.minusBtn} onClick={() => requestRemoveClick(mySwap, swap.requests.length === 1)} title="Remove your request">−</button>
-                                </>
-                              ) : (
-                                <>
-                                  <span className={styles.reqCount}>{swap.requests.length}</span>
-                                  <button className={styles.plusBtn} onClick={() => handlePanelRequestSwap(group, swap)} disabled={submittingPanel} title="Support this song swap">+</button>
-                                </>
-                              )}
-                            </div>
+                            {renderRowActions(mySwap, swap.requests.length, () => handlePanelRequestSwap(group, swap), 'Support this song swap')}
                           </div>
-                          {boosterOpenId === mySwap?._id && (
-                            <BeatBooster
-                              balance={beatBalance}
-                              onTip={async (beats) => { await tipRequest(mySwap._id, beats); setBoosterOpenId(null); }}
-                              onClose={() => setBoosterOpenId(null)}
-                            />
-                          )}
-                          {pendingRemoveId === mySwap?._id && (() => {
-                            const hasTip = (mySwap.tipCents ?? 0) > 0;
-                            const isLast = swap.requests.length === 1;
-                            return (
-                              <div className={styles.removeWarning}>
-                                {isLast && <p className={styles.removeWarningText}>You are the last person requesting this song swap — removing it will remove it from the list for everyone.</p>}
-                                {hasTip && <p className={styles.removeWarningText}>You have spent {Math.round(mySwap.tipCents / 5)} Beats on this request that will not be refunded.</p>}
-                                <div className={styles.removeWarningActions}>
-                                  <button className={styles.removeWarningCancel} onClick={() => setPendingRemoveId(null)}>Keep request</button>
-                                  <button className={styles.removeWarningConfirm} onClick={() => handlePanelRemove(mySwap._id)}>Remove</button>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                          {renderRowPanels(mySwap, swap.requests.length === 1, 'song swap')}
                         </React.Fragment>
                       );
                     })}
@@ -1404,15 +1220,7 @@ export default function DJRequestPage({ sessionId = null, djId: djIdProp = null,
 
       {/* ── Suppression overlay ── */}
       {isSuppressed && (
-        <div className={styles.suppressedOverlay}>
-          <div className={styles.suppressedCard}>
-            <span className={styles.suppressedIcon}>🎵</span>
-            <h2 className={styles.suppressedTitle}>Your requests have been paused</h2>
-            <p className={styles.suppressedMsg}>
-              The DJ has temporarily disabled your account. If you&apos;re still here, let the DJ know and they can re-enable you.
-            </p>
-          </div>
-        </div>
+        <SuppressedOverlay />
       )}
     </>
   );

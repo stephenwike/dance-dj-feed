@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import sp from '../../pages/dj-spotify/dj-spotify.module.css';
+import sp from './SpotifyComponents.module.css';
 
 function fmtMs(ms) {
   if (!ms) return '0:00';

@@ -1,7 +1,9 @@
-﻿import Stripe from 'stripe';
+import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { markWebhookReceived } from '../../../lib/server/stripeHealth';
+import { claimStripeEvent, releaseStripeEvent } from '../../../lib/server/stripeEvents';
 import { createSession, activateDraftSession } from '../../../lib/server/dj/sessionLogic';
+import { toObjectId } from '../../../lib/server/db';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -15,6 +17,126 @@ async function getRawBody(req) {
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
+}
+
+// Malformed metadata is our bug, not a transient failure: log it and
+// acknowledge, since a Stripe retry would fail the same way.
+function badMetadata(what, checkoutSession) {
+  console.error(`Missing ${what} metadata on checkout session`, checkoutSession.id);
+}
+
+async function handleDirectTip(db, checkoutSession) {
+  const { djId, amountCents } = checkoutSession.metadata;
+  if (!djId || !amountCents) return badMetadata('direct_tip', checkoutSession);
+
+  const stripeName = checkoutSession.customer_details?.name ?? null;
+  const senderEmail = checkoutSession.customer_details?.email ?? checkoutSession.customer_email ?? null;
+  const tipAmountCents = parseInt(amountCents, 10);
+
+  // Prefer the registered profile name over whatever Stripe captured at checkout
+  const profile = senderEmail
+    ? await db.collection('user_profiles').findOne({ email: senderEmail.toLowerCase() }, { projection: { name: 1 } })
+    : null;
+  const senderName = profile?.name || stripeName;
+  const now = new Date();
+
+  await Promise.all([
+    db.collection('dj_wallet_transactions').insertOne({
+      ownerId: djId,
+      type: 'direct_tip',
+      amountCents: tipAmountCents,
+      attendeeId: null,
+      stripeSessionId: checkoutSession.id,
+      senderName,
+      senderEmail,
+      createdAt: now,
+    }),
+    db.collection('dj_notifications').insertOne({
+      ownerId: djId,
+      type: 'direct_tip',
+      amountCents: tipAmountCents,
+      senderName,
+      senderEmail,
+      read: false,
+      createdAt: now,
+    }),
+  ]);
+}
+
+async function handleSessionExtension(db, checkoutSession) {
+  const { sessionId, hours } = checkoutSession.metadata;
+  const objId = toObjectId(sessionId);
+  if (!objId || !hours) return badMetadata('session_extension', checkoutSession);
+
+  const djSession = await db.collection('dj_sessions').findOne({ _id: objId });
+  if (!djSession) return console.error('Session not found for extension', sessionId);
+
+  const newEndsAt = new Date(new Date(djSession.endsAt).getTime() + Number(hours) * 3600000);
+  const update = {
+    $set: { endsAt: newEndsAt },
+    $push: { extensions: { hours: Number(hours), at: new Date(), stripeSessionId: checkoutSession.id } },
+  };
+  if (djSession.status === 'closed') {
+    update.$set.status = 'active';
+    update.$set.closedAt = null;
+  }
+  await db.collection('dj_sessions').updateOne({ _id: objId }, update);
+}
+
+async function handleSessionPurchase(client, db, checkoutSession) {
+  const { ownerId, name, plugin, durationMinutes, draftSessionId } = checkoutSession.metadata;
+  if (!ownerId || !durationMinutes) return badMetadata('dj_session', checkoutSession);
+
+  const sessionDoc = draftSessionId
+    ? await activateDraftSession(client, draftSessionId, { ownerId, durationMinutes: Number(durationMinutes) })
+    : await createSession(client, {
+        ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
+      });
+  await db.collection('session_transactions').insertOne({
+    ownerId,
+    type: 'session_purchase',
+    sessionId: String(sessionDoc._id),
+    sessionName: sessionDoc.name ?? name ?? null,
+    durationMinutes: Number(durationMinutes),
+    amountCents: checkoutSession.amount_total,
+    stripeSessionId: checkoutSession.id,
+    stripePaymentIntentId: checkoutSession.payment_intent ?? null,
+    createdAt: new Date(),
+  });
+}
+
+async function handleBeatPurchase(db, checkoutSession) {
+  const { attendeeId, beats } = checkoutSession.metadata;
+  if (!attendeeId || !beats) return badMetadata('beat purchase', checkoutSession);
+
+  const beatCount = parseInt(beats, 10);
+  const now = new Date();
+  await Promise.all([
+    db.collection('beat_balances').updateOne(
+      { attendeeId },
+      { $inc: { beats: beatCount }, $set: { updatedAt: now } },
+      { upsert: true }
+    ),
+    db.collection('beat_transactions').insertOne({
+      attendeeId,
+      type: 'purchase',
+      beats: beatCount,
+      amountCents: checkoutSession.amount_total,
+      stripePaymentIntentId: checkoutSession.payment_intent,
+      stripeSessionId: checkoutSession.id,
+      createdAt: now,
+    }),
+  ]);
+}
+
+async function handleCheckoutCompleted(client, db, checkoutSession) {
+  checkoutSession.metadata = checkoutSession.metadata ?? {};
+  switch (checkoutSession.metadata.type) {
+    case 'direct_tip':        return handleDirectTip(db, checkoutSession);
+    case 'session_extension': return handleSessionExtension(db, checkoutSession);
+    case 'dj_session':        return handleSessionPurchase(client, db, checkoutSession);
+    default:                  return handleBeatPurchase(db, checkoutSession);
+  }
 }
 
 export default async function handler(req, res) {
@@ -38,133 +160,23 @@ export default async function handler(req, res) {
 
   markWebhookReceived();
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const metadata = session.metadata ?? {};
-    const client = await clientPromise;
-    const db = client.db(DB_NAME);
+  if (event.type !== 'checkout.session.completed') return res.status(200).json({ received: true });
 
-    if (metadata.type === 'direct_tip') {
-      const { djId, amountCents } = metadata;
-      if (!djId || !amountCents) {
-        console.error('Missing direct_tip metadata on session', session.id);
-        return res.status(400).end();
-      }
-      const stripeName = session.customer_details?.name ?? null;
-      const senderEmail = session.customer_details?.email ?? session.customer_email ?? null;
-      const tipAmountCents = parseInt(amountCents, 10);
+  const client = await clientPromise;
+  const db = client.db(DB_NAME);
 
-      // Prefer the registered profile name over whatever Stripe captured at checkout
-      const profile = senderEmail
-        ? await db.collection('user_profiles').findOne(
-            { email: senderEmail.toLowerCase() },
-            { projection: { name: 1 } }
-          )
-        : null;
-      const senderName = profile?.name || stripeName;
+  // Stripe retries deliveries; process each event exactly once.
+  if (!(await claimStripeEvent(db, event))) {
+    return res.status(200).json({ received: true, duplicate: true });
+  }
 
-      await Promise.all([
-        db.collection('dj_wallet_transactions').insertOne({
-          ownerId: djId,
-          type: 'direct_tip',
-          amountCents: tipAmountCents,
-          attendeeId: null,
-          stripeSessionId: session.id,
-          senderName,
-          senderEmail,
-          createdAt: new Date(),
-        }),
-        db.collection('dj_notifications').insertOne({
-          ownerId: djId,
-          type: 'direct_tip',
-          amountCents: tipAmountCents,
-          senderName,
-          senderEmail,
-          read: false,
-          createdAt: new Date(),
-        }),
-      ]);
-      return res.status(200).json({ received: true });
-    }
-
-    if (metadata.type === 'session_extension') {
-      const { sessionId, hours } = metadata;
-      if (!sessionId || !hours) {
-        console.error('Missing session_extension metadata on session', session.id);
-        return res.status(400).end();
-      }
-      const { ObjectId } = require('mongodb');
-      const djSession = await db.collection('dj_sessions').findOne({ _id: new ObjectId(sessionId) });
-      if (!djSession) {
-        console.error('Session not found for extension', sessionId);
-        return res.status(400).end();
-      }
-      const currentEndsAt = new Date(djSession.endsAt).getTime();
-      const newEndsAt = new Date(currentEndsAt + Number(hours) * 3600000);
-      const update = {
-        $set: { endsAt: newEndsAt },
-        $push: { extensions: { hours: Number(hours), at: new Date(), stripeSessionId: session.id } },
-      };
-      if (djSession.status === 'closed') {
-        update.$set.status = 'active';
-        update.$set.closedAt = null;
-      }
-      await db.collection('dj_sessions').updateOne({ _id: new ObjectId(sessionId) }, update);
-      return res.status(200).json({ received: true });
-    }
-
-    if (metadata.type === 'dj_session') {
-      const { ownerId, name, plugin, durationMinutes, draftSessionId } = metadata;
-      if (!ownerId || !durationMinutes) {
-        console.error('Missing dj_session metadata on checkout session', session.id);
-        return res.status(400).end();
-      }
-      const sessionDoc = draftSessionId
-        ? await activateDraftSession(client, draftSessionId, { durationMinutes: Number(durationMinutes) })
-        : await createSession(client, {
-            ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
-          });
-      await db.collection('session_transactions').insertOne({
-        ownerId,
-        type: 'session_purchase',
-        sessionId: String(sessionDoc._id),
-        sessionName: sessionDoc.name ?? name ?? null,
-        durationMinutes: Number(durationMinutes),
-        amountCents: session.amount_total,
-        stripeSessionId: session.id,
-        stripePaymentIntentId: session.payment_intent ?? null,
-        createdAt: new Date(),
-      });
-      return res.status(200).json({ received: true });
-    }
-
-    // Beat purchase
-    const { attendeeId, beats } = metadata;
-    if (!attendeeId || !beats) {
-      console.error('Missing metadata on checkout session', session.id);
-      return res.status(400).end();
-    }
-
-    const beatCount = parseInt(beats, 10);
-
-    await Promise.all([
-      db.collection('beat_balances').updateOne(
-        { attendeeId },
-        { $inc: { beats: beatCount }, $set: { updatedAt: new Date() } },
-        { upsert: true }
-      ),
-      db.collection('beat_transactions').insertOne({
-        attendeeId,
-        type: 'purchase',
-        beats: beatCount,
-        amountCents: session.amount_total,
-        stripePaymentIntentId: session.payment_intent,
-        stripeSessionId: session.id,
-        createdAt: new Date(),
-      }),
-    ]);
+  try {
+    await handleCheckoutCompleted(client, db, event.data.object);
+  } catch (err) {
+    console.error('Webhook processing failed for', event.id, err);
+    await releaseStripeEvent(db, event); // let Stripe's retry try again
+    return res.status(500).json({ error: 'Processing failed' });
   }
 
   return res.status(200).json({ received: true });
 }
-

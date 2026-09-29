@@ -1,7 +1,8 @@
-﻿import Stripe from 'stripe';
+import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
+import { getWalletBalance } from '../../../lib/server/wallet';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -15,14 +16,13 @@ export default async function handler(req, res) {
   const client = await clientPromise;
   const col = client.db(DB_NAME).collection('dj_wallet_transactions');
 
-  // Balance must sum ALL transactions — never limit this query
-  const allTransactions = await col.find({ ownerId: userId }).toArray();
-  const balance = allTransactions.reduce((sum, t) => sum + (t.amountCents ?? 0), 0);
-
-  // Only send the 50 most recent to the client for display
-  const transactions = allTransactions
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    .slice(0, 50);
+  // Balance is summed in the database over ALL transactions; only the 50 most
+  // recent are sent to the client for display.
+  const db = client.db(DB_NAME);
+  const [balance, transactions] = await Promise.all([
+    getWalletBalance(db, userId),
+    col.find({ ownerId: userId }).sort({ createdAt: -1 }).limit(50).toArray(),
+  ]);
 
   let stripeAvailable = 0;
   let stripePending = 0;

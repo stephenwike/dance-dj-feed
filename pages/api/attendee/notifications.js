@@ -1,7 +1,7 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
-import { ObjectId } from 'mongodb';
+import { toObjectId } from '../../../lib/server/db';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -26,9 +26,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     const { id } = req.body ?? {};
-    if (!id) return res.status(400).json({ error: 'id is required' });
+    const oid = toObjectId(id);
+    if (!oid) return res.status(400).json({ error: 'A valid id is required' });
     await col.updateOne(
-      { _id: new ObjectId(id), recipientId: userId },
+      { _id: oid, recipientId: userId },
       { $set: { read: true } }
     );
     return res.status(200).json({ ok: true });

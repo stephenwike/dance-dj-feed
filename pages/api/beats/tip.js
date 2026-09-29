@@ -1,10 +1,11 @@
-﻿import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
-import { ObjectId } from 'mongodb';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
+import { toObjectId } from '../../../lib/server/db';
+import { BEAT_VALUE_CENTS } from '../../../lib/beats/constants';
 
-const BEAT_VALUE_CENTS = 5;  // 1 beat = $0.05 face value
-const DJ_CUT = 1.0;          // DJ receives 100% of face value; platform revenue comes from purchase markup only
+const DJ_CUT = 1.0; // DJ receives 100% of face value; platform revenue comes from purchase markup only
+const TIPPABLE_STATUSES = ['pending', 'approved', 'playing'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -20,28 +21,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'requestId and a positive integer beats are required' });
   }
 
-  let requestObjId;
-  try { requestObjId = new ObjectId(requestId); } catch {
-    return res.status(400).json({ error: 'Invalid requestId' });
-  }
+  const requestObjId = toObjectId(requestId);
+  if (!requestObjId) return res.status(400).json({ error: 'Invalid requestId' });
 
   const client = await clientPromise;
   const db = client.db(DB_NAME);
 
   const request = await db.collection('dj_requests').findOne({ _id: requestObjId });
   if (!request) return res.status(404).json({ error: 'Request not found' });
+  if (!request.ownerId) return res.status(400).json({ error: 'This request cannot be tipped' });
+  if (!TIPPABLE_STATUSES.includes(request.status)) {
+    return res.status(409).json({ error: 'This request has already been played or removed' });
+  }
 
   // Block tipping if the user is suppressed in this session
-  if (request.sessionId) {
-    try {
-      const djSession = await db.collection('dj_sessions').findOne(
-        { _id: new ObjectId(request.sessionId) },
-        { projection: { suppressedClientIds: 1 } }
-      );
-      if (djSession?.suppressedClientIds?.includes(userId)) {
-        return res.status(403).json({ error: 'Your account has been disabled for this session' });
-      }
-    } catch { /* invalid sessionId shape — skip suppression check */ }
+  const sessionOid = toObjectId(request.sessionId);
+  const djSession = sessionOid
+    ? await db.collection('dj_sessions').findOne({ _id: sessionOid }, { projection: { suppressedClientIds: 1 } })
+    : null;
+  if (djSession?.suppressedClientIds?.includes(userId)) {
+    return res.status(403).json({ error: 'Your account has been disabled for this session' });
   }
 
   // Atomically deduct beats — fails cleanly if balance is insufficient

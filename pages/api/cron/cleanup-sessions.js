@@ -1,9 +1,10 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
-import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../lib/dj/sessionTimeState';
 import { normalizeSession } from '../../../lib/server/dj/reportLogic';
+import { closeSession } from '../../../lib/server/dj/sessionLogic';
 
 export default async function handler(req, res) {
-  if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -15,10 +16,7 @@ export default async function handler(req, res) {
   let closed = 0;
   for (const s of active) {
     if (getSessionTimeState(s, now).state === 'expired') {
-      await col.updateOne(
-        { _id: s._id },
-        { $set: { status: 'closed', closedAt: now, autoClosedAt: now } },
-      );
+      await closeSession(client, s._id, { auto: true, now });
       await normalizeSession(client, String(s._id)).catch(err =>
         console.error('Cron normalization failed:', err)
       );

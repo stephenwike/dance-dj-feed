@@ -3,8 +3,7 @@ import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { ASPECT_RATIOS, DEFAULT_TEMPLATE, templateWarnings } from '../../lib/client/dj/feedTemplates';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
 
 export default function FeedConfigPanel({ activeSession, feedAspectRatio = '16:9', feedTemplateId = 'default', setFeedAspectRatio, setFeedTemplateId, applyFeedTemplate }) {
   const router = useRouter();

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { EXTENSION_PRICE_CENTS_PER_HOUR } from '../../lib/dj/sessionPricing';
+import { fetcher } from '../../lib/client/fetcher';
 
-const fetcher = url => fetch(url).then(r => r.json());
 const HOUR_OPTIONS = [1, 2, 3, 4, 5, 6];
 
 function walletPrice(hours) {

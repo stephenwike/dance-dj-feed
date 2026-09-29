@@ -4,8 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import styles from './dj-profile.module.css';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../lib/client/fetcher';
 
 function formatCents(cents) {
   return `$${(cents / 100).toFixed(2)}`;

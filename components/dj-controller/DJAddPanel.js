@@ -2,8 +2,7 @@ import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { PARTNER_STYLES, diffColor } from './utils';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
 
 export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [type, setType] = useState('line'); // 'line' | 'partner'

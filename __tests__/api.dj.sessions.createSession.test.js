@@ -60,14 +60,13 @@ describe('createSession', () => {
     expect(diffMinutes).toBe(120);
   });
 
-  test('closes other active and draft sessions for the same ownerId before creating the new one', async () => {
+  // Multi-session support: a DJ may run several sessions at once (e.g. multiple
+  // floors), so creating a session must leave the DJ's other sessions untouched.
+  test('does not close the owner\'s other active or draft sessions', async () => {
     const client = makeMockClient();
     await createSession(client, { ownerId: 'dj1', name: 'Test', durationMinutes: 120 });
 
-    expect(client._col.updateMany).toHaveBeenCalledWith(
-      { status: { $in: ['active', 'draft'] }, ownerId: 'dj1' },
-      { $set: { status: 'closed', closedAt: expect.any(Date) } }
-    );
+    expect(client._col.updateMany).not.toHaveBeenCalled();
   });
 
   test('generates a slug from the session name', async () => {
