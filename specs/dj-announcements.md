@@ -1,7 +1,7 @@
 # Workflow: DJ Announcements
 
 **Actor:** DJ (Clerk-authenticated, in the controller)  
-**Entry points:** `/dj-controller`, `/dj-spotify` — right-column messages panel  
+**Entry point:** `/dj-controller` — messages panel  
 **Outcome:** A text message appears on the feed display for attendees to see.
 
 ---

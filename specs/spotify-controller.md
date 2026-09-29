@@ -1,7 +1,7 @@
 # Workflow: Spotify-Integrated Queue Management
 
 **Actor:** DJ (Clerk-authenticated, Spotify connected)  
-**Entry point:** `/dj-spotify`  
+**Entry point:** `/dj-controller` (sessions with the Spotify plugin)  
 **Outcome:** The DJ manages a live queue with Spotify handling actual track playback and auto-advancement.
 
 ---

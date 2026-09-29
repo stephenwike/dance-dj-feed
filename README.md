@@ -27,9 +27,9 @@ Three audiences, three sets of pages:
 
 | Audience | Pages | Description |
 |---|---|---|
-| **DJ** | `/start`, `/dj-controller`, `/dj-spotify`, `/reports`, `/dj-profile` | Session creation, queue management, earnings |
+| **DJ** | `/start`, `/dj-controller`, `/reports`, `/dj-profile` | Session creation, queue management, earnings |
 | **Attendees** | `/dj-request`, `/request/[slug]` | Request a dance, tip the DJ, view own requests |
-| **Display** | `/dj-feed`, `/feed/[slug]` | TV/projector feed showing now-playing + queue |
+| **Display** | `/feed-preview`, `/feed/[slug]` | TV/projector feed showing now-playing + queue |
 
 ---
 
@@ -39,9 +39,9 @@ Three audiences, three sets of pages:
 |---|---|
 | Framework | Next.js 14, Pages Router |
 | UI | React 18, CSS Modules, Lucide Icons |
-| Auth | Clerk (DJ auth; passwordless attendee auth in Phase 3) |
+| Auth | next-auth (OAuth against the LDCO auth server); attendees may stay anonymous |
 | Data fetching | SWR |
-| Database | MongoDB — two databases: `bld` (DJ data) and `ldco` (dance catalogue) |
+| Database | MongoDB — two databases: `djfeed` (DJ data, override with `MONGODB_DB`) and `ldco` (dance catalogue) |
 | Payments | Stripe (Checkout for beat purchases / direct tips; Express accounts for DJ payouts) |
 | Music | Spotify Web API (playback, search, queue management) |
 | Drag & Drop | @dnd-kit/core + @dnd-kit/sortable |
@@ -55,7 +55,7 @@ Dev port: **4000**
 
 ## Pages
 
-### DJ Pages (Clerk-authenticated)
+### DJ Pages (signed-in)
 
 #### `/start`
 Session creation and resumption. The DJ names the session (defaults to today's date), picks a duration, and chooses a music source (Standard or Spotify). If an active session already exists for the DJ, the page offers to resume it instead of creating a new one. On submit, calls `POST /api/dj/sessions` and redirects to the appropriate controller.
@@ -64,13 +64,13 @@ Session creation and resumption. The DJ names the session (defaults to today's d
 Main queue management dashboard. Three-column layout:
 
 - **Left — Queue**: Now-playing card, approved/upcoming tracks (drag-to-reorder via `SortableQueueItem` + `QueueCard`), session history (`SessionsPanel`)
-- **Center — Pending**: Requests grouped by dance, sorted by fairness score + tip boost (`PendingCard`). Tabs for By Dance / By Requester
+- **Center — Pending**: Requests grouped by dance, sorted by fairness score + tip boost (`PendingDanceGroup`). Tabs for By Dance / By Requester
 - **Right — Controls**: `RemoteControl` strip, session settings, message broadcasting, hamburger nav
 
 Actions: approve, play, pause, skip, remove, reorder. Fairness scoring is recalculated on every poll. Auto-advance fires when the current track's duration expires (Standard mode).
 
-#### `/dj-spotify`
-Same queue management as `/dj-controller` but with an embedded Spotify playback panel (`SpotifyComponents`). All Spotify logic — polling, track-change detection, pre-queuing, and playback controls — lives in the `useSpotifyPlugin` hook. When Spotify naturally advances to the next track, the hook auto-marks the previous request played and queues the next Spotify URI. Manual controls (play/pause/skip) sync back to Spotify.
+#### Spotify sessions
+Sessions created with the Spotify plugin use the same `/dj-controller`, which swaps in an embedded Spotify playback panel (`SpotifyComponents`). All Spotify logic — polling, track-change detection, pre-queuing, and playback controls — lives in the `useSpotifyPlugin` hook. When Spotify naturally advances to the next track, the hook auto-marks the previous request played and queues the next Spotify URI. Manual controls (play/pause/skip) sync back to Spotify. Spotify tokens are stored per DJ (`spotify_tokens`, keyed by user id).
 
 #### `/reports`
 Post-session playlist report. Session list on the left; selected session shows played tracks (deduplicated by dance, with requester counts). Filters for partner dances and custom requests. Export as PNG or PDF.
@@ -82,8 +82,8 @@ DJ wallet and payout management. Shows available balance (from beat tips + direc
 
 ### Public Pages
 
-#### `/dj-feed` and `/feed/[slug]`
-TV/projector display. Shows the QR code pointing at the request form, a now-playing card color-coded by difficulty level, up-next list (4 items) with estimated start times, and DJ announcements with countdown. Polls `GET /api/dj/requests` every 5 seconds and `GET /api/dj/messages` every 3 seconds.
+#### `/feed-preview` and `/feed/[slug]`
+TV/projector display, rendered from the session's feed template. `/feed/[slug]` is the stable URL; it redirects to `/feed-preview?sessionId=…`. Shows the QR code pointing at the request form, a now-playing card color-coded by difficulty level, up-next list (4 items) with estimated start times, and DJ announcements with countdown. Polls `GET /api/dj/requests` every 5 seconds and `GET /api/dj/messages` every 3 seconds.
 
 #### `/dj-request` and `/request/[slug]`
 Attendee request form. Features:
@@ -108,18 +108,20 @@ The slug-based version (`/request/[slug]`) is the shareable QR code destination;
 | Method | Route | Auth | Description |
 |---|---|---|---|
 | `GET` | `/api/dj/sessions` | DJ | List all sessions for the signed-in DJ |
-| `POST` | `/api/dj/sessions` | DJ | Create session; closes prior active sessions |
-| `GET` | `/api/dj/sessions/[id]` | DJ | Get session + played tracks for report |
-| `PATCH` | `/api/dj/sessions/[id]` | DJ | Update status, settings (partner dances, decay, tipping) |
+| `POST` | `/api/dj/sessions` | DJ | Create session (other live sessions are left running) |
+| `GET` | `/api/dj/sessions/[id]` | Owner | Get session + played tracks for report |
+| `PATCH` | `/api/dj/sessions/[id]` | Owner | Update settings; close; continue a previously started session |
 
 ### Requests (Queue)
 
 | Method | Route | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/dj/requests` | Public | List requests for active session; joins track metadata |
-| `POST` | `/api/dj/requests` | Public | Create request (attendee or DJ); triggers sibling marking |
-| `PATCH` | `/api/dj/requests/[id]` | DJ or owner | Update status, position, play times, tip total |
-| `DELETE` | `/api/dj/requests/[id]` | DJ or owner | Remove request |
+| `GET` | `/api/dj/requests` | Public | List a session's requests; joins track metadata. With `clientId`, also returns suppression, live session settings and DMs |
+| `POST` | `/api/dj/requests` | Public | Create request. Only the session owner may set `status`, `queuePosition`, `tipCents` |
+| `PATCH` | `/api/dj/requests/[id]` | Owner | Update status, position, play times; marking played also marks siblings |
+| `DELETE` | `/api/dj/requests/[id]` | Owner, or the requester | Owner removes any request; an attendee may withdraw their own pending/approved request |
+
+Access rules live in `lib/server/dj/requestAccess.js`. Non-owners never see other attendees' `clientId`s — an anonymous attendee's clientId is their only credential.
 
 ### Dance Catalogue
 
@@ -309,16 +311,15 @@ The controller page was refactored to extract its UI into focused components. Al
 | Component | Description |
 |---|---|
 | `QueueCard` | Approved queue item — dance name, song, drag handle, approve/skip/remove actions |
-| `PendingCard` | Pending request card — requester info, inline edit for custom requests, approve action |
+| `PendingDanceGroup` | One "By Dance" pending group — score, requester count, beats, edit / deny / queue actions |
 | `SortableQueueItem` | dnd-kit sortable wrapper; provides `setNodeRef`, `transform`, and `isDragging` to its child |
-| `RemoteControl` | Play/pause/skip control strip with `CountdownTimer` embedded |
-| `CountdownTimer` | Displays remaining time, derived live from `playStartedAt + duration_ms` |
+| `RemoteControl` | Now-playing panel with countdown and play/pause/skip/seek controls |
 | `SessionsPanel` | Session list with expand/collapse; loads played track list lazily per session |
 | `CustomEditModal` | Modal for editing dance name, difficulty, partner style, and song on custom requests |
 | `SpotifyComponents` | `SpotifyPanel` (playback display + controls) and `SpotifySearch` (track search + add) |
 | `utils.js` | Shared helpers: `formatDuration`, `formatTimestamp`, `timeAgo`, `diffColor`, `DIFFICULTIES`, `PARTNER_STYLES` |
 
-### `components/BeatTipper/` and `components/BeatBooster/`
+### `components/BeatTipper.js` and `components/BeatBooster.js`
 
 Beat tipping UI used on the attendee request form. `BeatTipper` is embedded in the submission form; `BeatBooster` is the quick-tip modal on existing requests.
 
@@ -354,7 +355,16 @@ Request creation and sibling marking. When a request is marked played, this modu
 React hook that encapsulates all Spotify logic for the controller. Handles the polling loop, track-change detection (URI diff between polls), auto-advance, pre-queuing the next track 5 seconds before the current one ends, and all playback controls (play, pause, next, previous, seek). Returns `{ connected, data, error, handleControl, handleAdd, onStartQueue, onCloseSession, retry }` — the controller page calls this hook and passes the result down to `SpotifyComponents`.
 
 ### `lib/client/dj/requests.js`
-Thin fetch helpers used by controller components: `patch(id, body)` and `del(id)`. Centralises the `PATCH /api/dj/requests/[id]` and `DELETE` calls so components don't inline raw `fetch` calls.
+Thin fetch helpers used by controller components: `patch(id, body)`, `del(id)` and `advanceTo(currentId, next, stamps)` (mark played + start the next request).
+
+### `lib/client/dj/queue.js`
+Shared request vocabulary: `danceKey(r)` (how requests are grouped per dance — normalised name for line dances, `partnerGroupId || _id` for partner dances), `sortedQueue`, `nextInQueue`, `isActive`. Every count, beat total and score keys by `danceKey` so the controller, feed and attendee app agree.
+
+### `lib/server/wallet.js`
+`getWalletBalance(db, ownerId)` (ledger sum via aggregate) and `withWalletLock(db, ownerId, fn)`, a per-DJ lease lock. Every wallet debit (withdraw, gift, wallet-pay, wallet extension) runs inside the lock so concurrent requests cannot overdraw.
+
+### `lib/server/stripeEvents.js`
+Stripe webhook idempotency: each event id is claimed in `stripe_events` before processing, so retried deliveries are ignored.
 
 ### `lib/client/dj/autoAdvance.js`
 Countdown timer that calculates `remainingMs` from `playStartedAt + duration_ms - pausedDuration`. Used by both the controller and the feed page to keep their timers in sync.
@@ -374,12 +384,20 @@ Pre-built DJ announcement templates (e.g. "Last song before break", "Requests op
 NEXT_PUBLIC_BASE_URL=http://localhost:4000
 NEXT_PUBLIC_PAYMENTS_ENABLED=true          # enables beat shop + tips UI
 
-# Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
-CLERK_SECRET_KEY=sk_...
+# Auth (next-auth, OAuth against the LDCO auth server)
+NEXTAUTH_URL=http://localhost:4000
+NEXTAUTH_SECRET=...
+LDCO_AUTH_URL=http://localhost:3001
+LDCO_OAUTH_CLIENT_ID=...
+LDCO_OAUTH_CLIENT_SECRET=...
+ADMIN_EMAILS=you@example.com               # may manage /api/admin/free-access
 
 # MongoDB
 MONGODB_URI=mongodb+srv://...
+MONGODB_DB=djfeed                          # optional, defaults to djfeed
+
+# Vercel cron (/api/cron/cleanup-sessions)
+CRON_SECRET=...
 
 # Stripe
 STRIPE_SECRET_KEY=sk_test_...
@@ -390,7 +408,7 @@ SPOTIFY_CLIENT_ID=...
 SPOTIFY_CLIENT_SECRET=...
 ```
 
-Spotify tokens are held in memory; they reset on server restart. Use `stripe listen --forward-to localhost:4000/api/beats/webhook` during development.
+Spotify tokens are stored per DJ in the `spotify_tokens` collection. Use `stripe listen --forward-to localhost:4000/api/beats/webhook` during development.
 
 ---
 
@@ -415,7 +433,7 @@ stripe listen --forward-to localhost:4000/api/beats/webhook
 pnpm test
 ```
 
-Jest with `testEnvironment: 'node'`, no transpiler (pure CJS). All test files live in `__tests__/` and use `require()`. Mock at `__tests__/__mocks__/mongodb.js`.
+Jest with `testEnvironment: 'node'`, no transpiler (pure CJS). All test files live in `__tests__/` and use `require()`; each suite builds its own in-memory fake Mongo client.
 
 Test coverage:
 
@@ -428,6 +446,10 @@ Test coverage:
 | `fairnessScore.test.js` | Weighted scoring + time decay |
 | `pendingGroups.test.js` | Grouping, sorting, queue-hiding |
 | `markSiblingsPlayed.test.js` | Sibling mark logic (original vs swap) |
+| `requestAccess.test.js` | Who may create / see / change requests |
+| `wallet.test.js` | Wallet balance, wallet lock, Stripe event idempotency |
+| `queue.test.js` | danceKey grouping and queue ordering |
+| `requesterGroups.test.js`, `reportLogic.test.js`, `sessionTimeState.test.js`, `api.dj.sessions.*.test.js` | Requester grouping, session reports, session time states, session creation / free access |
 
 ---
 
@@ -436,12 +458,12 @@ Test coverage:
 **Single-tenant for now.** All sessions belong to the DJ running the app. `ownerId` is present on all collections; multi-tenant (Phase 2) is already implemented.
 
 **Two databases on the same cluster.**  
-- `bld` — all DJ session and request data  
+- `djfeed` — all DJ session and request data  
 - `ldco` — shared dance catalogue, managed externally; this app treats it as read-only
 
 **No per-DJ dance library.** The `ldco` catalogue is DJ-agnostic. Every DJ sees the same dances. Custom requests (freeform name + song) bypass the catalogue entirely.
 
-**Beat currency.** 1 Beat has a $0.05 face value to the DJ. The DJ receives 90% of a beat tip's face value. The exchange rate is never shown in the UI — the UI shows beats only.
+**Beat currency.** 1 Beat has a $0.05 face value to the DJ. The DJ receives 100% of a beat tip's face value (see docs/decisions/beat-economics.md). The exchange rate is never shown in the UI — the UI shows beats only.
 
 **Session slug.** Every session has a URL-safe slug (e.g. `friday-night-may-9`). The public feed and request pages resolve sessions by slug so QR code URLs stay stable between events.
 
