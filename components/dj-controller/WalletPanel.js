@@ -2,8 +2,7 @@ import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import ws from '../../pages/dj-profile.module.css';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
 
 function formatCents(cents) {
   return `$${(Math.abs(cents) / 100).toFixed(2)}`;

@@ -34,8 +34,7 @@ import PendingRequesterGroup from '../../components/dj-controller/PendingRequest
 import SessionWarningBanner from '../../components/dj-controller/SessionWarningBanner';
 import ExtendSessionModal from '../../components/dj-controller/ExtendSessionModal';
 import useSessionTimeState from '../../lib/client/dj/hooks/useSessionTimeState';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
 
 // ── Main Controller ───────────────────────────────────────────────────────────
 function Controller() {
@@ -175,7 +174,7 @@ function Controller() {
 
   const {
     playing, queue, history,
-    resolvedNames, danceRequestCounts, danceBeats, danceScores, partnerUpvoteCounts,
+    resolvedNames, statsFor,
     playsPerClient, danceGroups, requesterGroups, nextQueuePos,
   } = useRequestGroups({ rawRequests: visibleRequests, allRequests: rawRequests, fairnessScoringEnabled, decayEnabled, halfLifeMinutes, nicknameOverrides });
 
@@ -502,8 +501,7 @@ function Controller() {
                 ) : (
                   <RemoteControl
                     playing={playing} queue={queue} onAction={handleAction} activeSession={activeSession}
-                    danceRequestCounts={danceRequestCounts} danceBeats={danceBeats}
-                    danceScores={danceScores} partnerUpvoteCounts={partnerUpvoteCounts}
+                    stats={statsFor(playing[0])}
                   />
                 )}
 
@@ -539,7 +537,9 @@ function Controller() {
 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={queue.map(r => r._id)} strategy={verticalListSortingStrategy}>
-                    {queue.map(r => (
+                    {queue.map(r => {
+                      const stats = statsFor(r);
+                      return (
                       <SortableQueueItem key={r._id} id={r._id}>
                         {(dragHandleProps) => (
                           <QueueCard
@@ -548,14 +548,15 @@ function Controller() {
                             onEdit={(req) => setEditingGroup({ requests: [req], danceName: req.danceName, difficulty: req.difficulty || '' })}
                             resolvedName={resolvedNames[r.clientId]}
                             dragHandleProps={dragHandleProps}
-                            requesterCount={r.danceType === 'partner' ? 1 + (partnerUpvoteCounts[r._id] ?? 0) : (danceRequestCounts[(r.danceName || '').toLowerCase().trim()] ?? 1)}
-                            totalBeats={r.danceType === 'partner' ? (danceBeats[r._id] ?? 0) : (danceBeats[(r.danceName || '').toLowerCase().trim()] ?? 0)}
+                            requesterCount={stats.count || 1}
+                            totalBeats={stats.beats}
                             estimatedPlayAt={queueTimes[r._id]}
-                            score={danceScores[r.danceType === 'partner' ? (r.partnerGroupId || r._id) : (r.danceName || '').toLowerCase().trim()] ?? 0}
+                            score={stats.score}
                           />
                         )}
                       </SortableQueueItem>
-                    ))}
+                      );
+                    })}
                   </SortableContext>
                 </DndContext>
 

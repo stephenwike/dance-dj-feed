@@ -5,19 +5,13 @@ import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import feedStyles from './feed.module.css';
 import { DEFAULT_TEMPLATE } from '../../lib/client/dj/feedTemplates';
+import { danceKey, isActive, sortedQueue } from '../../lib/client/dj/queue';
+import { beatsFromCents } from '../../lib/beats/constants';
+import { diffColor } from '../../components/dj-controller/utils';
+import { fetcher } from '../../lib/client/fetcher';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false });
 
-const fetcher = url => fetch(url).then(r => r.json());
-
-const DIFF_COLORS = {
-  beginner: '#22c55e', improver: '#3b82f6',
-  intermediate: '#f59e0b', advanced: '#ef4444',
-};
-function diffColor(d = '') {
-  const key = Object.keys(DIFF_COLORS).find(k => d.toLowerCase().includes(k));
-  return key ? DIFF_COLORS[key] : '#8A5CFF';
-}
 function hexToRgb(hex) {
   const n = parseInt(hex.replace('#', ''), 16);
   return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
@@ -27,33 +21,20 @@ function formatTime(ms_offset) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
+// Total beats tipped per dance, keyed the same way as the controller (danceKey).
 function makeBeatsFor(requests) {
-  const map = {};
+  const cents = {};
   for (const r of requests) {
-    if (!['pending', 'approved', 'playing'].includes(r.status)) continue;
-    if (r.danceType === 'message') continue;
-    const key = r.danceType === 'partner'
-      ? (r.partnerGroupId || r._id)
-      : (r.danceId || (r.danceName || '').toLowerCase().trim());
-    map[key] = (map[key] ?? 0) + Math.round((r.tipCents ?? 0) / 5);
+    if (!isActive(r) || r.danceType === 'message') continue;
+    const key = danceKey(r);
+    cents[key] = (cents[key] ?? 0) + (r.tipCents ?? 0);
   }
-  return (r) => {
-    if (r.danceType === 'partner') return map[r.partnerGroupId || r._id] ?? 0;
-    return map[r.danceId || (r.danceName || '').toLowerCase().trim()] ?? 0;
-  };
+  return (r) => beatsFromCents(cents[danceKey(r)]);
 }
 
 // ── Element renderers ──────────────────────────────────────────────
 
 function MainFeedEl({ requests, requestUrl = '' }) {
-  const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
-
-  const playing = requests.find(r => r.status === 'playing') ?? null;
-  const upcoming = requests
-    .filter(r => r.status === 'approved')
-    .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))
-    .slice(0, 4);
-
   return (
     <div style={{
       width: '100%', height: '100%', display: 'grid',
@@ -76,19 +57,7 @@ function MainFeedEl({ requests, requestUrl = '' }) {
         </ol>
       </div>
       {/* Right: now playing + queue */}
-      <div className={feedStyles.right} style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
-        {!playing && upcoming.length === 0 ? (
-          <div className={feedStyles.feedEmpty}>
-            <span className={feedStyles.feedEmptyTitle}>No requests yet</span>
-            <span className={feedStyles.feedEmptyHint}>Scan the QR code to request a dance</span>
-          </div>
-        ) : (
-          <>
-            {playing && <NowPlayingCard request={playing} beatsFor={beatsFor} />}
-            {upcoming.length > 0 && <UpNextList items={upcoming} playing={playing} beatsFor={beatsFor} />}
-          </>
-        )}
-      </div>
+      <FeedPanelEl requests={requests} />
     </div>
   );
 }
@@ -116,10 +85,7 @@ function RequestCtaEl({ requestUrl = '' }) {
 function FeedPanelEl({ requests }) {
   const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
   const playing = requests.find(r => r.status === 'playing') ?? null;
-  const upcoming = requests
-    .filter(r => r.status === 'approved')
-    .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))
-    .slice(0, 4);
+  const upcoming = sortedQueue(requests).slice(0, 4);
 
   return (
     <div className={feedStyles.right} style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
@@ -160,10 +126,7 @@ function NowPlayingEl({ requests }) {
 function QueueListEl({ requests }) {
   const beatsFor = useMemo(() => makeBeatsFor(requests), [requests]);
   const playing = requests.find(r => r.status === 'playing') ?? null;
-  const upcoming = requests
-    .filter(r => r.status === 'approved')
-    .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))
-    .slice(0, 6);
+  const upcoming = sortedQueue(requests).slice(0, 6);
   if (upcoming.length === 0) {
     return (
       <div className={feedStyles.right} style={{ width: '100%', height: '100%', boxSizing: 'border-box' }}>
@@ -404,10 +367,7 @@ function computeAdOrders(items) {
 // Slot layout: [0]=top/4beats, [3]=bottom/hero/0beats
 // Queue mapping: 1st in queue → slot[3] (hero), 4th → slot[0] (top)
 function buildAdDisplayItems(requests) {
-  const approved = requests
-    .filter(r => r.status === 'approved')
-    .sort((a, b) => (a.queuePosition ?? 0) - (b.queuePosition ?? 0))
-    .slice(0, 4);
+  const approved = sortedQueue(requests).slice(0, 4);
   const slots = [null, null, null, null];
   approved.forEach((r, i) => {
     const slot = 3 - i; // 1st → slot 3, 2nd → slot 2, 3rd → slot 1, 4th → slot 0

@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { isFreeSessionEmail } from '../../../../lib/server/dj/sessionAccess';
-import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../../lib/dj/sessionTimeState';
 import { EXTENSION_PRICE_CENTS_PER_HOUR } from '../../../../lib/dj/sessionPricing';
 import { getWalletBalance, withWalletLock } from '../../../../lib/server/wallet';
 

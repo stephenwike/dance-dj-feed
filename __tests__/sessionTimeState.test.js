@@ -4,7 +4,7 @@ const {
   WARNING_THRESHOLD_MS,
   URGENT_THRESHOLD_MS,
   GRACE_PERIOD_MS,
-} = require('../lib/server/dj/sessionTimeState');
+} = require('../lib/dj/sessionTimeState');
 
 function makeSession(endsAt) {
   return { endsAt: new Date(endsAt) };

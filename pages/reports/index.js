@@ -4,33 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import useSWR from 'swr';
 import styles from './reports.module.css';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
+import { diffColor, formatDuration, formatTimestamp as formatTime } from '../../components/dj-controller/utils';
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
   });
-}
-
-function formatTime(date) {
-  return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
-function formatDuration(ms) {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-const DIFF_COLORS = {
-  beginner: '#22c55e', improver: '#3b82f6',
-  intermediate: '#f59e0b', advanced: '#ef4444',
-};
-function diffColor(d = '') {
-  const key = Object.keys(DIFF_COLORS).find(k => d.toLowerCase().includes(k));
-  return key ? DIFF_COLORS[key] : '#8A5CFF';
 }
 
 function SessionDetail({ sessionId }) {

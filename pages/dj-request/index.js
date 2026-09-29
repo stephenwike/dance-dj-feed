@@ -5,24 +5,11 @@ import { Pencil, Check } from 'lucide-react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import styles from './dj-request.module.css';
 import { filterAvailableDances } from '../../lib/client/dj/availableDances';
-import { estimateQueueTimes, timeAgo } from '../../components/dj-controller/utils';
+import { estimateQueueTimes, timeAgo, diffColor } from '../../components/dj-controller/utils';
 import { BEAT_PACKAGES } from '../../lib/beats/packages';
 import BeatTipper from '../../components/BeatTipper';
 import BeatBooster from '../../components/BeatBooster';
-
-const fetcher = url => fetch(url).then(r => r.json());
-
-const DIFF_COLORS = {
-  beginner: '#22c55e',
-  improver: '#3b82f6',
-  intermediate: '#f59e0b',
-  advanced: '#ef4444',
-};
-
-function diffColor(d = '') {
-  const key = Object.keys(DIFF_COLORS).find(k => d.toLowerCase().includes(k));
-  return key ? DIFF_COLORS[key] : '#8A5CFF';
-}
+import { fetcher } from '../../lib/client/fetcher';
 
 function getOrCreateClientId() {
   let id = localStorage.getItem('dj_client_id');

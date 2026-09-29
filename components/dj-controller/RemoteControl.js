@@ -92,25 +92,16 @@ function Countdown({ playStartedAt, duration_ms, paused, pausedAt }) {
   );
 }
 
-export default function RemoteControl({
-  playing, queue, onAction, activeSession,
-  danceRequestCounts = {}, danceBeats = {}, danceScores = {}, partnerUpvoteCounts = {},
-}) {
+export default function RemoteControl({ playing, queue, onAction, activeSession, stats }) {
   const track = playing[0] ?? null;
   const isPaused = !!(track?.pausedAt);
   const isPartner = track?.danceType === 'partner';
   const isMessage = track?.danceType === 'message';
 
-  // Derived stats for the playing track
-  const danceKey = (track?.danceName || '').toLowerCase().trim();
-  const scoreKey  = isPartner ? (track?.partnerGroupId || track?._id) : danceKey;
-  const requesterCount = track
-    ? (isPartner ? 1 + (partnerUpvoteCounts[track._id] ?? 0) : (danceRequestCounts[danceKey] ?? 1))
-    : 0;
-  const totalBeats = track
-    ? (isPartner ? (danceBeats[track._id] ?? 0) : (danceBeats[danceKey] ?? 0))
-    : 0;
-  const score = track ? (danceScores[scoreKey] ?? 0) : 0;
+  // Live demand for the playing dance (see useRequestGroups)
+  const requesterCount = stats?.count || 1;
+  const totalBeats = stats?.beats ?? 0;
+  const score = stats?.score ?? 0;
 
   if (!activeSession) return (
     <div className={styles.nowPlaying}>

@@ -1,5 +1,5 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
-import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../lib/dj/sessionTimeState';
 import { normalizeSession } from '../../../lib/server/dj/reportLogic';
 import { closeSession } from '../../../lib/server/dj/sessionLogic';
 

@@ -3,7 +3,7 @@ import { markSiblingsPlayed, buildSiblingDanceMatch } from '../../../../lib/serv
 import { ATTENDEE_REMOVABLE_STATUSES } from '../../../../lib/server/dj/requestAccess';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
-import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../../lib/dj/sessionTimeState';
 import { toObjectId } from '../../../../lib/server/db';
 
 // Fields the DJ may edit on a request. Each maps the raw body value to what is stored.

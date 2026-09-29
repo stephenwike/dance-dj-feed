@@ -5,7 +5,7 @@ import {
 } from '../../../lib/server/dj/requestAccess';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
-import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../lib/dj/sessionTimeState';
 import { toObjectId } from '../../../lib/server/db';
 
 // Only pending requests are hidden for suppressed requesters.

@@ -5,8 +5,7 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import styles from './dj-feed-editor.module.css';
 import { ASPECT_RATIOS, ELEMENT_TYPES, DEFAULT_TEMPLATE } from '../../lib/client/dj/feedTemplates';
-
-const fetcher = url => fetch(url).then(r => r.json());
+import { fetcher } from '../../lib/client/fetcher';
 
 const ELEMENT_COLORS = {
   'main-feed':      { bg: 'rgba(138,92,255,0.18)', border: 'rgba(138,92,255,0.5)',  text: '#c4b5fd' },

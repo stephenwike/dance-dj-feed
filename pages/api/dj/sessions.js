@@ -2,7 +2,7 @@ import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import { createSession, closeSession } from '../../../lib/server/dj/sessionLogic';
-import { getSessionTimeState } from '../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../lib/dj/sessionTimeState';
 import { normalizeSession } from '../../../lib/server/dj/reportLogic';
 
 export default async function handler(req, res) {

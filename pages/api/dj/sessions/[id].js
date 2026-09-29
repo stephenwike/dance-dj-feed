@@ -1,7 +1,7 @@
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
-import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
+import { getSessionTimeState } from '../../../../lib/dj/sessionTimeState';
 import { normalizeSession } from '../../../../lib/server/dj/reportLogic';
 import { makeSlug } from '../../../../lib/server/dj/sessionLogic';
 import { toObjectId, exactCaseInsensitive } from '../../../../lib/server/db';
