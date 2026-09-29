@@ -196,6 +196,7 @@
 
 /* ── Body (sidebar + content) ── */
 .body {
+  position: relative; /* anchors plugin overlays */
   flex: 1;
   display: flex;
   overflow: hidden;

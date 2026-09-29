@@ -5,6 +5,7 @@ import { getSessionTimeState } from '../../../../lib/dj/sessionTimeState';
 import { normalizeSession } from '../../../../lib/server/dj/reportLogic';
 import { makeSlug } from '../../../../lib/server/dj/sessionLogic';
 import { toObjectId, exactCaseInsensitive } from '../../../../lib/server/db';
+import { SESSION_PLUGINS } from '../../../../lib/dj/sessionPricing';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -40,8 +41,13 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PATCH') {
-    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, requestsEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId, feedAppliedAt } = req.body ?? {};
+    const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, requestsEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId, feedAppliedAt, plugin } = req.body ?? {};
     const set = {};
+
+    if (plugin !== undefined) {
+      if (!SESSION_PLUGINS.includes(plugin)) return res.status(400).json({ error: 'Invalid plugin' });
+      set.plugin = plugin;
+    }
 
     if (name !== undefined) {
       const trimmed = String(name).trim();
