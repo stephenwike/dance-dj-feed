@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
-import feedStyles from '../dj-feed/dj-feed.module.css';
+import feedStyles from './feed.module.css';
 import { DEFAULT_TEMPLATE } from '../../lib/client/dj/feedTemplates';
 
 const QRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false });

@@ -1,4 +1,4 @@
-﻿import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import { ObjectId } from 'mongodb';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';

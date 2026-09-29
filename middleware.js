@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server';
 
 const publicPaths = [
   '/',
-  '/dj-feed',
   '/dj-request',
 ];
 

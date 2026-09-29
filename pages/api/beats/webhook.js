@@ -1,4 +1,4 @@
-﻿import Stripe from 'stripe';
+import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { markWebhookReceived } from '../../../lib/server/stripeHealth';
 import { createSession, activateDraftSession } from '../../../lib/server/dj/sessionLogic';

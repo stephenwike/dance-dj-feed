@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const { code, error } = req.query;
 
   if (error || !code) {
-    return res.redirect(`/dj-spotify?spotify_error=${encodeURIComponent(error || 'no_code')}`);
+    return res.redirect(`/dj-controller?spotify_error=${encodeURIComponent(error || 'no_code')}`);
   }
 
   const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   const data = await tokenRes.json();
 
   if (!tokenRes.ok) {
-    return res.redirect(`/dj-spotify?spotify_error=${encodeURIComponent(data.error_description || 'token_failed')}`);
+    return res.redirect(`/dj-controller?spotify_error=${encodeURIComponent(data.error_description || 'token_failed')}`);
   }
 
   await saveTokens({
@@ -31,5 +31,5 @@ export default async function handler(req, res) {
     expires_at: Date.now() + data.expires_in * 1000,
   });
 
-  res.redirect('/dj-spotify?spotify_connected=1');
+  res.redirect('/dj-controller?spotify_connected=1');
 }

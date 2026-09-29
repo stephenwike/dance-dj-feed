@@ -1,4 +1,4 @@
-﻿import clientPromise, { DB_NAME } from '../../lib/server/mongodb';
+import clientPromise, { DB_NAME } from '../../lib/server/mongodb';
 import DJRequestPage from '../dj-request/index';
 
 export default function RequestSlugPage({ sessionId, djId, sessionEnded, requestsEnabled, tippingEnabled, queueVisibleToRequesters, queueVisibleCount }) {
