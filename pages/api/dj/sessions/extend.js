@@ -6,7 +6,7 @@ import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { isFreeSessionEmail } from '../../../../lib/server/dj/sessionAccess';
 import { getSessionTimeState } from '../../../../lib/server/dj/sessionTimeState';
 import { EXTENSION_PRICE_CENTS_PER_HOUR } from '../../../../lib/dj/sessionPricing';
-import { safeReturnUrl } from '../../../../lib/server/safeReturnUrl';
+import { getWalletBalance, withWalletLock } from '../../../../lib/server/wallet';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -61,41 +61,47 @@ export default async function handler(req, res) {
   if (req.body?.payFromWallet) {
     const stripeFee = Math.round(h * EXTENSION_PRICE_CENTS_PER_HOUR * 0.029) + 30;
     const walletPriceCents = h * EXTENSION_PRICE_CENTS_PER_HOUR - stripeFee;
-
     const db = client.db(DB_NAME);
-    const txns = await db.collection('dj_wallet_transactions').find({ ownerId: userId }).toArray();
-    const balance = txns.reduce((sum, t) => sum + (t.amountCents ?? 0), 0);
 
-    if (balance < walletPriceCents) {
-      return res.status(400).json({
-        error: `Insufficient wallet balance. Need $${(walletPriceCents / 100).toFixed(2)}, have $${(balance / 100).toFixed(2)}.`,
+    try {
+      const result = await withWalletLock(db, userId, async () => {
+        const balance = await getWalletBalance(db, userId);
+        if (balance < walletPriceCents) {
+          return {
+            status: 400,
+            body: { error: `Insufficient wallet balance. Need $${(walletPriceCents / 100).toFixed(2)}, have $${(balance / 100).toFixed(2)}.` },
+          };
+        }
+
+        const currentEndsAt = new Date(djSession.endsAt).getTime();
+        const newEndsAt = new Date(currentEndsAt + h * 3600000);
+        const now = new Date();
+
+        await Promise.all([
+          col.updateOne(
+            { _id: objId },
+            {
+              $set: { endsAt: newEndsAt },
+              $push: { extensions: { hours: h, at: now, walletPay: true } },
+            },
+          ),
+          db.collection('dj_wallet_transactions').insertOne({
+            ownerId: userId,
+            type: 'session_payment',
+            amountCents: -walletPriceCents,
+            sessionId: String(objId),
+            extensionHours: h,
+            createdAt: now,
+            note: `${h}hr extension — paid from wallet`,
+          }),
+        ]);
+
+        return { status: 200, body: { extended: true, newEndsAt } };
       });
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      return res.status(err.statusCode ?? 500).json({ error: err.message });
     }
-
-    const currentEndsAt = new Date(djSession.endsAt).getTime();
-    const newEndsAt = new Date(currentEndsAt + h * 3600000);
-    const now = new Date();
-
-    await Promise.all([
-      col.updateOne(
-        { _id: objId },
-        {
-          $set: { endsAt: newEndsAt },
-          $push: { extensions: { hours: h, at: now, walletPay: true } },
-        },
-      ),
-      db.collection('dj_wallet_transactions').insertOne({
-        ownerId: userId,
-        type: 'session_payment',
-        amountCents: -walletPriceCents,
-        sessionId: String(objId),
-        extensionHours: h,
-        createdAt: now,
-        note: `${h}hr extension — paid from wallet`,
-      }),
-    ]);
-
-    return res.status(200).json({ extended: true, newEndsAt });
   }
 
   const priceCents = h * EXTENSION_PRICE_CENTS_PER_HOUR;
