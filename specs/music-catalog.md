@@ -17,6 +17,27 @@ MusicBrainz **core data** only: recording title, artist credit, length, ISRC. Th
 
 Deezer was ruled out: its developer terms (Section IV) forbid commercial use without a partnership.
 
+## How the Catalog Grows
+
+Mostly on demand (`lib/server/catalog/catalogSearch.js`). The seeding script only gives it a head start.
+
+- **Nothing local** (query of 3+ characters): fetch from MusicBrainz now, store the results, then search again, so the attendee sees results on this keystroke.
+- **Local results, specific query** (2+ words or 6+ characters): return the local results at once and fetch in the background. Without this, early partial matches (e.g. "Wagonmaster" stored while typing "wagon") would stop the real song ever being fetched.
+- A query fetched in the last 10 minutes isn't fetched again. Identical concurrent searches share one fetch.
+- **MusicBrainz limit:** one throttle per server process (about 1 request/second). A lookup that can't start within 1.5s is skipped, and the next search retries. Each lookup fetches up to 2 pages of 100 with a phrase-boosted query: exact-title matches all score the same, so the well-known version can be anywhere among them.
+- Background fetches outlive the request, which suits a long-running Node server. On a serverless host they may be cut short (harmless; the next search retries).
+
+## Ranking
+
+MusicBrainz has no popularity signal. `rank` holds the **ListenBrainz listen count** (CC0; MetaBrainz asks commercial users to support them voluntarily). It is set only when a count was fetched, so an import without counts never erases one.
+
+Search order:
+1. Title relevance: the title is or starts with the query, then all words are in the title, then matches that needed the artist.
+2. Listen count within each tier.
+3. One row per song (normalised title + artist).
+
+For example, "copperhead road" puts Steve Earle's studio recording (85k listens) above covers and live bootlegs.
+
 ## Seeding
 
 ```
@@ -24,9 +45,9 @@ node scripts/catalog/seed-musicbrainz.js --artist "Steve Earle" [--artists-file 
 ```
 
 - Needs `MUSICBRAINZ_CONTACT` (email or URL), which goes in the User-Agent as MusicBrainz requires.
-- Requests are spaced at about 1/second (their limit), with a backoff on 503.
-- `--isrcs` does one extra lookup per recording.
-- Re-runs are safe: tracks upsert by id, and ISRCs accumulate.
+- Pages are ranked by listen count as they are stored.
+- `--isrcs` does one extra lookup per recording. On-demand fetches don't fetch ISRCs (search results don't include them).
+- Re-runs are safe: tracks upsert by id, ISRCs accumulate, and ranks are only replaced by fresh counts.
 
 ## Search
 
@@ -34,11 +55,10 @@ node scripts/catalog/seed-musicbrainz.js --artist "Steve Earle" [--artists-file 
 
 - Every word must match; the last word may be partial.
 - Queries shorter than 2 characters return nothing.
-- Versions of one song (same normalised title + artist) collapse to the highest-ranked one.
-- Responses are cacheable for 60s.
+- Non-empty results are cacheable for 10s, since a background refresh can re-rank within seconds. Empty results aren't cached.
 - Only display fields are returned.
 
-Scale: prefix search with an in-memory rank sort suits up to hundreds of thousands of tracks. A full MusicBrainz import (tens of millions) would need a search engine such as Atlas Search.
+Scale: prefix search with an in-memory rank sort suits up to hundreds of thousands of tracks. Beyond that, use a search engine such as Atlas Search.
 
 ## Requests
 

@@ -25,6 +25,7 @@ const fs = require('fs');
 const path = require('path');
 const { ensureIndexes, upsertTracks, CATALOG_DB } = require('../../lib/server/catalog/trackCatalog');
 const { fromRecording } = require('../../lib/server/catalog/musicbrainz');
+const { createListenBrainzClient, rankByListens } = require('../../lib/server/catalog/listenbrainzClient');
 
 // Load .env.local without dotenv
 const envPath = path.resolve(__dirname, '../../.env.local');
@@ -94,6 +95,8 @@ async function main() {
   if (!process.env.MONGODB_URI) throw new Error('Missing MONGODB_URI');
 
   const get = makeClient(contact);
+  // Listen counts rank the catalog (MusicBrainz has no popularity signal).
+  const listenbrainz = createListenBrainzClient({ userAgent: `LineDanceDJFeed/0.1 ( ${contact} )` });
   const client = opts.dryRun ? null : await new MongoClient(process.env.MONGODB_URI).connect();
   try {
     if (client) await ensureIndexes(client);
@@ -116,7 +119,7 @@ async function main() {
         }
         kept += records.length;
         if (client) {
-          const res = await upsertTracks(client, records);
+          const res = await upsertTracks(client, await rankByListens(listenbrainz, records));
           totals.upserted += res.upserted;
           totals.modified += res.modified;
         }

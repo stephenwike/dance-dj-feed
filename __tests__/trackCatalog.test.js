@@ -1,6 +1,6 @@
 'use strict';
 const {
-  toTrackDoc, upsertTracks, buildSearchFilter, onePerSong, toSearchResult,
+  toTrackDoc, upsertTracks, buildSearchFilter, titleRelevance, onePerSong, toSearchResult,
 } = require('../lib/server/catalog/trackCatalog');
 const { fromRecording, artistCreditName } = require('../lib/server/catalog/musicbrainz');
 
@@ -27,7 +27,7 @@ describe('toTrackDoc', () => {
 
   test('defaults optional fields', () => {
     const doc = toTrackDoc({ source: 's', sourceId: '1', title: 'T', artist: 'A' });
-    expect(doc).toMatchObject({ disambiguation: '', durationMs: null, isrcs: [], year: null, rank: 0 });
+    expect(doc).toMatchObject({ disambiguation: '', durationMs: null, isrcs: [], year: null, rank: null });
   });
 
   test('de-duplicates words shared by title and artist', () => {
@@ -66,6 +66,17 @@ describe('upsertTracks', () => {
     expect(update.$setOnInsert.isrcs).toEqual([]);
   });
 
+  test('sets rank (and rankedAt) only when the record carries a listen count', async () => {
+    const { client, calls } = fakeClient();
+    await upsertTracks(client, [record, { ...record, sourceId: 'unranked', rank: undefined }]);
+    const ranked = calls[0][0].updateOne.update;
+    expect(ranked.$set).toMatchObject({ rank: 12, rankedAt: expect.any(Date) });
+    expect(ranked.$setOnInsert.rank).toBeUndefined();
+    const unranked = calls[0][1].updateOne.update;
+    expect(unranked.$set.rank).toBeUndefined(); // an existing rank is left alone
+    expect(unranked.$setOnInsert.rank).toBe(0);
+  });
+
   test('does nothing for an empty batch', async () => {
     const { client, calls } = fakeClient();
     expect(await upsertTracks(client, [])).toEqual({ upserted: 0, modified: 0 });
@@ -96,6 +107,20 @@ describe('buildSearchFilter', () => {
   test('escapes nothing dangerous into the regex', () => {
     // normalizeText strips everything but letters/digits, so no regex syntax survives
     expect(buildSearchFilter('a.*(b')).toEqual({ $and: [{ words: 'a' }, { words: { $regex: '^b' } }] });
+  });
+});
+
+describe('titleRelevance', () => {
+  test('ranks exact/leading title matches first, then all-words-in-title, then artist-assisted', () => {
+    expect(titleRelevance('neon moon', ['neon', 'moon'])).toBe(0);
+    expect(titleRelevance('neon moon remix', ['neon', 'mo'])).toBe(0);
+    expect(titleRelevance('under the neon moon', ['neon', 'moon'])).toBe(1);
+    expect(titleRelevance('neon blade', ['neon', 'moon'])).toBe(2);
+  });
+
+  test('only the last (still being typed) word may be partial', () => {
+    expect(titleRelevance('wagon wheels', ['wagon', 'whe'])).toBe(0);
+    expect(titleRelevance('the wagonmaster wheel', ['wagon', 'wheel'])).toBe(2);
   });
 });
 
@@ -132,13 +157,14 @@ describe('musicbrainz.fromRecording', () => {
   test('maps a recording to a catalog record', () => {
     expect(fromRecording(recording)).toEqual({
       source: 'musicbrainz', sourceId: 'mbid-1', title: 'Copperhead Road', artist: 'Steve Earle & The Dukes',
-      disambiguation: 'live', durationMs: 270480, isrcs: ['USMC18826253'], year: 1988, rank: 3,
+      disambiguation: 'live', durationMs: 270480, isrcs: ['USMC18826253'], year: 1988,
     });
   });
 
   test('tolerates missing optional fields', () => {
     const r = fromRecording({ id: 'x', title: 'T', 'artist-credit': [{ artist: { name: 'A' } }] });
-    expect(r).toMatchObject({ artist: 'A', durationMs: null, isrcs: [], year: null, rank: 0, disambiguation: '' });
+    expect(r).toMatchObject({ artist: 'A', durationMs: null, isrcs: [], year: null, disambiguation: '' });
+    expect(r.rank).toBeUndefined(); // MusicBrainz has no popularity; ListenBrainz ranks
   });
 
   test('skips videos and recordings without a title or artist', () => {
