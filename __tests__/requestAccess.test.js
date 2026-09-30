@@ -1,6 +1,6 @@
 'use strict';
 const {
-  isSessionOwner, sanitizeCreateBody, createBlockedReason, redactForViewer,
+  isSessionOwner, sanitizeCreateBody, createBlockedReason, redactForViewer, withoutDjOnlyFields,
 } = require('../lib/server/dj/requestAccess');
 
 const session = { _id: 's1', ownerId: 'dj1', status: 'active' };
@@ -81,9 +81,27 @@ describe('redactForViewer', () => {
     expect(out[3].clientId).toBe('');
   });
 
+  test("hides the DJ's file paths from everyone, including on the viewer's own and system requests", () => {
+    const withFiles = requests.map(r => ({ ...r, localTrackKey: 'Partner/Song.mp3' }));
+    for (const r of redactForViewer(withFiles, 'anon_me')) expect(r).not.toHaveProperty('localTrackKey');
+  });
+
   test('with no viewer id, hides every attendee id', () => {
     const out = redactForViewer(requests, null);
     expect(out[0]).not.toHaveProperty('clientId');
     expect(out[1]).not.toHaveProperty('clientId');
+  });
+});
+
+describe('withoutDjOnlyFields', () => {
+  test('removes the local file path and keeps everything else', () => {
+    const r = { _id: 'r1', danceName: 'A', localTrackKey: 'x.mp3', catalogTrackId: 'musicbrainz:1' };
+    expect(withoutDjOnlyFields(r)).toEqual({ _id: 'r1', danceName: 'A', catalogTrackId: 'musicbrainz:1' });
+    expect(r.localTrackKey).toBe('x.mp3'); // input untouched
+  });
+
+  test('returns requests without private fields as-is', () => {
+    const r = { _id: 'r1' };
+    expect(withoutDjOnlyFields(r)).toBe(r);
   });
 });

@@ -34,6 +34,15 @@
 
 ---
 
+## Privacy
+
+- **Browser folder access:** the browser only exposes the chosen folder's name and paths inside it, never the full path on disk. The DJ grants read access, the browser asks again after a reload, and access can be revoked in site settings.
+- **Stays on the computer:** the folder handle, the scanned index, and the DJ's remembered file choices are kept in that browser's IndexedDB (`libraryStore.js`). Audio is never uploaded.
+- **Per DJ account:** that stored data is keyed by the signed-in DJ's id, so DJs who share a computer and browser profile keep separate folders and choices. Data saved before this was keyed per DJ goes to the first DJ who opens the plugin in that browser.
+- **`localTrackKey` on the server:** this path inside the folder is saved on requests so a pinned file survives reloads. It is DJ-only: `redactForViewer` and the create response strip it for everyone but the session's DJ (`DJ_ONLY_FIELDS` in `requestAccess.js`). Attendees can't set it.
+
+---
+
 ## Matching Requests to Files
 
 The strongest evidence wins (`explainMatch` in `library.js`). The queue panel shows which method was used for **Now** and **Next**:
