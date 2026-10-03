@@ -141,6 +141,16 @@
   padding-left: 42px;
 }
 
+/* A guessed file (history / fuzzy suggestion): playing, but unconfirmed. */
+.fileGuess {
+  font-size: 11px;
+  color: #fcd34d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 42px;
+}
+
 .fileMissing {
   font-size: 11px;
   color: #fbbf24;
@@ -168,6 +178,59 @@
   flex: 1;
   min-width: 60px;
   accent-color: #2dd4bf;
+}
+
+/* ── Track timeline (waveform with In/Out handles) ── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timelineSvg {
+  width: 100%;
+  height: 72px;
+  display: block;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  touch-action: none; /* let pointer drags work on touch screens */
+}
+
+.timelineWave { stroke: rgba(45, 212, 191, 0.75); stroke-width: 1.5; fill: none; }
+.timelineDim { fill: rgba(0, 0, 0, 0.6); }
+.timelineBound { stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; stroke-dasharray: 3 3; }
+.timelineIn { stroke: #34d399; stroke-width: 3; }
+.timelineOut { stroke: #fbbf24; stroke-width: 3; }
+.timelinePlayhead { stroke: #fff; stroke-width: 1.5; }
+
+.timelineLegend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.timelineInLabel { color: #6ee7b7; font-variant-numeric: tabular-nums; }
+.timelineOutLabel { color: #fcd34d; font-variant-numeric: tabular-nums; }
+
+.linkBtn {
+  margin-left: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.linkBtn:hover { color: #fff; }
+
+.cueValue {
+  min-width: 70px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  font-variant-numeric: tabular-nums;
 }
 
 .tempoValue {
@@ -208,6 +271,44 @@
   font-size: 12px;
 }
 .select option { background: #1a1628; }
+
+/* ── Per-card file row (TrackFileRow) ── */
+.item {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.item.row { flex-direction: row; }
+
+.itemFile,
+.itemGuess,
+.itemMissing {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itemFile { color: #5eead4; }
+.itemGuess { color: #fcd34d; }
+.itemMissing { color: #f87171; font-weight: 600; }
+
+/* Accepting a suggested file saves the association. */
+.acceptBtn {
+  background: #fbbf24;
+  color: #1c1917;
+  border: none;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.acceptBtn:hover { background: #fcd34d; }
 
 /* ── Library search ── */
 .searchToggle {
@@ -284,6 +385,22 @@
 }
 .resultTitle { font-size: 13px; color: #fff; }
 .resultSub { font-size: 11px; color: rgba(255, 255, 255, 0.45); }
+
+.resultsHeading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 2px 8px 0;
+}
+
+.resultScore {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5eead4;
+  font-variant-numeric: tabular-nums;
+}
 
 .resultDur {
   font-size: 11px;

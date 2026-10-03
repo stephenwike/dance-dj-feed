@@ -1,5 +1,5 @@
 'use strict';
-const { createRequest, listRequests, toLocalTrackKey } = require('../lib/server/dj/requestLogic');
+const { createRequest, listRequests, toLocalTrackKey, toPlayLengthMs } = require('../lib/server/dj/requestLogic');
 
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
@@ -327,5 +327,28 @@ describe('listRequests — catalog dance details', () => {
     const client = makeMockClient({ dances, tracks, existing: [{ _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', isrcs: ['CATALOG00001'] }] });
     const [r] = await listRequests(client, 'sess1');
     expect(r.isrcs).toEqual(['CATALOG00001']);
+  });
+});
+
+describe("play length from the DJ's player", () => {
+  const dances = [{ _id: 'd1', primaryTrack: 't1' }];
+  const tracks = [{ _id: 't1', duration_ms: 200_000 }];
+
+  test("wins over the catalog song's length, and still scales with tempo", async () => {
+    const client = makeMockClient({ dances, tracks, existing: [
+      { _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', playLengthMs: 150_000 },
+      { _id: 'r2', sessionId: 'sess1', danceId: 'd1', danceName: 'B', playLengthMs: 150_000, tempo: 0.75 },
+    ] });
+    const byId = Object.fromEntries((await listRequests(client, 'sess1')).map(r => [r._id, r]));
+    expect(byId.r1.duration_ms).toBe(150_000);
+    expect(byId.r2.duration_ms).toBe(200_000);
+  });
+
+  test('toPlayLengthMs keeps 1s–1h and rejects the rest', () => {
+    expect(toPlayLengthMs(145_000.4)).toBe(145_000);
+    expect(toPlayLengthMs(500)).toBeNull();
+    expect(toPlayLengthMs(2 * 60 * 60 * 1000)).toBeNull();
+    expect(toPlayLengthMs(null)).toBeNull();
+    expect(toPlayLengthMs('x')).toBeNull();
   });
 });

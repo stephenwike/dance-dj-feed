@@ -218,9 +218,12 @@ function Controller() {
 
   // What every plugin slot component can see and do (see PluginSlot.js).
   const pluginController = { session: liveSession, playing, queue, nextQueuePos, onAction: handleAction, setPlugin };
-  const pluginSlot = (name, fallback = null) => hasSlot(plugin, name)
-    ? <PluginSlot plugin={plugin} name={name} runtime={pluginRuntime} controller={pluginController} />
+  const pluginSlot = (name, fallback = null, extra = {}) => hasSlot(plugin, name)
+    ? <PluginSlot plugin={plugin} name={name} runtime={pluginRuntime} controller={pluginController} {...extra} />
     : fallback;
+  // What the plugin shows on each queued/now-playing card, and its border tint.
+  const itemSlot = request => pluginSlot(SLOTS.QUEUE_ITEM, null, { request });
+  const itemTone = request => plugin.itemTone?.(pluginRuntime, request) ?? null;
 
   async function toggleSuppress(clientId, suppress) {
     if (!workingSession?._id) return;
@@ -515,6 +518,8 @@ function Controller() {
                     <RemoteControl
                       playing={playing} queue={queue} onAction={handleAction} activeSession={liveSession}
                       stats={statsFor(playing[0])}
+                      tone={playing[0] ? itemTone(playing[0]) : null}
+                      footer={playing[0] ? itemSlot(playing[0]) : null}
                     />
                     {playing.length === 0 && queue.length === 0 && (
                       <div className={styles.queueEmpty}>
@@ -543,6 +548,8 @@ function Controller() {
                             totalBeats={stats.beats}
                             estimatedPlayAt={queueTimes[r._id]}
                             score={stats.score}
+                            tone={itemTone(r)}
+                            footer={itemSlot(r)}
                           />
                         )}
                       </SortableQueueItem>

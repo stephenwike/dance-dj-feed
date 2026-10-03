@@ -4,6 +4,7 @@ import LocalFilesStatus from './LocalFilesStatus';
 import LocalFilesQueueFooter from './LocalFilesQueueFooter';
 import LocalFilesSidebarStatus from './LocalFilesSidebarStatus';
 import UnsupportedBrowser from './UnsupportedBrowser';
+import TrackFileRow, { itemTone } from './TrackFileRow';
 
 /**
  * Local files: the controller plays music from a folder on the DJ's
@@ -16,10 +17,12 @@ export default {
   description: 'Play music from a folder on this computer (Chrome or Edge)',
   adapter: LocalFilesAdapter,
   useRuntime: useLocalFilesPlugin,
+  itemTone,
   slots: {
     overlay: UnsupportedBrowser,
     queueHeader: LocalFilesStatus,
     queueFooter: LocalFilesQueueFooter,
     sidebarStatus: LocalFilesSidebarStatus,
+    queueItem: TrackFileRow,
   },
 };

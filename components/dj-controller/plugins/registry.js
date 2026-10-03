@@ -22,6 +22,9 @@
  *                   onCloseSession(sessionId) — that session was just closed
  *   slots       : { [slotName]: Component } — see PluginSlot.js for the
  *                 slot names and the props each slot receives.
+ *   itemTone    : optional (runtime, request) → 'danger' | 'warning' | null.
+ *                 Tints a queued/now-playing card's border, e.g. red when
+ *                 the plugin can't play that request.
  */
 import standard from './standard';
 import spotify from './spotify';

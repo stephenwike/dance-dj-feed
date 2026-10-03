@@ -2053,6 +2053,25 @@
 
 .qCard:hover { border-color: rgba(138,92,255,0.3); }
 
+/* QueueCard: the card's row, with the playback plugin's strip (QUEUE_ITEM) below it. */
+.qCardStack { flex-direction: column; align-items: stretch; }
+.qCardMain { display: flex; align-items: stretch; }
+.qCardFooter { padding: 0 12px 8px 44px; } /* lines up with the text column */
+.qCardFooter:empty { display: none; }
+
+/* RemoteControl: same idea for the now-playing card. */
+.nowPlayingStack { flex-direction: column; gap: 0; }
+.npMain { display: flex; flex-direction: row; gap: 16px; }
+.npFooter:empty { display: none; }
+
+/* Set by the playback plugin: red = it can't play this request, amber = unconfirmed. */
+.qCardDanger,
+.qCardDanger:hover { border: 2px solid #ef4444; box-shadow: 0 0 0 1px rgba(239,68,68,0.25); }
+.qCardWarning,
+.qCardWarning:hover { border: 1px solid rgba(251,191,36,0.7); }
+.nowPlayingDanger { border: 2px solid #ef4444; box-shadow: 0 0 0 1px rgba(239,68,68,0.25); }
+.nowPlayingWarning { border-color: rgba(251,191,36,0.7); }
+
 .qGrip {
   width: 32px;
   display: flex;

@@ -45,18 +45,36 @@
 
 ## Matching Requests to Files
 
-The strongest evidence wins (`explainMatch` in `library.js`). The queue panel shows which method was used for **Now** and **Next**:
+The strongest evidence wins (`explainMatch` in `library.js`). Every queued card and the now-playing card show their file and how it was found (`TrackFileRow`, the plugin's `queueItem` slot). The card border is **red** when no file was found and **amber** for a guess (the plugin's `itemTone`). **Find file** / **Change** opens a panel listing the 3 closest files with a match %, above a search of the library.
 
 | Method | Label | Meaning |
 |---|---|---|
-| Assigned | chosen by you | The request's `localTrackKey`, set with **Find file** / **Change file** |
-| Linked | your usual file for this song | A file the DJ chose before for the same catalog song (`catalogTrackId`). Stored in IndexedDB, so it is per-computer |
-| ISRC | exact recording (ISRC) | A file whose ISRC tag matches one of the request's `isrcs` (copied from the music catalog) |
-| Name | matched by name | Normalised title must match, and the artist must match, contain, or be missing. Among equals, the file within 3s of the request's length wins, which picks the right version (radio edit vs extended) |
+| Assigned | chosen by you | The request's `localTrackKey`, set with **Find file** / **Change file** / **✓ Confirm** |
+| Linked | your file for this | A file the DJ chose before for the same **dance** (for a song swap or partner request: the same **song**) |
+| ISRC | exact recording | A file whose ISRC tag matches the request's `isrcs` (from the music catalog, or the dance's song in `ldco`) |
+| Name | matched by name | Normalised title must match, and the artist must match, contain, or be missing. Among equals, the file within 3s of the request's length wins |
+| History | suggested (played for this before) — not saved yet | The file most played for this dance. Its own plays count 4× a swap played for it |
+| Suggested | suggested — not saved yet | Closest fuzzy match on title (tag **or filename**, 60%), artist (25%) and length (15%). Failing that, the top result of the same search **Find file** runs (title words anywhere in the tags or path). Never a file tagged with a different artist |
 
-Without an artist, a title only matches if it is unambiguous or one file is within 3s of the length. Song swaps use the swap song. A request with no file is timed, not played: it advances after its `duration_ms`, like Standard.
+The last two are **suggestions**. They play automatically without saving anything. They are shown in amber with **✓ Accept**, which saves the association (and pins the file to the request). Match results are cached per request until the library or the DJ's memory changes. Song swaps use the swap song.
 
-Picking a file for a catalog request also records the link, so later requests for that song match automatically.
+Before comparing, titles drop release-variant notes (e.g. "- 2008 Remaster", "- Radio Edit", "- Single Version") but keep ones naming a different recording (live, acoustic, remix). Dropped g's count as the same word ("rockin'" = "rocking"). A file with no artist tag is checked against its folder names, and a line dance's name counts as a second title.
+
+A request with no match at all is timed, not played: it advances after its `duration_ms`, like Standard.
+
+## The DJ's Local Memory
+
+This lives only in the DJ's browser, per DJ account (`libraryStore.js`), and never goes to the server. Keys are defined in `requestIdentity.js`:
+
+- **Identity keys:**
+  - `dance:<danceId>`: a catalog line dance
+  - `dance-name:<name>`: a typed line dance
+  - `song:<catalogTrackId>`: a catalog song
+  - `song-name:<title>|<artist>`: a typed song
+- **Links** (explicit, "use this file every time"): saved when the DJ picks or confirms a file. A line dance links its **dance**, plus its catalog song when it names one exactly. A swap or partner request links only its **song**, so a swap never changes the dance's usual file.
+- **History** (loose): each file that actually plays is recorded under the dance and under the song, with swap plays counted separately. This covers "songs played for this dance before", swaps included. Unconfirmed fuzzy guesses aren't recorded, so a wrong guess can't reinforce itself. The 20 most recent files are kept per key.
+
+Links from before identity keys (bare catalog ids) are read as song keys.
 
 ---
 
@@ -89,6 +107,16 @@ Shown in the queue panel on the computer playing the music.
 - **Fade out**: fades over 5s, then pauses the track in the queue. Resuming plays at full volume.
 - **Crossfade** (Off / 3s / 6s / 10s): starts the next track that many seconds before the current one ends, with equal-power curves. It only applies when the next track's file is already loaded, and never on tracks shorter than 3× the crossfade.
 - **Speakers**: sends audio to a chosen output device (`setSinkId`). Chrome only names devices after a microphone permission prompt; nothing is recorded.
+
+- **Volume** (−12 to +12 dB), for the playing track, applied live. It can boost quiet songs as well as cut loud ones.
+- **Timeline** (`TrackTimeline.js`): the playing file's waveform, decoded once per file version at a low sample rate (`decodeWaveform.js`) and cached per DJ in IndexedDB as 600 loudness points (0..255). Drag the green **Start (In)** and amber **Fade (Out)** handles; click elsewhere to jump there (the queue's clock moves too, so remotes follow). Handles snap to the track's start/end and to where the sound starts/ends (dashed lines, detected from the waveform). Regions that won't play are dimmed, and the fade after Out is shaded. Handles stay at least 10s apart; dragging a handle back to the start or end clears it.
+- **Start (In)**: where the track starts. It applies the next time the track plays (this play has already started); the track then fades in over 1.5s, and the queue's clock counts from the In point.
+- **Fade (Out)**: where the fade (or crossfade) to the next track starts. It applies live, when playback next *crosses* the point, so setting it just behind the playhead doesn't fade at once. The fade length is the crossfade setting, or 5s when crossfade is off. At the end of the queue it fades out instead of cutting.
+- **Save to track**: stores volume, In/Out and the current tempo **for that file**, locally per DJ (`trackSettings` in `libraryStore.js`). They apply whenever the file plays; a saved tempo applies unless the request already has one. **Revert** returns to the saved settings. Saving the defaults removes the entry.
+
+When a file (or its In/Out points) makes a track play longer or shorter than the queue assumes (by more than 1.5s), the player PATCHes the request's `playLengthMs`. `joinDurations` prefers it, so the feed's countdown and queue ETAs match what actually plays.
+
+Audio runs through Web Audio (`Deck.js`): element → trim gain (volume) → fader gain (fades, scheduled by the audio engine) → one shared `AudioContext`. Speakers are chosen with `AudioContext.setSinkId`. The player (and its audio context) is only created once the Local Files plugin is used.
 
 Crossfade length and speakers are per-computer preferences, kept in `localStorage`.
 

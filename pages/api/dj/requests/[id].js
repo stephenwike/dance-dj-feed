@@ -1,5 +1,5 @@
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
-import { markSiblingsPlayed, buildSiblingDanceMatch, toLocalTrackKey } from '../../../../lib/server/dj/requestLogic';
+import { markSiblingsPlayed, buildSiblingDanceMatch, toLocalTrackKey, toPlayLengthMs } from '../../../../lib/server/dj/requestLogic';
 import { ATTENDEE_REMOVABLE_STATUSES } from '../../../../lib/server/dj/requestAccess';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
@@ -25,6 +25,7 @@ const EDITABLE_FIELDS = {
   spotifyUri:    v => v ?? null,
   localTrackKey: toLocalTrackKey,
   tempo:         normalizeTempo,
+  playLengthMs:  toPlayLengthMs,
   isSongSwap:    v => !!v,
   swapSongName:  v => v ?? null,
   swapArtist:    v => v ?? null,

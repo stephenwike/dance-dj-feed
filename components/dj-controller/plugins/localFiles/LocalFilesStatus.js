@@ -1,21 +1,5 @@
-import { useState } from 'react';
 import s from './LocalFiles.module.css';
-import LibrarySearch from './LibrarySearch';
 import DeckControls from './DeckControls';
-import { requestTrack } from '../../../../lib/client/dj/plugins/localFiles/library';
-
-// How the file was found, strongest first (see library.explainMatch).
-const MATCH_LABELS = {
-  assigned: 'chosen by you',
-  linked: 'your usual file for this song',
-  isrc: 'exact recording (ISRC)',
-  name: 'matched by name',
-};
-
-function displayName(r) {
-  const { title, artist } = requestTrack(r);
-  return [title || r.danceName, artist].filter(Boolean).join(' — ');
-}
 
 /** Folder, permission and scan state for the music library. */
 function LibraryState({ library }) {
@@ -94,53 +78,18 @@ function PlaybackNotices({ playback }) {
 }
 
 /**
- * Which file will play for a request, with a way to pick one when matching
- * found none. Shown for the current and next track so gaps surface early.
+ * QUEUE_HEADER slot: library status, playback prompts and mixing controls.
+ * Each request's file is shown on its own card (TrackFileRow).
  */
-function TrackCheck({ label, request, runtime }) {
-  const [picking, setPicking] = useState(false);
-  const match = runtime.explainFor(request);
-  const entry = match?.entry;
-
-  return (
-    <div className={s.check}>
-      <div className={s.row}>
-        <span className={s.checkLabel}>{label}</span>
-        <span className={s.checkName}>{displayName(request)}</span>
-        {!picking && (
-          <button className={s.ghostBtn} onClick={() => setPicking(true)}>{entry ? 'Change file' : 'Find file'}</button>
-        )}
-      </div>
-      {entry
-        ? <span className={s.fileOk} title={entry.key}>♪ {entry.key} · {MATCH_LABELS[match.via]}</span>
-        : <span className={s.fileMissing}>No matching file — it will be timed, not played</span>}
-      {picking && (
-        <LibrarySearch
-          search={runtime.search}
-          initialQuery={requestTrack(request).title}
-          placeholder="Find the file for this track…"
-          onClose={() => setPicking(false)}
-          onPick={async picked => { setPicking(false); await runtime.assignFile(request, picked); }}
-        />
-      )}
-    </div>
-  );
-}
-
-/** QUEUE_HEADER slot: library status, playback prompts, now/next file checks and mixing controls. */
 export default function LocalFilesStatus({ runtime, controller }) {
   const { library, playback } = runtime;
-  const nowPlaying = controller.playing[0];
-  const upNext = controller.queue[0];
   const ready = library.status === 'ready';
 
   return (
     <div className={s.panel}>
       <LibraryState library={library} />
       {ready && <PlaybackNotices playback={playback} />}
-      {ready && nowPlaying && <TrackCheck key={nowPlaying._id} label="Now" request={nowPlaying} runtime={runtime} />}
-      {ready && upNext && <TrackCheck key={upNext._id} label="Next" request={upNext} runtime={runtime} />}
-      {ready && <DeckControls runtime={runtime} nowPlaying={nowPlaying} />}
+      {ready && <DeckControls runtime={runtime} nowPlaying={controller.playing[0]} />}
     </div>
   );
 }

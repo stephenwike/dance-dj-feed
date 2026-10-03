@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import s from './LocalFiles.module.css';
 import { TEMPO_MIN, TEMPO_MAX, tempoOf } from '../../../../lib/dj/tempo';
 import { CROSSFADE_OPTIONS, MANUAL_FADE_SEC } from '../../../../lib/client/dj/plugins/localFiles/mixing';
+import { VOLUME_MIN_DB, VOLUME_MAX_DB } from '../../../../lib/client/dj/plugins/localFiles/trackSettings';
+import TrackTimeline from './TrackTimeline';
 
 // Wait for the slider to settle before saving, so dragging it doesn't send
 // a PATCH per pixel. The audio follows the slider immediately regardless.
@@ -74,6 +76,56 @@ function FadeButtons({ request, runtime }) {
   );
 }
 
+const VOLUME_STEP_DB = 0.5;
+
+function formatDb(db) {
+  return `${db > 0 ? '+' : ''}${db.toFixed(1)} dB`;
+}
+
+/** Loudness for the playing track, applied live. */
+function VolumeControl({ playback }) {
+  const db = playback.adjust.volumeDb;
+  const change = next => playback.setVolumeDb(Math.min(VOLUME_MAX_DB, Math.max(VOLUME_MIN_DB, next)));
+  return (
+    <div className={s.row}>
+      <span className={s.deckLabel}>Volume</span>
+      <button className={s.ghostBtn} onClick={() => change(db - 1)} disabled={db <= VOLUME_MIN_DB} aria-label="Quieter">−</button>
+      <input
+        type="range"
+        className={s.slider}
+        min={VOLUME_MIN_DB} max={VOLUME_MAX_DB} step={VOLUME_STEP_DB}
+        value={db}
+        onChange={e => change(Number(e.target.value))}
+        aria-label="Volume"
+      />
+      <button className={s.ghostBtn} onClick={() => change(db + 1)} disabled={db >= VOLUME_MAX_DB} aria-label="Louder">+</button>
+      <button className={`${s.ghostBtn} ${s.tempoValue}`} onClick={() => change(0)} disabled={db === 0} title="Reset to 0 dB">
+        {formatDb(db)}
+      </button>
+    </div>
+  );
+}
+
+/** Save volume, In/Out and tempo to this file, so they apply every time it plays. */
+function SaveToTrack({ runtime }) {
+  const { playback, trackSettingsDirty } = runtime;
+  return (
+    <div className={s.row}>
+      <span className={s.deckLabel} />
+      {trackSettingsDirty ? (
+        <>
+          <button className={s.acceptBtn} onClick={runtime.saveTrackSettings} title="Volume, In/Out and tempo will apply every time this file plays">
+            Save to track
+          </button>
+          <button className={s.ghostBtn} onClick={playback.revertAdjustments}>Revert</button>
+        </>
+      ) : (
+        <span className={s.muted}>{playback.saved ? '✓ Saved for this track' : 'Adjust volume, In/Out or tempo, then save to this track'}</span>
+      )}
+    </div>
+  );
+}
+
 function CrossfadeChoice({ playback }) {
   return (
     <div className={s.row}>
@@ -126,8 +178,9 @@ function OutputChoice({ outputs, playback }) {
 }
 
 /**
- * Mixing controls for the computer playing the music: tempo and fades for
- * the current track, plus crossfade length and output device.
+ * Mixing controls for the computer playing the music: tempo, volume, In/Out
+ * points and fades for the current track (savable to its file), plus
+ * crossfade length and output device.
  */
 export default function DeckControls({ runtime, nowPlaying }) {
   const { playback, outputs } = runtime;
@@ -138,6 +191,9 @@ export default function DeckControls({ runtime, nowPlaying }) {
     <div className={s.deck}>
       {/* Keyed per track so an unsaved drag never lands on the next song. */}
       {playingHere && <TempoControl key={nowPlaying._id} request={nowPlaying} runtime={runtime} />}
+      {playingHere && <VolumeControl playback={playback} />}
+      {playingHere && <TrackTimeline runtime={runtime} request={nowPlaying} />}
+      {playingHere && <SaveToTrack runtime={runtime} />}
       {playingHere && <FadeButtons request={nowPlaying} runtime={runtime} />}
       <CrossfadeChoice playback={playback} />
       <OutputChoice outputs={outputs} playback={playback} />

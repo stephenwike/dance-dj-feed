@@ -92,7 +92,8 @@ function Countdown({ playStartedAt, duration_ms, paused, pausedAt }) {
   );
 }
 
-export default function RemoteControl({ playing, queue, onAction, activeSession, stats }) {
+/** `tone` and `footer`: as on QueueCard, for the playing track. */
+export default function RemoteControl({ playing, queue, onAction, activeSession, stats, tone = null, footer = null }) {
   const track = playing[0] ?? null;
   const isPaused = !!(track?.pausedAt);
   const isPartner = track?.danceType === 'partner';
@@ -120,122 +121,127 @@ export default function RemoteControl({ playing, queue, onAction, activeSession,
     );
   }
 
+  const toneClass = { danger: styles.nowPlayingDanger, warning: styles.nowPlayingWarning }[tone] ?? '';
   return (
-    <div className={styles.nowPlaying}>
+    <div className={`${styles.nowPlaying} ${styles.nowPlayingStack} ${toneClass}`}>
+      <div className={styles.npMain}>
 
-      {/* ══ Left: track details ══ */}
-      <div className={styles.npDetails}>
+        {/* ══ Left: track details ══ */}
+        <div className={styles.npDetails}>
 
-        {/* Status */}
-        <div className={styles.nowPlayingStatus}>
-          <span className={`${styles.nowPlayingDot} ${isPaused ? styles.nowPlayingDotPaused : styles.nowPlayingDotPlaying}`} />
-          <span className={styles.nowPlayingStatusLabel}>{isPaused ? 'Paused' : 'Now Playing'}</span>
-        </div>
-
-        {/* Track name */}
-        <div className={styles.npTrackName}>
-          {isMessage && <span style={{ marginRight: 4 }}>💬</span>}
-          {isPartner
-            ? (track.songName
-                ? <>{track.songName}{track.artist ? <span className={styles.nowPlayingArtist}> — {track.artist}</span> : ''}</>
-                : (track.partnerStyle || 'Partner Dance'))
-            : (track.stepsheet
-                ? <a href={track.stepsheet} target="_blank" rel="noopener noreferrer" className={styles.npTrackLink}>{track.danceName}</a>
-                : track.danceName)
-          }
-        </div>
-
-        {/* Badges + stats combined row */}
-        <div className={styles.npBadgeRow}>
-          {isPartner && <span className={styles.partnerBadge}>Partner Dance</span>}
-          {!isPartner && !isMessage && track.difficulty && (
-            <span className={styles.diffPip} style={{ background: diffColor(track.difficulty), fontSize: '0.6rem' }}>
-              {track.difficulty}
-            </span>
-          )}
-          {track.isSongSwap && <span className={styles.swapBadgePending}>↻ Swap</span>}
-          {!isMessage && <>
-            <span className={styles.npStat}>
-              <svg width="11" height="11" viewBox="0 0 24 22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M17 11c1.66 0 3-1.34 3-3s-1.34-3-3-3"/>
-                <path d="M21 21c0-2.76-2.24-5-5-5h-.5"/>
-                <circle cx="9" cy="8" r="3"/>
-                <path d="M3 21c0-2.76 2.24-5 5-5h2c2.76 0 5 2.24 5 5"/>
-              </svg>
-              {requesterCount}
-            </span>
-            <span className={styles.npStat}>
-              <img src="/beats/coin_front.png" style={{ width: '0.9em', height: '0.9em', objectFit: 'contain' }} alt="" aria-hidden="true" />
-              {totalBeats || '—'}
-            </span>
-            <span className={styles.npStat}>
-              <span aria-hidden="true">★</span>
-              {score > 0 ? score.toFixed(1) : '—'}
-            </span>
-          </>}
-        </div>
-
-        {/* Sub-line: original song, swap song, or partner style */}
-        {!isPartner && !isMessage && !track.isSongSwap && track.songName && (
-          <div className={styles.npSub}>{track.songName}{track.artist ? ` — ${track.artist}` : ''}</div>
-        )}
-        {track.isSongSwap && track.swapSongName && (
-          <div className={styles.npSwap}>{track.swapSongName}{track.swapArtist ? ` — ${track.swapArtist}` : ''}</div>
-        )}
-        {isPartner && track.songName && track.partnerStyle && (
-          <div className={styles.npSub}>{track.partnerStyle}</div>
-        )}
-
-      </div>
-
-      {/* ══ Right: remote controls ══ */}
-      <div className={styles.npControls}>
-
-        {/* Row 1: countdown + restart + skip + requeue */}
-        <div className={styles.npControlsTop}>
-          <div style={{ flex: 1 }}>
-            <Countdown
-              playStartedAt={track.playStartedAt}
-              duration_ms={track.duration_ms}
-              paused={isPaused}
-              pausedAt={track.pausedAt}
-            />
+          {/* Status */}
+          <div className={styles.nowPlayingStatus}>
+            <span className={`${styles.nowPlayingDot} ${isPaused ? styles.nowPlayingDotPaused : styles.nowPlayingDotPlaying}`} />
+            <span className={styles.nowPlayingStatusLabel}>{isPaused ? 'Paused' : 'Now Playing'}</span>
           </div>
-          <button className={`${styles.tBtn} ${styles.tBtnNavSm}`}
-            onClick={() => onAction(track._id, 'restart')} title="Restart">
-            <IconRestart />
-          </button>
-          <button className={`${styles.tBtn} ${styles.tBtnNavSm} ${styles.tBtnNavSkipSm}`}
-            onClick={() => onAction(track._id, 'advance')} title="Skip to end">
-            <IconSkip />
-          </button>
-          <button className={styles.tBtnRequeue}
-            onClick={() => onAction(track._id, 'requeue')} title="Return to front of queue">
-            <IconSquare />
-          </button>
+
+          {/* Track name */}
+          <div className={styles.npTrackName}>
+            {isMessage && <span style={{ marginRight: 4 }}>💬</span>}
+            {isPartner
+              ? (track.songName
+                  ? <>{track.songName}{track.artist ? <span className={styles.nowPlayingArtist}> — {track.artist}</span> : ''}</>
+                  : (track.partnerStyle || 'Partner Dance'))
+              : (track.stepsheet
+                  ? <a href={track.stepsheet} target="_blank" rel="noopener noreferrer" className={styles.npTrackLink}>{track.danceName}</a>
+                  : track.danceName)
+            }
+          </div>
+
+          {/* Badges + stats combined row */}
+          <div className={styles.npBadgeRow}>
+            {isPartner && <span className={styles.partnerBadge}>Partner Dance</span>}
+            {!isPartner && !isMessage && track.difficulty && (
+              <span className={styles.diffPip} style={{ background: diffColor(track.difficulty), fontSize: '0.6rem' }}>
+                {track.difficulty}
+              </span>
+            )}
+            {track.isSongSwap && <span className={styles.swapBadgePending}>↻ Swap</span>}
+            {!isMessage && <>
+              <span className={styles.npStat}>
+                <svg width="11" height="11" viewBox="0 0 24 22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M17 11c1.66 0 3-1.34 3-3s-1.34-3-3-3"/>
+                  <path d="M21 21c0-2.76-2.24-5-5-5h-.5"/>
+                  <circle cx="9" cy="8" r="3"/>
+                  <path d="M3 21c0-2.76 2.24-5 5-5h2c2.76 0 5 2.24 5 5"/>
+                </svg>
+                {requesterCount}
+              </span>
+              <span className={styles.npStat}>
+                <img src="/beats/coin_front.png" style={{ width: '0.9em', height: '0.9em', objectFit: 'contain' }} alt="" aria-hidden="true" />
+                {totalBeats || '—'}
+              </span>
+              <span className={styles.npStat}>
+                <span aria-hidden="true">★</span>
+                {score > 0 ? score.toFixed(1) : '—'}
+              </span>
+            </>}
+          </div>
+
+          {/* Sub-line: original song, swap song, or partner style */}
+          {!isPartner && !isMessage && !track.isSongSwap && track.songName && (
+            <div className={styles.npSub}>{track.songName}{track.artist ? ` — ${track.artist}` : ''}</div>
+          )}
+          {track.isSongSwap && track.swapSongName && (
+            <div className={styles.npSwap}>{track.swapSongName}{track.swapArtist ? ` — ${track.swapArtist}` : ''}</div>
+          )}
+          {isPartner && track.songName && track.partnerStyle && (
+            <div className={styles.npSub}>{track.partnerStyle}</div>
+          )}
+
         </div>
 
-        {/* Row 2: rewind / play/pause / fast-forward */}
-        <div className={styles.transportFull}>
-          <button className={`${styles.tBtn} ${styles.tBtnShiftSm} ${styles.tBtnRewind}`}
-            onClick={() => onAction(track._id, 'shiftTime', 10_000)} title="Rewind 10s">
-            <IconRewind /><span>10s</span>
-          </button>
-          <button
-            className={`${styles.tBtn} ${styles.tBtnCenterSm} ${isPaused ? styles.tBtnPlaying : styles.tBtnPaused}`}
-            onClick={() => onAction(track._id, isPaused ? 'resume' : 'pause')}
-            title={isPaused ? 'Resume' : 'Pause'}
-          >
-            {isPaused ? <IconPlay /> : <IconPause />}
-          </button>
-          <button className={`${styles.tBtn} ${styles.tBtnShiftSm} ${styles.tBtnFastFwd}`}
-            onClick={() => onAction(track._id, 'shiftTime', -10_000)} title="Skip forward 10s">
-            <span>10s</span><IconFastFwd />
-          </button>
+        {/* ══ Right: remote controls ══ */}
+        <div className={styles.npControls}>
+
+          {/* Row 1: countdown + restart + skip + requeue */}
+          <div className={styles.npControlsTop}>
+            <div style={{ flex: 1 }}>
+              <Countdown
+                playStartedAt={track.playStartedAt}
+                duration_ms={track.duration_ms}
+                paused={isPaused}
+                pausedAt={track.pausedAt}
+              />
+            </div>
+            <button className={`${styles.tBtn} ${styles.tBtnNavSm}`}
+              onClick={() => onAction(track._id, 'restart')} title="Restart">
+              <IconRestart />
+            </button>
+            <button className={`${styles.tBtn} ${styles.tBtnNavSm} ${styles.tBtnNavSkipSm}`}
+              onClick={() => onAction(track._id, 'advance')} title="Skip to end">
+              <IconSkip />
+            </button>
+            <button className={styles.tBtnRequeue}
+              onClick={() => onAction(track._id, 'requeue')} title="Return to front of queue">
+              <IconSquare />
+            </button>
+          </div>
+
+          {/* Row 2: rewind / play/pause / fast-forward */}
+          <div className={styles.transportFull}>
+            <button className={`${styles.tBtn} ${styles.tBtnShiftSm} ${styles.tBtnRewind}`}
+              onClick={() => onAction(track._id, 'shiftTime', 10_000)} title="Rewind 10s">
+              <IconRewind /><span>10s</span>
+            </button>
+            <button
+              className={`${styles.tBtn} ${styles.tBtnCenterSm} ${isPaused ? styles.tBtnPlaying : styles.tBtnPaused}`}
+              onClick={() => onAction(track._id, isPaused ? 'resume' : 'pause')}
+              title={isPaused ? 'Resume' : 'Pause'}
+            >
+              {isPaused ? <IconPlay /> : <IconPause />}
+            </button>
+            <button className={`${styles.tBtn} ${styles.tBtnShiftSm} ${styles.tBtnFastFwd}`}
+              onClick={() => onAction(track._id, 'shiftTime', -10_000)} title="Skip forward 10s">
+              <span>10s</span><IconFastFwd />
+            </button>
+          </div>
+
         </div>
 
       </div>
-
+      {/* Full width under the details and controls, so it doesn't stretch them. */}
+      {footer && <div className={styles.npFooter}>{footer}</div>}
     </div>
   );
 }
