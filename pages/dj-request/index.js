@@ -9,7 +9,8 @@ import { estimateQueueTimes, timeAgo, diffColor } from '../../components/dj-cont
 import { BEAT_PACKAGES } from '../../lib/beats/packages';
 import BeatTipper from '../../components/BeatTipper';
 import DirectTipSection from '../../components/dj-request/DirectTipSection';
-import CatalogSongPicker from '../../components/dj-request/CatalogSongPicker';
+import CatalogSongPicker, { CatalogSuggestionList } from '../../components/dj-request/CatalogSongPicker';
+import { useCatalogSearch } from '../../lib/client/catalog/useCatalogSearch';
 import { RequestRowActions, RequestRowPanels, SuppressedOverlay } from '../../components/dj-request/RequestRowControls';
 import { danceKey, isActive, sortedQueue } from '../../lib/client/dj/queue';
 import { beatsFromCents } from '../../lib/beats/constants';
@@ -76,6 +77,7 @@ export default function DJRequestPage({
   const [isSongSwap, setIsSongSwap] = useState(false);
   const [partnerStyle, setPartnerStyle] = useState('');
   const [partnerTrack, setPartnerTrack] = useState(null); // song picked from the music catalog
+  const [swapTrack, setSwapTrack] = useState(null);       // song swap picked from the music catalog
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
   const [swapSongName, setSwapSongName] = useState('');
@@ -353,6 +355,25 @@ export default function DJRequestPage({
     ).slice(0, 12);
   }, [availableDances, search]);
 
+  // No dance in the whole catalog matches what they typed (not just the ones
+  // available now — a dance hidden because it just played shouldn't turn into
+  // song suggestions): offer songs instead, from the music catalog.
+  const noDanceMatches = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q.length > 0 && !dances.some(d =>
+      d.danceName.toLowerCase().includes(q) || d.songName.toLowerCase().includes(q) || d.artist.toLowerCase().includes(q));
+  }, [dances, search]);
+  const songFallback = useCatalogSearch(search, { enabled: requestType === 'line' && !selected && noDanceMatches });
+
+  // A song picked from the catalog stands in for the dance; many line dances
+  // share their song's name.
+  function selectCatalogSong(t) {
+    selectDance({
+      id: null, danceName: t.title, songName: t.title, artist: t.artist,
+      difficulty: '', stepsheet: '', duration_ms: t.durationMs, spotifyUri: null, catalogTrackId: t.id,
+    });
+  }
+
   function startEditName() {
     if (isSignedIn) return;
     setDraftName(displayName === localClientId ? '' : displayName);
@@ -445,8 +466,11 @@ export default function DJRequestPage({
           artist: isSongSwap ? swapArtist.trim() : effectiveDance.artist,
           difficulty: effectiveDance.difficulty,
           stepsheet: effectiveDance.stepsheet,
-          duration_ms: effectiveDance.duration_ms ?? null,
-          spotifyUri: effectiveDance.spotifyUri ?? null,
+          // A swap plays a different song: its own length (from the catalog, if
+          // picked there), never the dance's usual song's.
+          duration_ms: isSongSwap ? null : effectiveDance.duration_ms ?? null,
+          spotifyUri: isSongSwap ? null : effectiveDance.spotifyUri ?? null,
+          catalogTrackId: (isSongSwap ? swapTrack?.id : effectiveDance.catalogTrackId) ?? null,
           danceType: null,
           isSongSwap,
           swapSongName: isSongSwap ? swapSongName.trim() : null,
@@ -476,6 +500,7 @@ export default function DJRequestPage({
     setIsSongSwap(false);
     setPartnerStyle('');
     setPartnerTrack(null);
+    setSwapTrack(null);
     setSwapSongName('');
     setSwapArtist('');
     setNotes('');
@@ -490,6 +515,7 @@ export default function DJRequestPage({
     setIsSongSwap(false);
     setPartnerStyle('');
     setPartnerTrack(null);
+    setSwapTrack(null);
     setSelected(null);
     setSearch('');
     setSwapSongName('');
@@ -901,6 +927,14 @@ export default function DJRequestPage({
                         })}
                       </ul>
                     )}
+                    {songFallback.isActive && (songFallback.results.length > 0 || !songFallback.isLoading) && (
+                      <CatalogSuggestionList
+                        heading="No dance by that name — is it one of these songs?"
+                        results={songFallback.results}
+                        onPick={selectCatalogSong}
+                        emptyText="No matches — your request will be sent as typed"
+                      />
+                    )}
                   </>
                 )}
               </div>
@@ -953,23 +987,15 @@ export default function DJRequestPage({
             {requestType === 'line' && isSongSwap && (
               <div className={styles.swapFields}>
                 <label className={styles.label}>Song to swap to</label>
-                <input
-                  className={styles.input}
-                  type="text"
+                <CatalogSongPicker
+                  text={swapSongName}
+                  onTextChange={setSwapSongName}
+                  track={swapTrack}
+                  onTrackChange={setSwapTrack}
+                  artist={swapArtist}
+                  onArtistChange={setSwapArtist}
                   placeholder="Song name *"
-                  value={swapSongName}
-                  onChange={e => setSwapSongName(e.target.value)}
-                  maxLength={100}
                   autoFocus
-                  required
-                />
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="Artist (optional)"
-                  value={swapArtist}
-                  onChange={e => setSwapArtist(e.target.value)}
-                  maxLength={100}
                 />
               </div>
             )}

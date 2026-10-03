@@ -4,7 +4,7 @@ const { createRequest, listRequests, toLocalTrackKey } = require('../lib/server/
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
 // ── Minimal MongoDB client factory ────────────────────────────────────────────
-function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [], tracks = [] } = {}) {
+function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [], tracks = [], dances = [] } = {}) {
   const insertedDocs = [];
 
   function makeCol(docs) {
@@ -28,6 +28,7 @@ function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing
         if (colName === 'dj_sessions') return makeCol(session ? [session] : []);
         if (colName === 'dj_requests') return makeCol(existing);
         if (colName === 'tracks') return makeCol(tracks);
+        if (colName === 'dances') return makeCol(dances);
         return makeCol([]);
       }),
     })),
@@ -301,5 +302,30 @@ describe('createRequest — music catalog', () => {
     expect(unknown).toMatchObject({ catalogTrackId: null, isrcs: [], songName: 'Typed' });
     const bogus = await createRequest(client, SESSION, { danceName: 'Y', catalogTrackId: { $ne: null } });
     expect(bogus.catalogTrackId).toBeNull();
+  });
+});
+
+describe('listRequests — catalog dance details', () => {
+  const dances = [{ _id: 'd1', primaryTrack: 't1' }];
+  const tracks = [{ _id: 't1', duration_ms: 200_000, uri: 'spotify:track:orig', isrc: 'usmc18826253' }];
+
+  test("adds the dance's song length, Spotify URI and ISRC", async () => {
+    const client = makeMockClient({ dances, tracks, existing: [{ _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A' }] });
+    const [r] = await listRequests(client, 'sess1');
+    expect(r).toMatchObject({ duration_ms: 200_000, spotifyUri: 'spotify:track:orig', isrcs: ['USMC18826253'] });
+  });
+
+  test("a song swap keeps its own song details, not the dance's usual song", async () => {
+    const client = makeMockClient({ dances, tracks, existing: [{
+      _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', isSongSwap: true, duration_ms: 150_000, isrcs: ['SWAP00000001'],
+    }] });
+    const [r] = await listRequests(client, 'sess1');
+    expect(r).toMatchObject({ duration_ms: 150_000, spotifyUri: null, isrcs: ['SWAP00000001'] });
+  });
+
+  test('keeps ISRCs copied from the music catalog', async () => {
+    const client = makeMockClient({ dances, tracks, existing: [{ _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', isrcs: ['CATALOG00001'] }] });
+    const [r] = await listRequests(client, 'sess1');
+    expect(r.isrcs).toEqual(['CATALOG00001']);
   });
 });

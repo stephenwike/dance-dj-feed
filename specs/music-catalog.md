@@ -60,8 +60,24 @@ node scripts/catalog/seed-musicbrainz.js --artist "Steve Earle" [--artists-file 
 
 Scale: prefix search with an in-memory rank sort suits up to hundreds of thousands of tracks. Beyond that, use a search engine such as Atlas Search.
 
+## Where Songs Are Searched
+
+All of these use `useCatalogSearch` (`lib/client/catalog/`), so they share the catalog → MusicBrainz fallback.
+
+| Place | Behaviour |
+|---|---|
+| Requester, **line dance** field | Dances first. Only when no dance in the whole catalog matches (not just ones available now), songs are offered. Picking one uses the song title as the dance name. |
+| Requester, **song swap** | Song search. The swap's length and ISRC come from the picked song, never the dance's usual song. |
+| Requester, **partner** Song field | Song search. |
+| Controller Add to Queue, **Dance Name / Song / Artist** | Each searches the dance catalog by that field (`danceSearch.js`). Only when none match are catalog songs offered. Picking a song fills Song and Artist, and the Dance Name too if it's empty (always, when picked from the Dance Name field). |
+| Controller Add to Queue, **partner** Song field | Song search, as in the requester app. |
+
+Typing without picking still works everywhere; the text is sent as a free-text song.
+
 ## Requests
 
-The partner form's Song field searches the catalog. Picking a result sends `catalogTrackId`. On create, the server looks the track up and copies `songName`, `artist`, `duration_ms` (unless one was given) and `isrcs` onto the request, and stores `catalogTrackId`. Unknown ids are ignored. Typing without picking still sends a free-text song.
+Picking a song sends `catalogTrackId`. On create, the server looks the track up and copies `songName`, `artist`, `duration_ms` (unless one was given) and `isrcs` onto the request, and stores `catalogTrackId`. Unknown ids are ignored.
+
+Line dances from the dance catalog (`ldco`) get their song's ISRC, length and Spotify URI when requests are listed (`joinDurations`). Song swaps keep their own details instead.
 
 The local-files plugin uses `isrcs`, `duration_ms` and `catalogTrackId` for matching (see `local-files-plugin.md`).
