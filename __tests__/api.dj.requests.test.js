@@ -1,10 +1,10 @@
 'use strict';
-const { createRequest } = require('../lib/server/dj/requestLogic');
+const { createRequest, listRequests, toLocalTrackKey, toPlayLengthMs } = require('../lib/server/dj/requestLogic');
 
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
 // ── Minimal MongoDB client factory ────────────────────────────────────────────
-function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [] } = {}) {
+function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing = [], tracks = [], dances = [] } = {}) {
   const insertedDocs = [];
 
   function makeCol(docs) {
@@ -27,6 +27,8 @@ function makeMockClient({ session = { _id: 'sess1', status: 'active' }, existing
       collection: jest.fn((colName) => {
         if (colName === 'dj_sessions') return makeCol(session ? [session] : []);
         if (colName === 'dj_requests') return makeCol(existing);
+        if (colName === 'tracks') return makeCol(tracks);
+        if (colName === 'dances') return makeCol(dances);
         return makeCol([]);
       }),
     })),
@@ -225,5 +227,128 @@ describe('createRequest — deduplication', () => {
     });
     expect(doc._id).not.toBe('existing-id');
     expect(client._inserted.length).toBe(1);
+  });
+});
+
+describe('createRequest — local files', () => {
+  test('stores the localTrackKey a DJ adds from their music folder', async () => {
+    const client = makeMockClient();
+    const doc = await createRequest(client, SESSION, {
+      danceName: 'Wagon Wheel', clientId: 'dj', status: 'approved', localTrackKey: 'Country/Wagon Wheel.mp3',
+    });
+    expect(doc.localTrackKey).toBe('Country/Wagon Wheel.mp3');
+  });
+
+  test('defaults localTrackKey to null', async () => {
+    const doc = await createRequest(makeMockClient(), SESSION, { danceName: 'Waterfall' });
+    expect(doc.localTrackKey).toBeNull();
+  });
+});
+
+describe('toLocalTrackKey', () => {
+  test('keeps non-empty strings up to 1024 characters', () => {
+    expect(toLocalTrackKey('a/b.mp3')).toBe('a/b.mp3');
+    expect(toLocalTrackKey('x'.repeat(1024))).toHaveLength(1024);
+  });
+
+  test('rejects empty, oversized and non-string values', () => {
+    expect(toLocalTrackKey('')).toBeNull();
+    expect(toLocalTrackKey('x'.repeat(1025))).toBeNull();
+    expect(toLocalTrackKey(42)).toBeNull();
+    expect(toLocalTrackKey({ $ne: null })).toBeNull();
+    expect(toLocalTrackKey(undefined)).toBeNull();
+  });
+});
+
+describe('listRequests — tempo', () => {
+  test('serves wall-clock durations for requests played at a different tempo', async () => {
+    const client = makeMockClient({ existing: [
+      { _id: 'slow', sessionId: 'sess1', danceName: 'A', duration_ms: 180_000, tempo: 0.9 },
+      { _id: 'normal', sessionId: 'sess1', danceName: 'B', duration_ms: 180_000 },
+    ] });
+    const byId = Object.fromEntries((await listRequests(client, 'sess1')).map(r => [r._id, r]));
+    expect(byId.slow.duration_ms).toBe(200_000);
+    expect(byId.normal.duration_ms).toBe(180_000);
+  });
+});
+
+describe('createRequest — music catalog', () => {
+  const track = {
+    _id: 'musicbrainz:mb1', title: 'Wagon Wheel', artist: 'Darius Rucker',
+    durationMs: 296000, isrcs: ['USUM71300001'],
+  };
+
+  test('copies title, artist, length and ISRCs from the picked catalog track', async () => {
+    const client = makeMockClient({ tracks: [track] });
+    const doc = await createRequest(client, SESSION, {
+      danceName: 'Partner Dance', danceType: 'partner', clientId: 'anon_1',
+      catalogTrackId: 'musicbrainz:mb1', songName: 'wagon wheel', artist: 'darius',
+    });
+    expect(doc).toMatchObject({
+      catalogTrackId: 'musicbrainz:mb1', songName: 'Wagon Wheel', artist: 'Darius Rucker',
+      duration_ms: 296000, isrcs: ['USUM71300001'],
+    });
+  });
+
+  test('keeps an explicit duration over the catalog one', async () => {
+    const client = makeMockClient({ tracks: [track] });
+    const doc = await createRequest(client, SESSION, { danceName: 'X', catalogTrackId: 'musicbrainz:mb1', duration_ms: 1000 });
+    expect(doc.duration_ms).toBe(1000);
+  });
+
+  test('ignores unknown or malformed catalog ids and keeps the typed song', async () => {
+    const client = makeMockClient({ tracks: [track] });
+    const unknown = await createRequest(client, SESSION, { danceName: 'X', catalogTrackId: 'musicbrainz:nope', songName: 'Typed' });
+    expect(unknown).toMatchObject({ catalogTrackId: null, isrcs: [], songName: 'Typed' });
+    const bogus = await createRequest(client, SESSION, { danceName: 'Y', catalogTrackId: { $ne: null } });
+    expect(bogus.catalogTrackId).toBeNull();
+  });
+});
+
+describe('listRequests — catalog dance details', () => {
+  const dances = [{ _id: 'd1', primaryTrack: 't1' }];
+  const tracks = [{ _id: 't1', duration_ms: 200_000, uri: 'spotify:track:orig', isrc: 'usmc18826253' }];
+
+  test("adds the dance's song length, Spotify URI and ISRC", async () => {
+    const client = makeMockClient({ dances, tracks, existing: [{ _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A' }] });
+    const [r] = await listRequests(client, 'sess1');
+    expect(r).toMatchObject({ duration_ms: 200_000, spotifyUri: 'spotify:track:orig', isrcs: ['USMC18826253'] });
+  });
+
+  test("a song swap keeps its own song details, not the dance's usual song", async () => {
+    const client = makeMockClient({ dances, tracks, existing: [{
+      _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', isSongSwap: true, duration_ms: 150_000, isrcs: ['SWAP00000001'],
+    }] });
+    const [r] = await listRequests(client, 'sess1');
+    expect(r).toMatchObject({ duration_ms: 150_000, spotifyUri: null, isrcs: ['SWAP00000001'] });
+  });
+
+  test('keeps ISRCs copied from the music catalog', async () => {
+    const client = makeMockClient({ dances, tracks, existing: [{ _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', isrcs: ['CATALOG00001'] }] });
+    const [r] = await listRequests(client, 'sess1');
+    expect(r.isrcs).toEqual(['CATALOG00001']);
+  });
+});
+
+describe("play length from the DJ's player", () => {
+  const dances = [{ _id: 'd1', primaryTrack: 't1' }];
+  const tracks = [{ _id: 't1', duration_ms: 200_000 }];
+
+  test("wins over the catalog song's length, and still scales with tempo", async () => {
+    const client = makeMockClient({ dances, tracks, existing: [
+      { _id: 'r1', sessionId: 'sess1', danceId: 'd1', danceName: 'A', playLengthMs: 150_000 },
+      { _id: 'r2', sessionId: 'sess1', danceId: 'd1', danceName: 'B', playLengthMs: 150_000, tempo: 0.75 },
+    ] });
+    const byId = Object.fromEntries((await listRequests(client, 'sess1')).map(r => [r._id, r]));
+    expect(byId.r1.duration_ms).toBe(150_000);
+    expect(byId.r2.duration_ms).toBe(200_000);
+  });
+
+  test('toPlayLengthMs keeps 1s–1h and rejects the rest', () => {
+    expect(toPlayLengthMs(145_000.4)).toBe(145_000);
+    expect(toPlayLengthMs(500)).toBeNull();
+    expect(toPlayLengthMs(2 * 60 * 60 * 1000)).toBeNull();
+    expect(toPlayLengthMs(null)).toBeNull();
+    expect(toPlayLengthMs('x')).toBeNull();
   });
 });

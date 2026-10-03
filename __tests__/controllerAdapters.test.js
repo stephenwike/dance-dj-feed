@@ -1,5 +1,5 @@
 'use strict';
-const { StandardAdapter, SpotifyAdapter } = require('../lib/client/dj/controllerAdapters');
+const { StandardAdapter, SpotifyAdapter, LocalFilesAdapter } = require('../lib/client/dj/controllerAdapters');
 
 const base = {
   _id: 'r1',
@@ -56,6 +56,17 @@ describe('SpotifyAdapter.shouldAutoAdvance', () => {
 describe('SpotifyAdapter.playingStamps', () => {
   test('stamps advancedBy as "spotify"', () => {
     expect(SpotifyAdapter.playingStamps()).toEqual({ advancedBy: 'spotify' });
+  });
+});
+
+describe('LocalFilesAdapter', () => {
+  test('never lets the timer advance — the local player owns advancement', () => {
+    expect(LocalFilesAdapter.shouldAutoAdvance({ ...base })).toBe(false);
+  });
+
+  test('stamps advancedBy as "local-files", which the standard timer then ignores', () => {
+    expect(LocalFilesAdapter.playingStamps()).toEqual({ advancedBy: 'local-files' });
+    expect(StandardAdapter.shouldAutoAdvance({ ...base, ...LocalFilesAdapter.playingStamps() })).toBe(false);
   });
 });
 

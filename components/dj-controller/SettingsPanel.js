@@ -1,4 +1,5 @@
 import styles from '../../pages/dj-controller/dj-controller.module.css';
+import PluginPicker from './plugins/PluginPicker';
 
 const QUEUE_COUNT_OPTIONS = [
   { label: '2', value: 2 },
@@ -16,6 +17,7 @@ export default function SettingsPanel({
   cycleDecay, decayLabel,
   queueVisibleToRequesters, toggleQueueVisibility,
   queueVisibleCount, setQueueVisibleCount,
+  pluginId, setPlugin, pluginLocked,
 }) {
   return (
     <div className={styles.panel}>
@@ -27,6 +29,8 @@ export default function SettingsPanel({
           <p className={styles.empty}>Start a session to configure settings.</p>
         ) : (
           <>
+            <PluginPicker pluginId={pluginId} onSelect={setPlugin} locked={pluginLocked} />
+
             <div className={styles.settingRow}>
               <div className={styles.settingInfo}>
                 <span className={styles.settingName}>Accept Requests</span>

@@ -1,7 +1,7 @@
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { listRequests, createRequest, getActiveSession } from '../../../lib/server/dj/requestLogic';
 import {
-  isSessionOwner, sanitizeCreateBody, createBlockedReason, redactForViewer,
+  isSessionOwner, sanitizeCreateBody, createBlockedReason, redactForViewer, withoutDjOnlyFields,
 } from '../../../lib/server/dj/requestAccess';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
@@ -95,7 +95,9 @@ export default async function handler(req, res) {
 
     try {
       const doc = await createRequest(client, session, body);
-      return res.status(201).json(doc);
+      // A duplicate request returns the existing one, which the DJ may already
+      // have matched to a file — keep that private.
+      return res.status(201).json(isOwner ? doc : withoutDjOnlyFields(doc));
     } catch (err) {
       return res.status(err.statusCode ?? 500).json({ error: err.message });
     }

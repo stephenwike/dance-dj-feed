@@ -3,6 +3,8 @@ import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { PARTNER_STYLES, diffColor } from './utils';
 import { fetcher } from '../../lib/client/fetcher';
+import { searchDances } from '../../lib/client/dj/danceSearch';
+import SuggestField from './SuggestField';
 
 export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [type, setType] = useState('line'); // 'line' | 'partner'
@@ -11,12 +13,14 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [lineName, setLineName] = useState('');
   const [lineSong, setLineSong] = useState('');
   const [lineArtist, setLineArtist] = useState('');
-  const [catalogSelected, setCatalogSelected] = useState(null);
+  const [catalogSelected, setCatalogSelected] = useState(null); // dance from the ldco catalog
+  const [songTrack, setSongTrack] = useState(null);             // song from the music catalog
 
   // Partner dance state
   const [partnerStyle, setPartnerStyle] = useState('');
   const [partnerSong, setPartnerSong] = useState('');
   const [partnerArtist, setPartnerArtist] = useState('');
+  const [partnerTrack, setPartnerTrack] = useState(null);       // song from the music catalog
 
   // Shared duration (minutes)
   const DEFAULT_DURATION_MIN = 3;
@@ -28,18 +32,50 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   // Catalog for line dance suggestions
   const { data: catalogDances = [] } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
 
-  const lineSuggestions = useMemo(() => {
-    if (!lineName.trim() || catalogSelected) return [];
-    const q = lineName.toLowerCase();
-    return catalogDances.filter(d => d.danceName.toLowerCase().includes(q)).slice(0, 8);
-  }, [lineName, catalogSelected, catalogDances]);
+  // Each line-dance field searches the dance catalog by that field; once a
+  // dance or song is picked, suggestions stop.
+  const picked = !!(catalogSelected || songTrack);
+  const nameMatches = useMemo(() => (picked ? [] : searchDances(catalogDances, 'danceName', lineName)), [picked, catalogDances, lineName]);
+  const songMatches = useMemo(() => (picked ? [] : searchDances(catalogDances, 'songName', lineSong)), [picked, catalogDances, lineSong]);
+  const artistMatches = useMemo(() => (picked ? [] : searchDances(catalogDances, 'artist', lineArtist)), [picked, catalogDances, lineArtist]);
+
+  function durationFrom(ms) {
+    if (ms) setDurationMin(Math.round(ms / 60000) || DEFAULT_DURATION_MIN);
+  }
 
   function selectCatalogDance(d) {
     setLineName(d.danceName);
     setLineSong(d.songName ?? '');
     setLineArtist(d.artist ?? '');
-    if (d.duration_ms) setDurationMin(Math.round(d.duration_ms / 60000) || DEFAULT_DURATION_MIN);
+    durationFrom(d.duration_ms);
     setCatalogSelected(d);
+    setSongTrack(null);
+  }
+
+  // A music-catalog song, when no catalog dance matched. The song's title
+  // doubles as the dance name unless one is already typed (picking from the
+  // Dance Name field always uses it).
+  function selectLineSong(t, { fromNameField = false } = {}) {
+    setSongTrack(t);
+    setLineSong(t.title);
+    setLineArtist(t.artist);
+    if (fromNameField || !lineName.trim()) setLineName(t.title);
+    durationFrom(t.durationMs);
+  }
+
+  function selectPartnerSong(t) {
+    setPartnerTrack(t);
+    setPartnerSong(t.title);
+    setPartnerArtist(t.artist);
+    durationFrom(t.durationMs);
+  }
+
+  function clearLine() {
+    setLineName('');
+    setLineSong('');
+    setLineArtist('');
+    setCatalogSelected(null);
+    setSongTrack(null);
   }
 
   // Style suggestions for partner dance
@@ -54,10 +90,8 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
     setType(t);
     setRecentlyAdded(null);
     setDurationMin(DEFAULT_DURATION_MIN);
-    setLineName('');
-    setLineSong('');
-    setLineArtist('');
-    setCatalogSelected(null);
+    clearLine();
+    setPartnerTrack(null);
   }
 
   async function postRequest(body) {
@@ -93,15 +127,13 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       songName:    lineSong.trim(),
       artist:      lineArtist.trim(),
       duration_ms: Math.max(1, durationMin) * 60_000,
+      catalogTrackId: songTrack?.id ?? null,
       ...(catalogSelected?.difficulty && { difficulty: catalogSelected.difficulty }),
       ...(catalogSelected?.stepsheet && { stepsheet: catalogSelected.stepsheet }),
     });
     if (ok) {
       setRecentlyAdded(lineName.trim());
-      setLineName('');
-      setLineSong('');
-      setLineArtist('');
-      setCatalogSelected(null);
+      clearLine();
       setTimeout(() => setRecentlyAdded(null), 2500);
       mutate();
     }
@@ -118,6 +150,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       songName:     partnerSong.trim(),
       artist:       partnerArtist.trim(),
       duration_ms:  Math.max(1, durationMin) * 60_000,
+      catalogTrackId: partnerTrack?.id ?? null,
     });
     if (ok) {
       const label = styleTrimmed ? `Partner — ${styleTrimmed}` : 'Partner Dance';
@@ -125,6 +158,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       setPartnerStyle('');
       setPartnerSong('');
       setPartnerArtist('');
+      setPartnerTrack(null);
       setTimeout(() => setRecentlyAdded(null), 2500);
       mutate();
     }
@@ -163,69 +197,53 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
         {/* ── Line Dance tab ── */}
         {type === 'line' && !recentlyAdded && (
           <div className={styles.djAddPartnerForm}>
-            <label className={styles.djAddLabel}>Dance Name</label>
-            <div className={styles.djAddFieldWrap}>
-              <input
-                className={styles.djAddSearch}
-                placeholder="Search catalog or type a name…"
-                value={lineName}
-                onChange={e => { setLineName(e.target.value); setCatalogSelected(null); }}
-                maxLength={100}
-                autoComplete="off"
-              />
-              {lineSuggestions.length > 0 && (
-                <div className={styles.djAddSuggestions}>
-                  {lineSuggestions.map(d => (
-                    <button
-                      key={d.id}
-                      className={styles.djAddSuggestion}
-                      onClick={() => selectCatalogDance(d)}
-                    >
-                      <span className={styles.djAddSuggName}>{d.danceName}</span>
-                      {(d.songName || d.difficulty) && (
-                        <span className={styles.djAddSuggMeta}>
-                          {d.songName}
-                          {d.difficulty && <span style={{ color: diffColor(d.difficulty) }}> · {d.difficulty}</span>}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {catalogSelected && (
+            <SuggestField
+              label="Dance Name"
+              placeholder="Search dances or songs, or type a name…"
+              value={lineName}
+              onChange={v => { setLineName(v); setCatalogSelected(null); }}
+              danceMatches={nameMatches}
+              suggestionsEnabled={!picked}
+              onPickDance={selectCatalogDance}
+              onPickSong={t => selectLineSong(t, { fromNameField: true })}
+            />
+            {(catalogSelected || songTrack) && (
               <div className={styles.djAddCatalogTag}>
-                <span>From catalog</span>
-                {catalogSelected.difficulty && (
+                <span>{catalogSelected ? 'From dance catalog' : 'Song from music catalog'}</span>
+                {catalogSelected?.difficulty && (
                   <span style={{ color: diffColor(catalogSelected.difficulty) }}> · {catalogSelected.difficulty}</span>
                 )}
                 <button
                   className={styles.djAddCatalogClear}
-                  onClick={() => { setCatalogSelected(null); setLineName(''); setLineSong(''); setLineArtist(''); setDurationMin(DEFAULT_DURATION_MIN); }}
+                  onClick={() => { clearLine(); setDurationMin(DEFAULT_DURATION_MIN); }}
                 >
                   ✕ clear
                 </button>
               </div>
             )}
 
-            <label className={styles.djAddLabel}>Song <span className={styles.djAddOptional}>(optional)</span></label>
-            <input
-              className={styles.djAddSearch}
+            <SuggestField
+              label="Song"
+              optional
               placeholder="Song name"
               value={lineSong}
-              onChange={e => setLineSong(e.target.value)}
-              maxLength={100}
-              autoComplete="off"
+              onChange={v => { setLineSong(v); setSongTrack(null); }}
+              danceMatches={songMatches}
+              suggestionsEnabled={!picked}
+              onPickDance={selectCatalogDance}
+              onPickSong={t => selectLineSong(t)}
             />
 
-            <label className={styles.djAddLabel}>Artist <span className={styles.djAddOptional}>(optional)</span></label>
-            <input
-              className={styles.djAddSearch}
+            <SuggestField
+              label="Artist"
+              optional
               placeholder="Artist name"
               value={lineArtist}
-              onChange={e => setLineArtist(e.target.value)}
-              maxLength={100}
-              autoComplete="off"
+              onChange={v => { setLineArtist(v); setSongTrack(null); }}
+              danceMatches={artistMatches}
+              suggestionsEnabled={!picked}
+              onPickDance={selectCatalogDance}
+              onPickSong={t => selectLineSong(t)}
             />
 
             <label className={styles.djAddLabel}>Duration</label>
@@ -283,14 +301,14 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
               )}
             </div>
 
-            <label className={styles.djAddLabel}>Song <span className={styles.djAddOptional}>(optional)</span></label>
-            <input
-              className={styles.djAddSearch}
-              placeholder="Song name"
+            <SuggestField
+              label="Song"
+              optional
+              placeholder="Search for a song…"
               value={partnerSong}
-              onChange={e => setPartnerSong(e.target.value)}
-              maxLength={100}
-              autoComplete="off"
+              onChange={v => { setPartnerSong(v); setPartnerTrack(null); }}
+              suggestionsEnabled={!partnerTrack}
+              onPickSong={selectPartnerSong}
             />
 
             <label className={styles.djAddLabel}>Artist <span className={styles.djAddOptional}>(optional)</span></label>
@@ -298,7 +316,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
               className={styles.djAddSearch}
               placeholder="Artist name"
               value={partnerArtist}
-              onChange={e => setPartnerArtist(e.target.value)}
+              onChange={e => { setPartnerArtist(e.target.value); setPartnerTrack(null); }}
               maxLength={100}
               autoComplete="off"
             />

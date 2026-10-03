@@ -11,8 +11,10 @@ import { useStandardAutoAdvance } from '../../lib/client/dj/hooks/useStandardAut
 import { useSessionManager } from '../../lib/client/dj/hooks/useSessionManager';
 import { useAnnouncements } from '../../lib/client/dj/hooks/useAnnouncements';
 import { useRequestActions } from '../../lib/client/dj/hooks/useRequestActions';
-import { useSpotifyPlugin } from '../../lib/client/dj/plugins/useSpotifyPlugin';
-import { SpotifyPanel, SpotifySearch } from '../../components/dj-controller/SpotifyComponents';
+import { getPlugin } from '../../components/dj-controller/plugins/registry';
+import { usePluginRuntime } from '../../components/dj-controller/plugins/usePluginRuntime';
+import PluginSlot, { SLOTS, hasSlot } from '../../components/dj-controller/plugins/PluginSlot';
+import { StandardAdapter } from '../../lib/client/dj/controllerAdapters';
 import SortableQueueItem from '../../components/dj-controller/SortableQueueItem';
 import RemoteControl from '../../components/dj-controller/RemoteControl';
 import QueueCard from '../../components/dj-controller/QueueCard';
@@ -71,7 +73,7 @@ function Controller() {
   const [connectNotice, setConnectNotice] = useState('');
 
   const {
-    sessions, liveSessions, workingSession, isSpotify, mutateSessions,
+    sessions, liveSessions, workingSession, pluginId, setPlugin, mutateSessions,
     selectSession, closeSession: closeSessionBase, continueSession: continueSessionBase, discardDraft,
     togglePartnerDances, toggleTipping, toggleRequestsEnabled, toggleWeighting, cycleDecay,
     toggleQueueVisibility, setQueueVisibleCount,
@@ -148,7 +150,8 @@ function Controller() {
     prevPanel.current = activePanel;
   }, [activePanel]);
 
-  const spotify = useSpotifyPlugin({ isActive: isSpotify, sessionId: liveSession?._id, rawRequests, mutate });
+  const plugin = getPlugin(pluginId);
+  const pluginRuntime = usePluginRuntime(pluginId, { sessionId: liveSession?._id, rawRequests, mutate });
 
   const { timeState, countdown, isGrace } = useSessionTimeState(liveSession);
 
@@ -177,7 +180,7 @@ function Controller() {
   const stripeWarning = stripeStatus && !stripeStatus.active && !stripeDismissed;
 
   async function closeSession(id) {
-    await closeSessionBase({ id, onBeforeMutate: isSpotify ? () => spotify.onCloseSession() : undefined });
+    await closeSessionBase({ id, onBeforeMutate: pluginRuntime.onCloseSession });
     mutate();
   }
 
@@ -205,13 +208,22 @@ function Controller() {
 
   const playingItem = playing[0] ?? null;
   const queueTimes = useMemo(() => estimateQueueTimes(playing, queue), [playing, queue]);
-  useStandardAutoAdvance({ isSpotify, playingItem, mutate, sessionId: liveSession?._id });
+  useStandardAutoAdvance({ enabled: plugin.adapter === StandardAdapter, playingItem, mutate, sessionId: liveSession?._id });
 
   const { sensors, handleDragEnd } = useQueueReorder({ queue, mutate });
 
   const { handleAction, clearHistory, saveGroupEdit } = useRequestActions({
-    rawRequests, queue, nextQueuePos, history, isSpotify, spotify, mutate,
+    rawRequests, queue, nextQueuePos, history, adapter: plugin.adapter, runtime: pluginRuntime, mutate,
   });
+
+  // What every plugin slot component can see and do (see PluginSlot.js).
+  const pluginController = { session: liveSession, playing, queue, nextQueuePos, onAction: handleAction, setPlugin };
+  const pluginSlot = (name, fallback = null, extra = {}) => hasSlot(plugin, name)
+    ? <PluginSlot plugin={plugin} name={name} runtime={pluginRuntime} controller={pluginController} {...extra} />
+    : fallback;
+  // What the plugin shows on each queued/now-playing card, and its border tint.
+  const itemSlot = request => pluginSlot(SLOTS.QUEUE_ITEM, null, { request });
+  const itemTone = request => plugin.itemTone?.(pluginRuntime, request) ?? null;
 
   async function toggleSuppress(clientId, suppress) {
     if (!workingSession?._id) return;
@@ -280,6 +292,7 @@ function Controller() {
         )}
 
         <div className={styles.body}>
+          {pluginSlot(SLOTS.OVERLAY)}
           <Sidebar
             activeSession={liveSession}
             activePanel={activePanel}
@@ -287,8 +300,7 @@ function Controller() {
             activeMsg={activeMsg}
             pendingCount={pendingCount}
             unreadNotifCount={unreadCount}
-            isSpotify={isSpotify}
-            spotifyConnected={spotify.connected}
+            pluginStatus={pluginSlot(SLOTS.SIDEBAR_STATUS)}
           />
 
           {/* ── Left panel (swappable) ── */}
@@ -423,6 +435,9 @@ function Controller() {
                 toggleQueueVisibility={toggleQueueVisibility}
                 queueVisibleCount={queueVisibleCount}
                 setQueueVisibleCount={setQueueVisibleCount}
+                pluginId={plugin.id}
+                setPlugin={setPlugin}
+                pluginLocked={playing.length > 0}
               />
             )}
 
@@ -496,50 +511,25 @@ function Controller() {
                 {queue.length > 0 && <span className={styles.colCount}>{queue.length}</span>}
               </div>
               <div className={styles.panelBody}>
-                {isSpotify ? (
-                  <SpotifyPanel
-                    data={spotify.data}
-                    onControl={spotify.handleControl}
-                    connected={spotify.connected}
-                    error={spotify.error}
-                    onRetry={spotify.retry}
-                  />
-                ) : (
-                  <RemoteControl
-                    playing={playing} queue={queue} onAction={handleAction} activeSession={liveSession}
-                    stats={statsFor(playing[0])}
-                  />
-                )}
+                {pluginSlot(SLOTS.QUEUE_HEADER)}
 
-                {isSpotify && playing.length === 0 && queue.length > 0 && (
-                  <button className={styles.remoteBtnStart} onClick={() => handleAction(queue[0]._id, 'startQueue')}>
-                    ▶ Start Queue
-                  </button>
-                )}
-
-                {isSpotify && playing.map(r => (
-                  <div key={r._id} className={styles.qCard} style={{ borderColor: 'rgba(138,92,255,0.4)' }}>
-                    <div className={styles.qInfo}>
-                      <div className={styles.qName}>{r.danceName} <span className={styles.nowBadge}>NOW PLAYING</span></div>
-                      {r.songName && <div className={styles.qSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</div>}
-                    </div>
-                    <div className={styles.qActions}>
-                      <button className={styles.btnPlayed} onClick={() => handleAction(r._id, 'played')}>✓ Played</button>
-                      <button className={styles.btnRemove} onClick={() => handleAction(r._id, 'remove')}>✕</button>
-                    </div>
-                  </div>
+                {pluginSlot(SLOTS.PLAYER, (
+                  <>
+                    <RemoteControl
+                      playing={playing} queue={queue} onAction={handleAction} activeSession={liveSession}
+                      stats={statsFor(playing[0])}
+                      tone={playing[0] ? itemTone(playing[0]) : null}
+                      footer={playing[0] ? itemSlot(playing[0]) : null}
+                    />
+                    {playing.length === 0 && queue.length === 0 && (
+                      <div className={styles.queueEmpty}>
+                        <span className={styles.queueEmptyIcon}>🎵</span>
+                        <span className={styles.queueEmptyTitle}>Queue is empty</span>
+                        <span className={styles.queueEmptyHint}>Approve requests from the Requests panel to add dances</span>
+                      </div>
+                    )}
+                  </>
                 ))}
-
-                {!isSpotify && playing.length === 0 && queue.length === 0 && (
-                  <div className={styles.queueEmpty}>
-                    <span className={styles.queueEmptyIcon}>🎵</span>
-                    <span className={styles.queueEmptyTitle}>Queue is empty</span>
-                    <span className={styles.queueEmptyHint}>Approve requests from the Requests panel to add dances</span>
-                  </div>
-                )}
-                {isSpotify && playing.length === 0 && queue.length === 0 && (
-                  <p className={styles.empty}>Queue is empty.</p>
-                )}
 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={queue.map(r => r._id)} strategy={verticalListSortingStrategy}>
@@ -558,6 +548,8 @@ function Controller() {
                             totalBeats={stats.beats}
                             estimatedPlayAt={queueTimes[r._id]}
                             score={stats.score}
+                            tone={itemTone(r)}
+                            footer={itemSlot(r)}
                           />
                         )}
                       </SortableQueueItem>
@@ -566,7 +558,7 @@ function Controller() {
                   </SortableContext>
                 </DndContext>
 
-                {isSpotify && <SpotifySearch onAdd={(track) => spotify.handleAdd(track, nextQueuePos)} />}
+                {pluginSlot(SLOTS.QUEUE_FOOTER)}
               </div>
             </div>
           </div>

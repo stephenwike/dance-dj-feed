@@ -1,0 +1,457 @@
+/* Local-files plugin UI. Teal accent distinguishes it from Spotify's green. */
+
+.panel {
+  background: rgba(45, 212, 191, 0.06);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.folder {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.muted {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+}
+
+.hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.primaryBtn {
+  align-self: flex-start;
+  background: #2dd4bf;
+  color: #042f2e;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.primaryBtn:hover { opacity: 0.85; }
+
+.ghostBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ghostBtn:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
+.ghostBtn:disabled { opacity: 0.4; cursor: default; }
+
+.progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  background: #2dd4bf;
+  transition: width 0.3s;
+}
+
+.error {
+  margin: 0;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.notice {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #fde68a;
+}
+
+/* ── Now / Next file checks ── */
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+
+.checkLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+  width: 34px;
+}
+
+.checkName {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileOk {
+  font-size: 11px;
+  color: #5eead4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 42px;
+}
+
+/* A guessed file (history / fuzzy suggestion): playing, but unconfirmed. */
+.fileGuess {
+  font-size: 11px;
+  color: #fcd34d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 42px;
+}
+
+.fileMissing {
+  font-size: 11px;
+  color: #fbbf24;
+  padding-left: 42px;
+}
+
+/* ── Deck controls (tempo, fades, crossfade, speakers) ── */
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+}
+
+.deckLabel {
+  width: 68px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.slider {
+  flex: 1;
+  min-width: 60px;
+  accent-color: #2dd4bf;
+}
+
+/* ── Track timeline (waveform with In/Out handles) ── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timelineSvg {
+  width: 100%;
+  height: 72px;
+  display: block;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  touch-action: none; /* let pointer drags work on touch screens */
+}
+
+.timelineWave { stroke: rgba(45, 212, 191, 0.75); stroke-width: 1.5; fill: none; }
+.timelineDim { fill: rgba(0, 0, 0, 0.6); }
+.timelineBound { stroke: rgba(255, 255, 255, 0.25); stroke-width: 1; stroke-dasharray: 3 3; }
+.timelineIn { stroke: #34d399; stroke-width: 3; }
+.timelineOut { stroke: #fbbf24; stroke-width: 3; }
+.timelinePlayhead { stroke: #fff; stroke-width: 1.5; }
+
+.timelineLegend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.timelineInLabel { color: #6ee7b7; font-variant-numeric: tabular-nums; }
+.timelineOutLabel { color: #fcd34d; font-variant-numeric: tabular-nums; }
+
+.linkBtn {
+  margin-left: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.linkBtn:hover { color: #fff; }
+
+.cueValue {
+  min-width: 70px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  font-variant-numeric: tabular-nums;
+}
+
+.tempoValue {
+  min-width: 52px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip:hover { color: #fff; }
+.chipActive {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: rgba(45, 212, 191, 0.5);
+  color: #5eead4;
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #fff;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.select option { background: #1a1628; }
+
+/* ── Per-card file row (TrackFileRow) ── */
+.item {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.item.row { flex-direction: row; }
+
+.itemFile,
+.itemGuess,
+.itemMissing {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.itemFile { color: #5eead4; }
+.itemGuess { color: #fcd34d; }
+.itemMissing { color: #f87171; font-weight: 600; }
+
+/* Accepting a suggested file saves the association. */
+.acceptBtn {
+  background: #fbbf24;
+  color: #1c1917;
+  border: none;
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.acceptBtn:hover { background: #fcd34d; }
+
+/* ── Library search ── */
+.searchToggle {
+  width: 100%;
+  margin-top: 10px;
+  background: transparent;
+  border: 1px dashed rgba(45, 212, 191, 0.35);
+  color: #5eead4;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.searchToggle:hover { background: rgba(45, 212, 191, 0.06); }
+.searchToggle:disabled { opacity: 0.4; cursor: default; }
+
+.search {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.searchInput:focus { outline: none; border-color: rgba(45, 212, 191, 0.6); }
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+.result:hover { background: rgba(45, 212, 191, 0.1); }
+
+.resultInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.resultTitle,
+.resultSub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resultTitle { font-size: 13px; color: #fff; }
+.resultSub { font-size: 11px; color: rgba(255, 255, 255, 0.45); }
+
+.resultsHeading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 2px 8px 0;
+}
+
+.resultScore {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5eead4;
+  font-variant-numeric: tabular-nums;
+}
+
+.resultDur {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Sidebar status ── */
+.sidebarReady { color: #2dd4bf; }
+.sidebarAttention { color: #fbbf24; }
+
+/* ── Unsupported-browser overlay ── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 8, 20, 0.94);
+  backdrop-filter: blur(4px);
+}
+
+.overlayCard {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  align-items: center;
+}
+
+.overlayIcon { font-size: 40px; }
+
+.overlayTitle {
+  margin: 0;
+  font-size: 20px;
+  color: #fff;
+}
+
+.overlayText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.overlayActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}

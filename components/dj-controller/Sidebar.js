@@ -7,7 +7,7 @@ export default function Sidebar({
   activeMsg,
   pendingCount,
   unreadNotifCount,
-  isSpotify, spotifyConnected,
+  pluginStatus,
 }) {
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
 
@@ -73,19 +73,11 @@ export default function Sidebar({
       {btn('history', '📋', 'History')}
       {btn('sessions', '🗂️', 'Sessions')}
 
-      {isSpotify && (
+      {/* Playback plugin status (see components/dj-controller/plugins) */}
+      {pluginStatus && (
         <>
           <div className={styles.sidebarDivider} />
-          {spotifyConnected
-            ? <div className={`${styles.sidebarBtn} ${styles.sidebarBtnSpotify}`} title="Spotify connected">
-                <span className={styles.sidebarIcon}>●</span>
-                <span className={styles.sidebarLabel}>Spotify</span>
-              </div>
-            : <a href="/api/spotify/auth" className={`${styles.sidebarBtn} ${styles.sidebarBtnSpotifyOff}`} title="Connect Spotify">
-                <span className={styles.sidebarIcon}>○</span>
-                <span className={styles.sidebarLabel}>Spotify</span>
-              </a>
-          }
+          {pluginStatus}
         </>
       )}
 
