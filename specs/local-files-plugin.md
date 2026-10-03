@@ -98,6 +98,18 @@ The player belongs to the session whose track it holds. Switching the controller
 
 ---
 
+## Floor Remote (phones)
+
+On phone-sized screens (≤ 640px) the controller opens on the **Floor Remote** (`components/dj-controller/FloorRemote.js`), a full-screen panel with:
+- what's playing and its countdown
+- big restart / −10s / pause-resume / +10s / skip buttons (through the queue, like the desktop controls)
+- the plugin's `remoteControls` slot: for Local Files, Tempo and Volume (`RemoteMix.js`)
+- the next three tracks
+
+✕ closes it to reach the full controller, where narrow screens show one column at a time. The 🎛️ **Remote** and 🎵 **Queue** buttons in the sidebar strip switch between them.
+
+Fades, In/Out and Save to track stay on the computer playing the music: they act on its audio engine and its local storage.
+
 ## Mixing Controls
 
 Shown in the queue panel on the computer playing the music.
@@ -108,7 +120,7 @@ Shown in the queue panel on the computer playing the music.
 - **Crossfade** (Off / 3s / 6s / 10s): starts the next track that many seconds before the current one ends, with equal-power curves. It only applies when the next track's file is already loaded, and never on tracks shorter than 3× the crossfade.
 - **Speakers**: sends audio to a chosen output device (`setSinkId`). Chrome only names devices after a microphone permission prompt; nothing is recorded.
 
-- **Volume** (−12 to +12 dB), for the playing track, applied live. It can boost quiet songs as well as cut loud ones.
+- **Volume** (−12 to +12 dB), for the playing track. It can boost quiet songs as well as cut loud ones. Like tempo, it is stored on the request (`volumeDb`, `lib/dj/volume.js`), so any device can change it and the computer playing the music applies it on its next sync. When a file with a saved tempo/volume starts, the player writes those values to the request, so other devices show the real values.
 - **Timeline** (`TrackTimeline.js`): the playing file's waveform, decoded once per file version at a low sample rate (`decodeWaveform.js`) and cached per DJ in IndexedDB as 600 loudness points (0..255). Drag the green **Start (In)** and amber **Fade (Out)** handles; click elsewhere to jump there (the queue's clock moves too, so remotes follow). Handles snap to the track's start/end and to where the sound starts/ends (dashed lines, detected from the waveform). Regions that won't play are dimmed, and the fade after Out is shaded. Handles stay at least 10s apart; dragging a handle back to the start or end clears it.
 - **Start (In)**: where the track starts. It applies the next time the track plays (this play has already started); the track then fades in over 1.5s, and the queue's clock counts from the In point.
 - **Fade (Out)**: where the fade (or crossfade) to the next track starts. It applies live, when playback next *crosses* the point, so setting it just behind the playhead doesn't fade at once. The fade length is the crossfade setting, or 5s when crossfade is off. At the end of the queue it fades out instead of cutting.

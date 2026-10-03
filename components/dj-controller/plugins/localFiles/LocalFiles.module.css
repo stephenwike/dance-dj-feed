@@ -226,6 +226,13 @@
 }
 .linkBtn:hover { color: #fff; }
 
+/* Bigger touch targets for the phone remote. */
+.mixLarge { gap: 10px; }
+.mixLarge .ghostBtn { min-width: 44px; min-height: 40px; font-size: 18px; }
+.mixLarge .tempoValue { font-size: 14px; min-width: 72px; }
+.mixLarge .slider { height: 32px; }
+.mixLarge .deckLabel { width: 56px; font-size: 13px; }
+
 .cueValue {
   min-width: 70px;
   font-size: 12px;

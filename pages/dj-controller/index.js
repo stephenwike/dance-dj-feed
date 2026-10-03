@@ -17,6 +17,7 @@ import PluginSlot, { SLOTS, hasSlot } from '../../components/dj-controller/plugi
 import { StandardAdapter } from '../../lib/client/dj/controllerAdapters';
 import SortableQueueItem from '../../components/dj-controller/SortableQueueItem';
 import RemoteControl from '../../components/dj-controller/RemoteControl';
+import FloorRemote from '../../components/dj-controller/FloorRemote';
 import QueueCard from '../../components/dj-controller/QueueCard';
 import { timeAgo, estimateQueueTimes } from '../../components/dj-controller/utils';
 import SessionsPanel from '../../components/dj-controller/SessionsPanel';
@@ -61,6 +62,9 @@ function dedupeHistory(history) {
   });
 }
 
+// Matches the phone breakpoint in dj-controller.module.css.
+const PHONE_QUERY = '(max-width: 640px)';
+
 // ── Main Controller ───────────────────────────────────────────────────────────
 function Controller() {
   const router = useRouter();
@@ -70,6 +74,17 @@ function Controller() {
   const [editingGroup, setEditingGroup] = useState(null);
   const [showExtendModal, setShowExtendModal] = useState(false);
   const [activePanel, setActivePanel] = useState('requests');
+  // Phones show one column at a time ('queue' or the sidebar's 'panel'), and
+  // open on the Floor Remote — the controls the DJ needs on the dance floor.
+  const [mobileView, setMobileView] = useState('queue');
+  const [remoteOpen, setRemoteOpen] = useState(false);
+  useEffect(() => {
+    if (window.matchMedia(PHONE_QUERY).matches) setRemoteOpen(true);
+  }, []);
+  function showPanel(id) {
+    setActivePanel(id);
+    setMobileView('panel');
+  }
   const [connectNotice, setConnectNotice] = useState('');
 
   const {
@@ -291,12 +306,15 @@ function Controller() {
           />
         )}
 
-        <div className={styles.body}>
+        <div className={`${styles.body} ${mobileView === 'queue' ? styles.mobileShowQueue : styles.mobileShowPanel}`}>
           {pluginSlot(SLOTS.OVERLAY)}
           <Sidebar
             activeSession={liveSession}
             activePanel={activePanel}
-            onSetPanel={setActivePanel}
+            onSetPanel={showPanel}
+            mobileView={mobileView}
+            onShowQueue={() => setMobileView('queue')}
+            onOpenRemote={() => setRemoteOpen(true)}
             activeMsg={activeMsg}
             pendingCount={pendingCount}
             unreadNotifCount={unreadCount}
@@ -564,6 +582,18 @@ function Controller() {
           </div>
         </div>
       </div>
+
+      {remoteOpen && (
+        <FloorRemote
+          session={liveSession}
+          playing={playing}
+          queue={queue}
+          onAction={handleAction}
+          onClose={() => setRemoteOpen(false)}
+        >
+          {pluginSlot(SLOTS.REMOTE_CONTROLS)}
+        </FloorRemote>
+      )}
 
       {/* ── Tip toast notifications ── */}
       {toastQueue.length > 0 && (() => {

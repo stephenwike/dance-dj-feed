@@ -8,6 +8,8 @@
  *   QUEUE_FOOTER   — below the queue list (e.g. search to add tracks)
  *   QUEUE_ITEM     — inside each queued card and the now-playing card; also
  *                    receives `request` (e.g. the file that request will play)
+ *   REMOTE_CONTROLS — in the Floor Remote (the phone view), under the transport:
+ *                    controls for the playing track that work from any device
  *
  * Every slot component receives the same props:
  *   runtime    — what the plugin's useRuntime hook returned
@@ -22,6 +24,7 @@ export const SLOTS = Object.freeze({
   PLAYER: 'player',
   QUEUE_FOOTER: 'queueFooter',
   QUEUE_ITEM: 'queueItem',
+  REMOTE_CONTROLS: 'remoteControls',
 });
 
 export function hasSlot(plugin, name) {

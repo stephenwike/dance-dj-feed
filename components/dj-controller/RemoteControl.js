@@ -3,7 +3,7 @@ import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor } from './utils';
 
 /* ── SVG icons ── */
-function IconRestart() {
+export function IconRestart() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <rect x="3" y="3" width="3" height="18" rx="1"/>
@@ -11,7 +11,7 @@ function IconRestart() {
     </svg>
   );
 }
-function IconSkip() {
+export function IconSkip() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M3 4l12 8-12 8V4z"/>
@@ -19,7 +19,7 @@ function IconSkip() {
     </svg>
   );
 }
-function IconPause() {
+export function IconPause() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <rect x="5" y="3" width="4" height="18" rx="1.5"/>
@@ -27,35 +27,35 @@ function IconPause() {
     </svg>
   );
 }
-function IconPlay() {
+export function IconPlay() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M7 3l14 9-14 9V3z"/>
     </svg>
   );
 }
-function IconSquare() {
+export function IconSquare() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="3"/>
     </svg>
   );
 }
-function IconRewind() {
+export function IconRewind() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
     </svg>
   );
 }
-function IconFastFwd() {
+export function IconFastFwd() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
     </svg>
   );
 }
-function IconRequeue() {
+export function IconRequeue() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -66,7 +66,7 @@ function IconRequeue() {
 }
 
 /* Countdown that works from playStartedAt + duration_ms */
-function Countdown({ playStartedAt, duration_ms, paused, pausedAt }) {
+export function Countdown({ playStartedAt, duration_ms, paused, pausedAt }) {
   const [remaining, setRemaining] = useState(null);
 
   useEffect(() => {

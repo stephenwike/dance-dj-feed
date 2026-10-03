@@ -5,6 +5,7 @@ import LocalFilesQueueFooter from './LocalFilesQueueFooter';
 import LocalFilesSidebarStatus from './LocalFilesSidebarStatus';
 import UnsupportedBrowser from './UnsupportedBrowser';
 import TrackFileRow, { itemTone } from './TrackFileRow';
+import RemoteMix from './RemoteMix';
 
 /**
  * Local files: the controller plays music from a folder on the DJ's
@@ -24,5 +25,6 @@ export default {
     queueFooter: LocalFilesQueueFooter,
     sidebarStatus: LocalFilesSidebarStatus,
     queueItem: TrackFileRow,
+    remoteControls: RemoteMix,
   },
 };

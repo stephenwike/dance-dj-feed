@@ -1,0 +1,193 @@
+/* Floor Remote: the phone controller. Big touch targets, one column. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background: #12101f;
+  color: #fff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.session {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.close {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.empty {
+  margin: 24px 0 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.start {
+  min-height: 56px;
+  padding: 0 28px;
+  border-radius: 28px;
+  border: none;
+  background: #8a5cff;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Now playing ── */
+.now {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(138, 92, 255, 0.16), rgba(138, 92, 255, 0.05));
+  border: 1px solid rgba(138, 92, 255, 0.25);
+}
+
+.status {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #34d399;
+}
+.statusPaused { color: #fbbf24; }
+
+.trackName {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.trackSub {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.countdown {
+  margin-top: 6px;
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Transport ── */
+.transport {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+}
+.btn svg { width: 22px; height: 22px; }
+.btn:active { background: rgba(255, 255, 255, 0.14); }
+
+.btnMain {
+  flex: 1.4;
+  height: 68px;
+  background: #8a5cff;
+  border-color: #8a5cff;
+}
+.btnMain svg { width: 28px; height: 28px; }
+
+/* ── Plugin controls (tempo, volume) ── */
+.plugin {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Up next ── */
+.next {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nextHeading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.nextRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nextIndex {
+  width: 20px;
+  color: rgba(255, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+.nextName {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

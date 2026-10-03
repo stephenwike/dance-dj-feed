@@ -4196,9 +4196,16 @@
   .topBar { gap: 6px; padding: 0 10px; }
 }
 
-/* Below 768px: stack panels vertically, compact sidebar */
+/* Phone-only sidebar buttons (Remote, Queue). */
+.sidebarMobileOnly { display: none; }
+
+/* Below 768px: one column at a time (queue, or the sidebar's panel), compact sidebar */
 @media (max-width: 768px) {
   .body { flex-direction: column; }
+  .sidebarMobileOnly { display: flex; }
+  .mobileShowQueue .leftPanel { display: none; }
+  .mobileShowPanel .rightPanel { display: none; }
+  .mobileShowPanel .leftPanel { flex: 1; max-height: none; }
   .sidebar { width: 100%; flex-direction: row; height: 52px; padding: 0 8px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); overflow-x: auto; }
   .sidebarDivider { width: 1px; height: 24px; margin: 0 4px; }
   .sidebarSpacer { flex: 1; }
@@ -4210,8 +4217,19 @@
   .topBarRight .topBarQuickBtn { display: none; }
 }
 
-/* Below 640px: very compact */
+/* Below 640px: very compact; cards stack instead of squeezing */
 @media (max-width: 640px) {
+  .npMain { flex-direction: column; }
+  .npControls {
+    max-width: none;
+    padding: 10px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(138,92,255,0.18);
+  }
+  .qCardMain { flex-wrap: wrap; }
+  .qCardMain .qInfo { flex: 1 1 calc(100% - 40px); }
+  .qCardPanel { width: calc(100% - 16px); margin: 0 8px 8px; }
+  .qCardFooter { padding-left: 12px; }
   .topBarEndBtn, .topBarNewBtn { padding: 3px 7px; font-size: 0.65rem; }
   .topBarSessionName { font-size: 0.75rem; }
 }
