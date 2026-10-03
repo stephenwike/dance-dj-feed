@@ -125,7 +125,7 @@ export default function DJRequestPage({
 
   const { data: balanceData, mutate: mutateBalance } = useSWR(
     isSignedIn ? '/api/beats/balance' : null, fetcher,
-    { revalidateOnFocus: true }
+    { revalidateOnFocus: true, refreshInterval: 15000 }
   );
   const beatBalance = balanceData?.beats ?? 0;
 
@@ -205,7 +205,7 @@ export default function DJRequestPage({
   const { data: attendeeNotifData, mutate: mutateAttendeeNotifs } = useSWR(
     isSignedIn ? '/api/attendee/notifications' : null,
     fetcher,
-    { refreshInterval: 20000, revalidateOnFocus: false }
+    { refreshInterval: 20000, revalidateOnFocus: true }
   );
   const attendeeNotifs = attendeeNotifData?.notifications ?? [];
   const unreadNotifCount = attendeeNotifData?.unreadCount ?? 0;
