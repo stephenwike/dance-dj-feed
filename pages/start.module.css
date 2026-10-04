@@ -57,6 +57,7 @@
 .sessionCard {
   width: 100%;
   display: flex;
+  flex-wrap: wrap; /* the action drops below the name on narrow screens */
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -146,12 +147,34 @@
 }
 .sessionCardAction:hover { background: rgba(34,197,94,0.18); }
 
-/* Right-side actions for draft cards */
-.sessionCardRight {
+/* Draft cards: name + tools on top, launch buttons in a full-width row below. */
+.sessionCardStacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.sessionCardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sessionCardTools {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+}
+
+.sessionCardLaunch {
+  display: flex;
+  gap: 8px;
+}
+.sessionCardLaunch > button {
+  flex: 1;
+  min-height: 44px;
 }
 
 .btnLaunch {
@@ -187,6 +210,7 @@
 .btnWallet:disabled { opacity: 0.4; cursor: default; }
 
 .sessionCardEdit {
+  min-height: 34px;
   font-size: 0.72rem;
   font-weight: 600;
   color: rgba(167,139,250,0.7);
@@ -202,6 +226,8 @@
 .sessionCardEdit:hover { color: #a78bfa; border-color: rgba(167,139,250,0.4); }
 
 .sessionCardDelete {
+  min-height: 34px;
+  min-width: 34px;
   font-size: 0.72rem;
   font-weight: 600;
   color: rgba(255,255,255,0.25);

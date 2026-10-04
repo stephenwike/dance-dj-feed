@@ -177,63 +177,67 @@ export default function StartPage() {
                     const dur = formatDur(d.durationMinutes);
                     const isLaunching = launchingId === d._id;
                     return (
-                      <div key={d._id} className={`${styles.sessionCard} ${styles.sessionCardDraft}`}>
-                        <div className={styles.sessionCardLeft}>
-                          <span className={styles.draftDot} />
-                          <div className={styles.sessionCardText}>
-                            <span className={styles.sessionCardName}>{d.name}</span>
-                            <span className={styles.sessionCardSub}>
-                              {dur ? `Pre-configured · ${dur}` : 'Pre-configured · no duration set'}
-                            </span>
+                      <div key={d._id} className={`${styles.sessionCard} ${styles.sessionCardDraft} ${styles.sessionCardStacked}`}>
+                        {/* Top row: what the draft is, with its small tools. */}
+                        <div className={styles.sessionCardTop}>
+                          <div className={styles.sessionCardLeft}>
+                            <span className={styles.draftDot} />
+                            <div className={styles.sessionCardText}>
+                              <span className={styles.sessionCardName}>{d.name}</span>
+                              <span className={styles.sessionCardSub}>
+                                {dur ? `Pre-configured · ${dur}` : 'Pre-configured · no duration set'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className={styles.sessionCardTools}>
+                            <button
+                              type="button"
+                              className={styles.sessionCardEdit}
+                              onClick={() => router.push(`/dj-session-config?id=${d._id}`)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.sessionCardDelete}
+                              onClick={() => handleDeleteDraft(d._id)}
+                              aria-label="Delete"
+                            >
+                              ✕
+                            </button>
                           </div>
                         </div>
-                        <div className={styles.sessionCardRight}>
-                          {dur ? (() => {
-                            const tier = SESSION_DURATIONS_BY_MINUTES[d.durationMinutes];
-                            const walletPrice = tier?.walletPriceCents;
-                            const savings = tier ? tier.priceCents - tier.walletPriceCents : 0;
-                            const canWallet = paymentsEnabled && walletBalance !== null && walletPrice !== undefined && walletBalance >= walletPrice;
-                            const isWalletLaunching = walletLaunchingId === d._id;
-                            return (
-                              <>
-                                {paymentsEnabled && walletPrice !== undefined && (
-                                  <button
-                                    type="button"
-                                    className={styles.btnWallet}
-                                    onClick={() => handleWalletLaunch(d._id)}
-                                    disabled={!canWallet || isWalletLaunching || isLaunching}
-                                    title={canWallet ? `Save $${(savings / 100).toFixed(2)} vs. Stripe` : walletBalance !== null ? 'Insufficient wallet balance' : 'Loading balance…'}
-                                  >
-                                    {isWalletLaunching ? '…' : `Wallet $${(walletPrice / 100).toFixed(2)}`}
-                                  </button>
-                                )}
+                        {/* Second row: the ways to launch it, full width. */}
+                        {dur && (() => {
+                          const tier = SESSION_DURATIONS_BY_MINUTES[d.durationMinutes];
+                          const walletPrice = tier?.walletPriceCents;
+                          const savings = tier ? tier.priceCents - tier.walletPriceCents : 0;
+                          const canWallet = paymentsEnabled && walletBalance !== null && walletPrice !== undefined && walletBalance >= walletPrice;
+                          const isWalletLaunching = walletLaunchingId === d._id;
+                          return (
+                            <div className={styles.sessionCardLaunch}>
+                              {paymentsEnabled && walletPrice !== undefined && (
                                 <button
                                   type="button"
-                                  className={styles.btnLaunch}
-                                  onClick={() => handleLaunch(d._id)}
-                                  disabled={isLaunching || isWalletLaunching}
+                                  className={styles.btnWallet}
+                                  onClick={() => handleWalletLaunch(d._id)}
+                                  disabled={!canWallet || isWalletLaunching || isLaunching}
+                                  title={canWallet ? `Save $${(savings / 100).toFixed(2)} vs. Stripe` : walletBalance !== null ? 'Insufficient wallet balance' : 'Loading balance…'}
                                 >
-                                  {isLaunching ? '…' : '▶ Launch'}
+                                  {isWalletLaunching ? '…' : `Wallet $${(walletPrice / 100).toFixed(2)}`}
                                 </button>
-                              </>
-                            );
-                          })() : null}
-                          <button
-                            type="button"
-                            className={styles.sessionCardEdit}
-                            onClick={() => router.push(`/dj-session-config?id=${d._id}`)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.sessionCardDelete}
-                            onClick={() => handleDeleteDraft(d._id)}
-                            aria-label="Delete"
-                          >
-                            ✕
-                          </button>
-                        </div>
+                              )}
+                              <button
+                                type="button"
+                                className={styles.btnLaunch}
+                                onClick={() => handleLaunch(d._id)}
+                                disabled={isLaunching || isWalletLaunching}
+                              >
+                                {isLaunching ? '…' : '▶ Launch'}
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
