@@ -4196,42 +4196,9 @@
   .topBar { gap: 6px; padding: 0 10px; }
 }
 
-/* Phone-only sidebar buttons (Remote, Queue). */
-.sidebarMobileOnly { display: none; }
-
-/* Phone-only floating button back to the Floor Remote. */
-.remoteFab { display: none; }
-
-/* Below 768px: one column at a time (queue, or the sidebar's panel), compact sidebar */
+/* Below 768px: stack panels vertically, compact sidebar (phones get the separate phone layout) */
 @media (max-width: 768px) {
   .body { flex-direction: column; }
-  .sidebarMobileOnly { display: flex; }
-  /* The strip hides labels to fit; Remote and Queue keep theirs so they're obvious. */
-  .sidebarMobileOnly .sidebarLabel { display: inline; margin-left: 4px; font-size: 0.75rem; }
-  .remoteFab {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    position: fixed;
-    right: 16px;
-    bottom: max(16px, env(safe-area-inset-bottom));
-    z-index: 90;
-    min-height: 52px;
-    padding: 0 20px;
-    border: none;
-    border-radius: 26px;
-    background: #8a5cff;
-    color: #fff;
-    font-size: 15px;
-    font-weight: 700;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-    cursor: pointer;
-  }
-  /* Room at the bottom of lists so the button never covers the last card. */
-  .panelBody { padding-bottom: 84px; }
-  .mobileShowQueue .leftPanel { display: none; }
-  .mobileShowPanel .rightPanel { display: none; }
-  .mobileShowPanel .leftPanel { flex: 1; max-height: none; }
   .sidebar { width: 100%; flex-direction: row; height: 52px; padding: 0 8px; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); overflow-x: auto; }
   .sidebarDivider { width: 1px; height: 24px; margin: 0 4px; }
   .sidebarSpacer { flex: 1; }

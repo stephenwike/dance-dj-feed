@@ -8,7 +8,6 @@ export default function Sidebar({
   pendingCount,
   unreadNotifCount,
   pluginStatus,
-  mobileView, onShowQueue, onOpenRemote,
 }) {
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
 
@@ -32,20 +31,6 @@ export default function Sidebar({
         className={`${styles.sidebarDot} ${activeSession ? styles.sidebarDotActive : ''}`}
         title={activeSession ? `Active: ${activeSession.name}` : 'No active session'}
       />
-
-      {/* Phones only: the floor remote, and the queue (which has its own column on wider screens) */}
-      <button className={`${styles.sidebarBtn} ${styles.sidebarMobileOnly}`} onClick={onOpenRemote} title="Floor remote">
-        <span className={styles.sidebarIcon}>🎛️</span>
-        <span className={styles.sidebarLabel}>Remote</span>
-      </button>
-      <button
-        className={`${styles.sidebarBtn} ${styles.sidebarMobileOnly} ${mobileView === 'queue' ? styles.sidebarBtnActive : ''}`}
-        onClick={onShowQueue}
-        title="Queue"
-      >
-        <span className={styles.sidebarIcon}>🎵</span>
-        <span className={styles.sidebarLabel}>Queue</span>
-      </button>
 
       <div className={styles.sidebarDivider} />
 
