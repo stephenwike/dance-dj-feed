@@ -21,7 +21,7 @@ Both layouts render from the same `useController()` state, so they can't disagre
 | **Header** | Session name, live status and time left (tap → session sheet). 🔔 tips and notifications with an unread badge |
 | **Alerts** (under the header) | Session ending soon / time up (with **Extend**), requests paused (with **Resume**), the dev Stripe-listener warning |
 | **Live** tab (home) | What's playing, countdown, big restart / −10s / pause-resume / +10s / skip buttons, the playback plugin's `remoteControls` (Local Files: tempo and volume), quick actions (**Announce**, **Add to queue**, **Requests on/paused**), up next |
-| **Queue** tab | One card per queued dance: position, name, song, ETA, requesters, beats, and a red "No file" or amber tint from the plugin's `itemTone`. Tapping opens a sheet with the plugin's `queueItem` UI and **Play next**, **Move up/down**, **Edit**, **Back to requests**, **Mark played**, **Remove**. **Add to queue** and **Start queue** sit at the top |
+| **Queue** tab | One card per queued dance: position, name, song, ETA, requesters, beats, and a red "No file" or amber tint from the plugin's `itemTone`. Tapping opens a sheet with the plugin's `queueItem` UI and **Play next**, **Play last**, **Edit**, **Back to requests**, **Mark played**, **Remove**. **Add to queue** and **Start queue** sit at the top |
 | **Requests** tab | Pending requests by dance or by requester, filter and sort (`PendingRequests`, shared with desktop) |
 | **People** tab | Requesters: stats, messages, gift beats, suppress (`RequestersPanel`) |
 | **More** tab | Announcements, Add to queue, Tips & notifications, Played so far · Session settings (incl. music source), Feed display, Sessions, Wallet · Desktop layout, Sign out |
@@ -32,7 +32,7 @@ Sub-pages reuse the desktop panels full-screen, so behaviour is identical on bot
 ## Design decisions
 
 - **Live is home.** On the floor the DJ needs what's playing, the transport, tempo/volume and a way to announce.
-- **No drag-to-reorder on phones.** Dragging inside a scrolling list on a touch screen is error-prone mid-set. Move buttons do the same thing (`useQueueReorder.moveTo`, which shares the drag's optimistic, debounced save).
+- **Press and hold to drag.** A card is picked up after a 350 ms hold without moving (dnd-kit `TouchSensor`/`MouseSensor` with a delay), so a quick swipe still scrolls the list and a tap still opens the card's sheet. Dropping uses the desktop's `useQueueReorder.handleDragEnd`, with the same optimistic, debounced save.
 - **Destructive actions confirm:** ending a session, discarding a draft.
 - **Feed display** keeps template and screen-shape switching. The visual Feed Editor is a computer task, and the page says so.
 - **The plugin overlay** ("use Chrome or Edge") is not shown on phones: a phone is a remote by nature.
