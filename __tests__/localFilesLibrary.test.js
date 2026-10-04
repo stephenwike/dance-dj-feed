@@ -254,6 +254,15 @@ describe('explainMatch — the DJ\'s local memory', () => {
     expect(explainMatch(two, { songName: 'Copperhead Road', artist: 'Steve Earle' })).toMatchObject({ entry: { key: 'earle.mp3' }, artistDiffers: false });
   });
 
+  test('an in-queue comment never matches a file, even one with the same title', () => {
+    const lastDance = buildLibraryIndex([entry('last-dance.mp3', 'Last Dance', 'Donna Summer')]);
+    const comment = { _id: 'm1', danceType: 'message', danceName: 'Last Dance' };
+    expect(explainMatch(lastDance, comment)).toBeNull();
+    expect(explainMatch(lastDance, { ...comment, localTrackKey: 'last-dance.mp3' }, { links: {} })).toBeNull();
+    expect(closestFiles(lastDance, comment)).toEqual([]);
+    expect(explainMatch(lastDance, { danceName: 'Last Dance', songName: 'Last Dance' })).not.toBeNull();
+  });
+
   test('exact evidence is not a guess', () => {
     expect(isGuess(explainMatch(lib, tushPush))).toBe(false);
     expect(isGuess(null)).toBe(false);
