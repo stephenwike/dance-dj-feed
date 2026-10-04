@@ -8,8 +8,12 @@ import { MANUAL_FADE_SEC } from '../../../../lib/client/dj/plugins/localFiles/mi
 const W = 1000;
 const H = 100;
 // How close (px) the pointer must be to grab a handle, and to snap to where the sound starts/ends.
-const GRAB_PX = 10;
+const GRAB_PX = 18;
 const SNAP_PX = 12;
+// "Move playhead" re-locks itself if not used within this long.
+const SEEK_ARM_MS = 8000;
+// Width of the grab tabs on the handles, in SVG units (of W).
+const TAB_W = 10;
 
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
@@ -30,9 +34,11 @@ function waveformPath(peaks) {
 
 /**
  * The playing track as a waveform: drag the In (start) and Out (fade start)
- * handles to set them, click anywhere else to jump there. Handles snap to
- * where the sound starts and ends. Regions that won't play are dimmed, and
- * the fade after the Out point is shaded.
+ * handles to set them. Handles snap to where the sound starts and ends.
+ * Regions that won't play are dimmed, and the fade after Out is shaded.
+ *
+ * Built for use mid-set: clicking the waveform does nothing (only the handles
+ * respond), and jumping the playhead needs "Move playhead" first.
  */
 export default function TrackTimeline({ runtime, request }) {
   const { playback } = runtime;
@@ -41,6 +47,9 @@ export default function TrackTimeline({ runtime, request }) {
   const [failed, setFailed] = useState(false);
   const [drag, setDrag] = useState(null); // { which: 'in' | 'out', sec }
   const [hover, setHover] = useState(null); // 'in' | 'out' | null — for the cursor
+  // Jumping the playhead cuts into the music, so it never happens on a stray
+  // click: the DJ arms it first, and it re-locks after one jump (or a timeout).
+  const [seekArmed, setSeekArmed] = useState(false);
   const svgRef = useRef(null);
   const playheadRef = useRef(null);
   const positionRef = useRef(playback.position);
@@ -62,6 +71,12 @@ export default function TrackTimeline({ runtime, request }) {
   const durationSec = wave?.durationSec || 0;
   const bounds = useMemo(() => (wave ? soundBounds(wave.peaks, durationSec) : null), [wave, durationSec]);
   const path = useMemo(() => (wave ? waveformPath(wave.peaks) : ''), [wave]);
+
+  useEffect(() => {
+    if (!seekArmed) return;
+    const t = setTimeout(() => setSeekArmed(false), SEEK_ARM_MS);
+    return () => clearTimeout(t);
+  }, [seekArmed]);
 
   // Move the playhead every frame without re-rendering.
   useEffect(() => {
@@ -112,15 +127,21 @@ export default function TrackTimeline({ runtime, request }) {
 
   const onPointerDown = e => {
     const sec = secAt(e);
+    if (seekArmed) {
+      setSeekArmed(false);
+      runtime.seekTo(request, sec);
+      return;
+    }
+    // Only the handles respond: a click anywhere else does nothing.
     const which = handleNear(sec);
-    if (!which) { runtime.seekTo(request, sec); return; }
+    if (!which) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     setDrag({ which, sec: place(which, sec) });
   };
   const onPointerMove = e => {
     const sec = secAt(e);
     if (drag) setDrag({ which: drag.which, sec: place(drag.which, sec) });
-    else setHover(handleNear(sec));
+    else if (!seekArmed) setHover(handleNear(sec));
   };
   const onPointerUp = () => {
     if (!drag) return;
@@ -137,13 +158,13 @@ export default function TrackTimeline({ runtime, request }) {
         className={s.timelineSvg}
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
-        style={{ cursor: drag || hover ? 'ew-resize' : 'pointer' }}
+        style={{ cursor: seekArmed ? 'crosshair' : drag || hover ? 'ew-resize' : 'default' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={() => !drag && setHover(null)}
         role="group"
-        aria-label="Track timeline: drag In and Out, click to jump"
+        aria-label="Track timeline: drag the Start and Fade handles"
       >
         <defs>
           <linearGradient id="fadeShade" x1="0" x2="1" y1="0" y2="0">
@@ -161,7 +182,9 @@ export default function TrackTimeline({ runtime, request }) {
         <line x1={toX(bounds.endSec)} x2={toX(bounds.endSec)} y1="0" y2={H} className={s.timelineBound} vectorEffect="non-scaling-stroke" />
         {/* Handles */}
         <line x1={inX} x2={inX} y1="0" y2={H} className={s.timelineIn} vectorEffect="non-scaling-stroke" />
+        <rect x={Math.max(0, inX)} y="0" width={TAB_W} height={H * 0.3} className={`${s.timelineTab} ${s.timelineTabIn} ${hover === 'in' || drag?.which === 'in' ? s.timelineTabActive : ''}`} />
         <line x1={outX ?? W} x2={outX ?? W} y1="0" y2={H} className={s.timelineOut} vectorEffect="non-scaling-stroke" />
+        <rect x={Math.min(W, outX ?? W) - TAB_W} y="0" width={TAB_W} height={H * 0.3} className={`${s.timelineTab} ${s.timelineTabOut} ${hover === 'out' || drag?.which === 'out' ? s.timelineTabActive : ''}`} />
         <line ref={playheadRef} x1="0" x2="0" y1="0" y2={H} className={s.timelinePlayhead} vectorEffect="non-scaling-stroke" />
       </svg>
       <div className={s.timelineLegend}>
@@ -169,7 +192,13 @@ export default function TrackTimeline({ runtime, request }) {
           ▶ Start {inSec > 0 ? formatTime(inSec) : 'at beginning'}
           {inSec > 0 && !drag && <button className={s.linkBtn} onClick={() => playback.setInPoint(null)}>reset</button>}
         </span>
-        <span className={s.muted}>Drag the handles · click to jump</span>
+        <button
+          className={`${s.linkBtn} ${seekArmed ? s.seekArmed : ''}`}
+          onClick={() => setSeekArmed(a => !a)}
+          title="Jumping cuts into the music, so it takes two steps: press this, then click where to jump"
+        >
+          {seekArmed ? 'Click the waveform to jump · cancel' : '⇥ Move playhead'}
+        </button>
         <span className={s.timelineOutLabel}>
           Fade {outSec !== null ? formatTime(outSec) : 'near the end'} ◀
           {outSec !== null && !drag && <button className={s.linkBtn} onClick={() => playback.setOutPoint(null)}>reset</button>}
@@ -177,7 +206,7 @@ export default function TrackTimeline({ runtime, request }) {
       </div>
       <span className={s.muted}>
         Sound {formatTime(bounds.startSec)}–{formatTime(bounds.endSec)} of {formatTime(durationSec)}
-        {inSec > 0 && ' · Start applies next time it plays'}
+        {inSec > 0 && ' · Restart (or the next play) starts here'}
       </span>
     </div>
   );

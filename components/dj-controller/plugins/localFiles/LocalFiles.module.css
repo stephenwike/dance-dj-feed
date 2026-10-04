@@ -226,6 +226,19 @@
 }
 .linkBtn:hover { color: #fff; }
 
+/* Grab tabs on the timeline handles. */
+.timelineTab { opacity: 0.7; }
+.timelineTabIn { fill: #34d399; }
+.timelineTabOut { fill: #fbbf24; }
+.timelineTabActive { opacity: 1; }
+
+/* "Move playhead" while armed: one click on the waveform will jump. */
+.seekArmed {
+  color: #f87171;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 /* Bigger touch targets for the phone remote. */
 .mixLarge { gap: 10px; }
 .mixLarge .ghostBtn { min-width: 44px; min-height: 40px; font-size: 18px; }

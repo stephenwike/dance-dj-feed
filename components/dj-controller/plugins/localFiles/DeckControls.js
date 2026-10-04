@@ -86,6 +86,13 @@ function OutputChoice({ outputs, playback }) {
         )}
       </div>
       {outputs.error && <p className={s.error}>{outputs.error}</p>}
+      {!playback.outputDeviceId && (
+        <p className={s.notice}>
+          Playing through the system default output, so other tabs and apps can play through the
+          venue speakers too. Pick the venue&apos;s output here, and set your computer&apos;s default
+          output to something else (e.g. its own speakers, muted).
+        </p>
+      )}
     </>
   );
 }

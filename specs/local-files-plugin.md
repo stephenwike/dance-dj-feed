@@ -121,8 +121,9 @@ Shown in the queue panel on the computer playing the music.
 - **Speakers**: sends audio to a chosen output device (`setSinkId`). Chrome only names devices after a microphone permission prompt; nothing is recorded.
 
 - **Volume** (−12 to +12 dB), for the playing track. It can boost quiet songs as well as cut loud ones. Like tempo, it is stored on the request (`volumeDb`, `lib/dj/volume.js`), so any device can change it and the computer playing the music applies it on its next sync. When a file with a saved tempo/volume starts, the player writes those values to the request, so other devices show the real values.
-- **Timeline** (`TrackTimeline.js`): the playing file's waveform, decoded once per file version at a low sample rate (`decodeWaveform.js`) and cached per DJ in IndexedDB as 600 loudness points (0..255). Drag the green **Start (In)** and amber **Fade (Out)** handles; click elsewhere to jump there (the queue's clock moves too, so remotes follow). Handles snap to the track's start/end and to where the sound starts/ends (dashed lines, detected from the waveform). Regions that won't play are dimmed, and the fade after Out is shaded. Handles stay at least 10s apart; dragging a handle back to the start or end clears it.
-- **Start (In)**: where the track starts. It applies the next time the track plays (this play has already started); the track then fades in over 1.5s, and the queue's clock counts from the In point.
+- **Timeline** (`TrackTimeline.js`): the playing file's waveform, decoded once per file version at a low sample rate (`decodeWaveform.js`, a few seconds after the track starts so it never competes with playback) and cached per DJ in IndexedDB as 600 loudness points (0..255). Drag the green **Start (In)** and amber **Fade (Out)** handles (18px grab area, with tabs at the top). Handles snap to the track's start/end and to where the sound starts/ends (dashed lines, detected from the waveform). Regions that won't play are dimmed, and the fade after Out is shaded. Handles stay at least 10s apart; dragging a handle back to the start or end clears it.
+- **Safe mid-set:** clicking the waveform does nothing; only the handles respond. Jumping the playhead takes two steps: **⇥ Move playhead**, then click where to jump (the queue's clock moves too, so remotes follow). It re-locks after one jump, or after 8s if unused.
+- **Start (In)**: where the track starts. It applies the next time the track plays, and on **Restart** during this play; the track then fades in over 1.5s, and the queue's clock counts from the Start point.
 - **Fade (Out)**: where the fade (or crossfade) to the next track starts. It applies live, when playback next *crosses* the point, so setting it just behind the playhead doesn't fade at once. The fade length is the crossfade setting, or 5s when crossfade is off. At the end of the queue it fades out instead of cutting.
 - **Save to track**: stores volume, In/Out and the current tempo **for that file**, locally per DJ (`trackSettings` in `libraryStore.js`). They apply whenever the file plays; a saved tempo applies unless the request already has one. **Revert** returns to the saved settings. Saving the defaults removes the entry.
 
@@ -152,7 +153,23 @@ Adding a plugin means adding a descriptor to the registry and its id to `SESSION
 
 ---
 
+## Live-Set Safety
+
+Learned from the first live night:
+- **Reload/close guard:** while this computer is playing, closing or reloading the tab asks for confirmation first (`beforeunload`).
+- **Playback robustness** (`LocalPlayer.js`, `Deck.js`):
+  - The `AudioContext` uses `latencyHint: 'playback'` (bigger buffers, fewer glitches under CPU load).
+  - Each song is read fully into memory before it plays (`readIntoMemory`), so a slow or sleeping drive, or a cloud-synced folder fetching on demand, can't stall it mid-song. The next song preloads the same way.
+  - **The audio is in charge.** It only seeks when the DJ moves the queue's clock on purpose: a new track, restart, ±10s, resume, Move playhead (playStartedAt/pausedAt changed without a tempo change). Queue refreshes, tempo and volume changes never move the audio. If the clock drifts more than 1.5s from what's actually playing (checked every 10s), the player corrects the **clock** (PATCH playStartedAt), not the audio.
+- **Other sounds on the venue speakers:** when the player uses "System default" output, the Speakers row warns that other tabs and apps can play through the same speakers.
+
+## Ideas to Review Later
+
+- **Companion desktop app.** A small installed app (e.g. Electron or Tauri) that plays the music, instead of a browser tab. It would avoid browser-specific problems: tab reloads, folder permission prompts after a restart, autoplay rules, other tabs' audio, and Chrome/Edge-only APIs. The open question is synchronisation: the app would follow the same queue in the database the way this player does (the queue is already the source of truth), with the web controller and phone remotes unchanged. Worth weighing against how well the browser fixes above hold up.
+
 ## Known Limitations / Follow-ups
+
+- **Timeline handle hints (planned):** when a handle sits on the "wrong side" of the playhead, say what will happen instead of acting. A Start point ahead of the playhead: "Ahead of the playhead — Restart to jump there." A Fade point behind it: "Already passed — applies next time." Decided rule: setting a handle never moves the live audio; only the transport does.
 
 - Chrome/Edge only (File System Access API).
 - Controls respond after the queue PATCH and refetch (typically well under a second), not instantly.
