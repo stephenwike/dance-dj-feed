@@ -4196,6 +4196,24 @@
   .topBar { gap: 6px; padding: 0 10px; }
 }
 
+/* A phone the host switched to the desktop layout: one tap back. */
+.usePhoneLayout {
+  position: fixed;
+  left: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 90;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(138, 92, 255, 0.5);
+  border-radius: 22px;
+  background: #1a1730;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
 /* Below 768px: stack panels vertically, compact sidebar (phones get the separate phone layout) */
 @media (max-width: 768px) {
   .body { flex-direction: column; }

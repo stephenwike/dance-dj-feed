@@ -1,43 +1,38 @@
-import r from './FloorRemote.module.css';
-import { Countdown, IconRestart, IconSkip, IconPause, IconPlay, IconRewind, IconFastFwd } from './RemoteControl';
-
-function trackTitle(t) {
-  if (t.danceType === 'partner') return t.songName || t.partnerStyle || 'Partner Dance';
-  return t.danceName;
-}
-
-function trackSub(t) {
-  if (t.isSongSwap && t.swapSongName) return `↻ ${t.swapSongName}${t.swapArtist ? ` — ${t.swapArtist}` : ''}`;
-  if (t.danceType === 'partner') return [t.partnerStyle, t.songName && t.artist].filter(Boolean).join(' · ');
-  return t.songName ? `${t.songName}${t.artist ? ` — ${t.artist}` : ''}` : '';
-}
+import r from './LiveTab.module.css';
+import { Countdown, IconRestart, IconSkip, IconPause, IconPlay, IconRewind, IconFastFwd } from '../RemoteControl';
+import { trackTitle, trackSub } from './trackText';
 
 /**
- * The controller for a phone on the dance floor: a full-screen panel with
- * what's playing, big transport buttons, the playback plugin's controls for
- * the playing track (e.g. tempo and volume — `children`), and what's next.
+ * Home tab on a phone — what the DJ needs on the dance floor: what's
+ * playing, big transport buttons, the playback plugin's controls for the
+ * playing track (e.g. tempo and volume — `pluginControls`), quick actions,
+ * and what's next.
  *
- * Every button goes through the queue (onAction), so the computer playing the
- * music follows, exactly as with the desktop controls.
+ * Every button goes through the queue (ctl.handleAction), so the computer
+ * playing the music follows, exactly as with the desktop controls.
  */
-export default function FloorRemote({ session, playing, queue, onAction, onClose, children }) {
+export default function LiveTab({ ctl, pluginControls, onOpenPage, onShowQueue }) {
+  const { liveSession, playing, queue, handleAction: onAction } = ctl;
   const track = playing[0] ?? null;
   const isPaused = !!track?.pausedAt;
   const upNext = queue.slice(0, 3);
 
-  return (
-    <div className={r.overlay} role="dialog" aria-modal="true" aria-label="Floor remote">
-      <header className={r.header}>
-        <div className={r.headerText}>
-          <span className={r.title}>Floor Remote</span>
-          {session && <span className={r.session}>{session.name}</span>}
-        </div>
-        <button className={r.fullController} onClick={onClose}>☰ Full controller</button>
-      </header>
+  if (!liveSession) {
+    return (
+      <div className={r.idle}>
+        <p className={r.empty}>
+          {ctl.workingSession?.status === 'draft'
+            ? 'This session is a draft. Start it from the session menu at the top to go live.'
+            : 'No session is live. Start one to take requests and play music.'}
+        </p>
+        <a className={r.start} href="/start">▶ Start an event</a>
+      </div>
+    );
+  }
 
-      {!session ? (
-        <p className={r.empty}>Start a session to use the remote.</p>
-      ) : !track ? (
+  return (
+    <div className={r.live}>
+      {!track ? (
         <div className={r.idle}>
           <p className={r.empty}>Nothing is playing.</p>
           {queue.length > 0 && (
@@ -69,11 +64,28 @@ export default function FloorRemote({ session, playing, queue, onAction, onClose
             <button className={r.btn} onClick={() => onAction(track._id, 'advance')} aria-label="Skip to next"><IconSkip /></button>
           </section>
 
-          {children && <section className={r.plugin}>{children}</section>}
+          {pluginControls && <section className={r.plugin}>{pluginControls}</section>}
         </>
       )}
 
-      {session && upNext.length > 0 && (
+      <section className={r.quick}>
+        <button className={r.quickBtn} onClick={() => onOpenPage('announce')}>
+          <span className={r.quickIcon}>📣</span>Announce
+        </button>
+        <button className={r.quickBtn} onClick={() => onOpenPage('add')}>
+          <span className={r.quickIcon}>➕</span>Add to queue
+        </button>
+        <button
+          className={`${r.quickBtn} ${ctl.requestsEnabled ? '' : r.quickOff}`}
+          onClick={ctl.toggleRequestsEnabled}
+          aria-pressed={!ctl.requestsEnabled}
+        >
+          <span className={r.quickIcon}>{ctl.requestsEnabled ? '📥' : '⛔'}</span>
+          {ctl.requestsEnabled ? 'Requests on' : 'Requests paused'}
+        </button>
+      </section>
+
+      {upNext.length > 0 && (
         <section className={r.next}>
           <span className={r.nextHeading}>Up next</span>
           {upNext.map((q, i) => (
@@ -82,6 +94,7 @@ export default function FloorRemote({ session, playing, queue, onAction, onClose
               <span className={r.nextName}>{trackTitle(q)}</span>
             </div>
           ))}
+          <button className={r.nextAll} onClick={onShowQueue}>See the whole queue ({queue.length}) ›</button>
         </section>
       )}
     </div>
