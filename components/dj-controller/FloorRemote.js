@@ -32,7 +32,7 @@ export default function FloorRemote({ session, playing, queue, onAction, onClose
           <span className={r.title}>Floor Remote</span>
           {session && <span className={r.session}>{session.name}</span>}
         </div>
-        <button className={r.close} onClick={onClose} aria-label="Close the floor remote (show the full controller)">✕</button>
+        <button className={r.fullController} onClick={onClose}>☰ Full controller</button>
       </header>
 
       {!session ? (

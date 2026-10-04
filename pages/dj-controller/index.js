@@ -584,6 +584,13 @@ function Controller() {
         </div>
       </div>
 
+      {/* Phones: always one tap back to the Floor Remote. */}
+      {!remoteOpen && (
+        <button className={styles.remoteFab} onClick={() => setRemoteOpen(true)}>
+          🎛️ Floor Remote
+        </button>
+      )}
+
       {remoteOpen && (
         <FloorRemote
           session={liveSession}

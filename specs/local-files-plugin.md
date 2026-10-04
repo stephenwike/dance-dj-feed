@@ -106,7 +106,7 @@ On phone-sized screens (≤ 640px) the controller opens on the **Floor Remote** 
 - the plugin's `remoteControls` slot: for Local Files, Tempo and Volume (`RemoteMix.js`)
 - the next three tracks
 
-✕ closes it to reach the full controller, where narrow screens show one column at a time. The 🎛️ **Remote** and 🎵 **Queue** buttons in the sidebar strip switch between them.
+**☰ Full controller** (top right) switches to the full controller, where narrow screens show one column at a time. **🎵 Queue** and **🎛️ Remote** in the sidebar strip (labelled on phones) switch between views, and a floating **🎛️ Floor Remote** button is always one tap away.
 
 Fades, In/Out and Save to track stay on the computer playing the music: they act on its audio engine and its local storage.
 
