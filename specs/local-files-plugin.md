@@ -165,15 +165,9 @@ Learned from the first live night:
   - **The audio is in charge.** It only seeks when the DJ moves the queue's clock on purpose: a new track, restart, ±10s, resume, Move playhead (playStartedAt/pausedAt changed without a tempo change). Queue refreshes, tempo and volume changes never move the audio. If the clock drifts more than 1.5s from what's actually playing (checked every 10s), the player corrects the **clock** (PATCH playStartedAt), not the audio.
 - **Other sounds on the venue speakers:** when the player uses "System default" output, the Speakers row warns that other tabs and apps can play through the same speakers.
 
-## Ideas to Review Later
+## Known Limitations
 
-- **Companion desktop app.** A small installed app (e.g. Electron or Tauri) that plays the music, instead of a browser tab. It would avoid browser-specific problems: tab reloads, folder permission prompts after a restart, autoplay rules, other tabs' audio, and Chrome/Edge-only APIs. The open question is synchronisation: the app would follow the same queue in the database the way this player does (the queue is already the source of truth), with the web controller and phone remotes unchanged. Worth weighing against how well the browser fixes above hold up.
-
-- **Music under comments.** Instead of silence while an in-queue comment holds the floor, play something: a built-in "elevator music" loop, or a track the DJ picks (per comment, or a default in settings). Should fade in and out like any other track and stay quieter than the set.
-
-## Known Limitations / Follow-ups
-
-- **Timeline handle hints (planned):** when a handle sits on the "wrong side" of the playhead, say what will happen instead of acting. A Start point ahead of the playhead: "Ahead of the playhead — Restart to jump there." A Fade point behind it: "Already passed — applies next time." Decided rule: setting a handle never moves the live audio; only the transport does.
+Planned work and ideas (timeline handle hints, music under comments, a companion desktop app) are in [IMPROVEMENTS.md](../IMPROVEMENTS.md).
 
 - Chrome/Edge only (File System Access API).
 - Controls respond after the queue PATCH and refetch (typically well under a second), not instantly.

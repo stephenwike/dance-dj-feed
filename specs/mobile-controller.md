@@ -37,11 +37,6 @@ Sub-pages reuse the desktop panels full-screen, so behaviour is identical on bot
 - **Feed display** keeps template and screen-shape switching. The visual Feed Editor is a computer task, and the page says so.
 - **The plugin overlay** ("use Chrome or Edge") is not shown on phones: a phone is a remote by nature.
 
-## Phase 2 — Local Files from the phone (planned)
+## Not yet on the phone
 
-The music folder lives in the computer's browser, so a phone can't yet:
-- see which file each queued request will play, or fix a missing one (Find file / Accept)
-- trigger **Fade → Next** or **Fade out**
-- edit the Start/Fade points, or **Save to track**
-
-These need the playing computer and the phone to share that information through the server (e.g. the computer publishing match status per request, and a small command channel for fades). Tempo, volume and all transport already work from the phone.
+Local Files file matching, Fade → Next / Fade out and Start/Fade point editing still need the playing computer. The plan is in [IMPROVEMENTS.md](../IMPROVEMENTS.md).
