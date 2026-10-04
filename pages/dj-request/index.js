@@ -163,7 +163,7 @@ export default function DJRequestPage({
     }
   }
 
-  const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
+  const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false, dedupingInterval: 60_000 });
 
   // Broadcast (urgent) messages the DJ sent to all users
   const broadcastUrl = sessionId ? `/api/dj/messages?sessionId=${sessionId}&audience=attendees` : null;

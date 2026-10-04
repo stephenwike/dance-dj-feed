@@ -30,7 +30,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [recentlyAdded, setRecentlyAdded] = useState(null);
 
   // Catalog for line dance suggestions
-  const { data: catalogDances = [] } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
+  const { data: catalogDances = [] } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false, dedupingInterval: 60_000 });
 
   // Each line-dance field searches every field of the dance catalog — its own
   // first (see searchDancesAnyField) — and only falls back to catalog songs
