@@ -1,5 +1,5 @@
 'use strict';
-const { buildPendingGroups } = require('../lib/client/dj/pendingGroups');
+const { buildPendingGroups, effectivePendingFilter, filterPendingGroups } = require('../lib/client/dj/pendingGroups');
 
 const makeReq = (overrides) => ({
   _id: 'r' + Math.random(),
@@ -195,5 +195,35 @@ describe('buildPendingGroups — already-queued dance filtering', () => {
 
     expect(groups[0].danceName).toBe('Electric Slide'); // higher score first
     expect(groups[1].danceName).toBe('Cupid Shuffle');
+  });
+});
+
+describe('effectivePendingFilter', () => {
+  const line = { danceType: null };
+  const partner = { danceType: 'partner' };
+
+  test('the filter applies while both kinds are pending', () => {
+    expect(effectivePendingFilter([line, partner], 'partner')).toEqual({ showFilter: true, filter: 'partner' });
+  });
+
+  test('falls back to all when the last partner request is gone (the blank-list bug)', () => {
+    expect(effectivePendingFilter([line, line], 'partner')).toEqual({ showFilter: false, filter: 'all' });
+  });
+
+  test('falls back to all when only partner requests are left', () => {
+    expect(effectivePendingFilter([partner], 'line')).toEqual({ showFilter: false, filter: 'all' });
+  });
+
+  test('nothing pending: no filter', () => {
+    expect(effectivePendingFilter([], 'line')).toEqual({ showFilter: false, filter: 'all' });
+  });
+});
+
+describe('filterPendingGroups', () => {
+  const groups = [{ id: 1, danceType: null }, { id: 2, danceType: 'partner' }];
+  test('filters by kind', () => {
+    expect(filterPendingGroups(groups, 'line').map(g => g.id)).toEqual([1]);
+    expect(filterPendingGroups(groups, 'partner').map(g => g.id)).toEqual([2]);
+    expect(filterPendingGroups(groups, 'all')).toHaveLength(2);
   });
 });

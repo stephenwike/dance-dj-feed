@@ -6,6 +6,7 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import styles from './dj-controller.module.css';
 import { useRequestGroups } from '../../lib/client/dj/hooks/useRequestGroups';
+import { effectivePendingFilter, filterPendingGroups } from '../../lib/client/dj/pendingGroups';
 import { useQueueReorder } from '../../lib/client/dj/hooks/useQueueReorder';
 import { useStandardAutoAdvance } from '../../lib/client/dj/hooks/useStandardAutoAdvance';
 import { useSessionManager } from '../../lib/client/dj/hooks/useSessionManager';
@@ -250,12 +251,12 @@ function Controller() {
     mutateSessions();
   }
 
-  const hasPartnerGroups = danceGroups.some(g => g.danceType === 'partner');
+  // A filter left on e.g. 'partner' after the last partner request was queued
+  // falls back to 'all' (see effectivePendingFilter).
+  const { showFilter, filter: activeFilter } = effectivePendingFilter(danceGroups, pendingFilter);
 
   const filteredDanceGroups = useMemo(() => {
-    let groups = danceGroups;
-    if (pendingFilter === 'line') groups = groups.filter(g => g.danceType !== 'partner');
-    else if (pendingFilter === 'partner') groups = groups.filter(g => g.danceType === 'partner');
+    let groups = filterPendingGroups(danceGroups, activeFilter);
     if (pendingSort === 'alpha') groups = [...groups].sort((a, b) => {
       const nameOf = g => g.danceType === 'partner'
         ? (g.songName || g.partnerStyle || g.danceName || '')
@@ -263,7 +264,7 @@ function Controller() {
       return nameOf(a).localeCompare(nameOf(b));
     });
     return groups;
-  }, [danceGroups, pendingFilter, pendingSort]);
+  }, [danceGroups, activeFilter, pendingSort]);
 
   const pendingCount = danceGroups.length;
 
@@ -344,14 +345,14 @@ function Controller() {
                 <div className={styles.panelBody}>
                   {pendingTab === 'dances' && danceGroups.length > 0 && (
                     <div className={styles.pendingControls}>
-                      {hasPartnerGroups && (
+                      {showFilter && (
                         <div className={styles.filterGroup}>
                           <span className={styles.controlLabel}>Filter</span>
                           <div className={styles.filterChips}>
                             {['all', 'line', 'partner'].map(f => (
                               <button
                                 key={f}
-                                className={`${styles.filterChip} ${pendingFilter === f ? styles.filterChipActive : ''}`}
+                                className={`${styles.filterChip} ${activeFilter === f ? styles.filterChipActive : ''}`}
                                 onClick={() => setPendingFilter(f)}
                               >
                                 {f === 'all' ? 'All' : f === 'line' ? 'Line' : 'Partner'}
