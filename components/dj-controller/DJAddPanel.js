@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { PARTNER_STYLES, diffColor } from './utils';
 import { fetcher } from '../../lib/client/fetcher';
-import { searchDances } from '../../lib/client/dj/danceSearch';
+import { searchDancesAnyField } from '../../lib/client/dj/danceSearch';
 import SuggestField from './SuggestField';
 
 export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
@@ -32,12 +32,13 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   // Catalog for line dance suggestions
   const { data: catalogDances = [] } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false });
 
-  // Each line-dance field searches the dance catalog by that field; once a
-  // dance or song is picked, suggestions stop.
+  // Each line-dance field searches every field of the dance catalog — its own
+  // first (see searchDancesAnyField) — and only falls back to catalog songs
+  // when no dance matches at all. Once a dance or song is picked, suggestions stop.
   const picked = !!(catalogSelected || songTrack);
-  const nameMatches = useMemo(() => (picked ? [] : searchDances(catalogDances, 'danceName', lineName)), [picked, catalogDances, lineName]);
-  const songMatches = useMemo(() => (picked ? [] : searchDances(catalogDances, 'songName', lineSong)), [picked, catalogDances, lineSong]);
-  const artistMatches = useMemo(() => (picked ? [] : searchDances(catalogDances, 'artist', lineArtist)), [picked, catalogDances, lineArtist]);
+  const nameMatches = useMemo(() => (picked ? [] : searchDancesAnyField(catalogDances, 'danceName', lineName)), [picked, catalogDances, lineName]);
+  const songMatches = useMemo(() => (picked ? [] : searchDancesAnyField(catalogDances, 'songName', lineSong)), [picked, catalogDances, lineSong]);
+  const artistMatches = useMemo(() => (picked ? [] : searchDancesAnyField(catalogDances, 'artist', lineArtist)), [picked, catalogDances, lineArtist]);
 
   function durationFrom(ms) {
     if (ms) setDurationMin(Math.round(ms / 60000) || DEFAULT_DURATION_MIN);
@@ -199,6 +200,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
           <div className={styles.djAddPartnerForm}>
             <SuggestField
               label="Dance Name"
+              field="danceName"
               placeholder="Search dances or songs, or type a name…"
               value={lineName}
               onChange={v => { setLineName(v); setCatalogSelected(null); }}
@@ -226,6 +228,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
               label="Song"
               optional
               placeholder="Song name"
+              field="songName"
               value={lineSong}
               onChange={v => { setLineSong(v); setSongTrack(null); }}
               danceMatches={songMatches}
@@ -236,6 +239,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
 
             <SuggestField
               label="Artist"
+              field="artist"
               optional
               placeholder="Artist name"
               value={lineArtist}

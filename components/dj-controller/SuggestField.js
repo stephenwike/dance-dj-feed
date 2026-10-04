@@ -3,17 +3,23 @@ import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor } from './utils';
 import { useCatalogSearch, describeTrack } from '../../lib/client/catalog/useCatalogSearch';
 
+// Shown when a dance matched on a different field than the one being typed in.
+const MATCHED_ON_LABEL = { danceName: 'dance name match', songName: 'song match', artist: 'artist match' };
+
 /**
- * An Add to Queue text field with suggestions: catalog dances matching this
- * field first, and — only when none match — songs from the music catalog
- * (which itself falls back to MusicBrainz).
+ * An Add to Queue text field with suggestions: catalog dances first, and —
+ * only when none match — songs from the music catalog (which itself falls
+ * back to MusicBrainz).
  *
  * `danceMatches` is the parent's search of the dance catalog for this field's
- * text; pass [] for fields with no dance search (e.g. partner songs).
+ * text ([{ dance, matchedOn }], see searchDancesAnyField); `field` is which
+ * dance field this box is for. Pass [] for boxes with no dance search
+ * (e.g. partner songs).
  */
 export default function SuggestField({
-  label, optional = false, value, onChange, placeholder,
+  label, optional = false, value, onChange, placeholder, field,
   danceMatches = [], onPickDance, onPickSong, suggestionsEnabled = true,
+  labelClassName = styles.djAddLabel, inputClassName = styles.djAddSearch, autoFocus = false,
 }) {
   const [focused, setFocused] = useState(false);
   const open = focused && suggestionsEnabled;
@@ -26,13 +32,14 @@ export default function SuggestField({
 
   return (
     <>
-      <label className={styles.djAddLabel}>
+      <label className={labelClassName}>
         {label} {optional && <span className={styles.djAddOptional}>(optional)</span>}
       </label>
       <div className={styles.djAddFieldWrap}>
         <input
-          className={styles.djAddSearch}
+          className={inputClassName}
           placeholder={placeholder}
+          autoFocus={autoFocus}
           value={value}
           onChange={e => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
@@ -42,12 +49,13 @@ export default function SuggestField({
         />
         {showDances && (
           <div className={styles.djAddSuggestions}>
-            {danceMatches.map(d => (
+            {danceMatches.map(({ dance: d, matchedOn }) => (
               <button key={d.id} className={styles.djAddSuggestion} onMouseDown={keepFocus} onClick={() => { setFocused(false); onPickDance(d); }}>
                 <span className={styles.djAddSuggName}>{d.danceName}</span>
                 <span className={styles.djAddSuggMeta}>
                   {[d.songName, d.artist].filter(Boolean).join(' — ')}
                   {d.difficulty && <span style={{ color: diffColor(d.difficulty) }}> · {d.difficulty}</span>}
+                  {matchedOn !== field && <span> · {MATCHED_ON_LABEL[matchedOn]}</span>}
                 </span>
               </button>
             ))}

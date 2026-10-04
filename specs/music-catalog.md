@@ -69,7 +69,8 @@ All of these use `useCatalogSearch` (`lib/client/catalog/`), so they share the c
 | Requester, **line dance** field | Dances first. Only when no dance in the whole catalog matches (not just ones available now), songs are offered. Picking one uses the song title as the dance name. |
 | Requester, **song swap** | Song search. The swap's length and ISRC come from the picked song, never the dance's usual song. |
 | Requester, **partner** Song field | Song search. |
-| Controller Add to Queue, **Dance Name / Song / Artist** | Each searches the dance catalog by that field (`danceSearch.js`). Only when none match are catalog songs offered. Picking a song fills Song and Artist, and the Dance Name too if it's empty (always, when picked from the Dance Name field). |
+| Controller Add to Queue, **Dance Name / Song / Artist** | Each box searches **every** field of the dance catalog, its own first. Dance Name lists dance-name matches, then dances whose song matches, then whose artist matches (`searchDancesAnyField`). A suggestion matched on another field says so ("song match"). Catalog songs only appear when no dance matches at all. Picking a song fills Song and Artist, and the Dance Name too if it's empty (always, when picked from the Dance Name box). |
+| Controller **Edit request**: song swap, and partner Song/Artist | Song search in both boxes. Picking a song fills both and links the request to that recording: the edit endpoint resolves `catalogTrackId` to its ISRCs and length (`catalogTrackFields`). Editing the text unlinks it. |
 | Controller Add to Queue, **partner** Song field | Song search, as in the requester app. |
 
 Typing without picking still works everywhere; the text is sent as a free-text song.

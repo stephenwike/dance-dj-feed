@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor, DIFFICULTIES, PARTNER_STYLES } from './utils';
+import SuggestField from './SuggestField';
 
 export default function CustomEditModal({ group, onClose, onSave }) {
   const firstReq = group.requests[0];
@@ -25,6 +26,11 @@ export default function CustomEditModal({ group, onClose, onSave }) {
   const [isSongSwap, setIsSongSwap] = useState(firstReq?.isSongSwap || false);
   const [swapSongName, setSwapSongName] = useState(firstReq?.swapSongName || '');
   const [swapArtist, setSwapArtist] = useState(firstReq?.swapArtist || '');
+  // The music-catalog song picked for the swap / partner song, if any. Kept
+  // from the request until the DJ edits the text; picking links the exact
+  // recording (ISRC, length) for the local-files player.
+  const [swapTrackId, setSwapTrackId] = useState(firstReq?.isSongSwap ? firstReq?.catalogTrackId ?? null : null);
+  const [partnerTrackId, setPartnerTrackId] = useState(firstReq?.danceType === 'partner' ? firstReq?.catalogTrackId ?? null : null);
 
   useEffect(() => {
     setDbLoading(true);
@@ -56,6 +62,19 @@ export default function CustomEditModal({ group, onClose, onSave }) {
     setIsSongSwap(false);
     setSwapSongName('');
     setSwapArtist('');
+    setSwapTrackId(null);
+  }
+
+  function pickSwapSong(t) {
+    setSwapSongName(t.title);
+    setSwapArtist(t.artist);
+    setSwapTrackId(t.id);
+  }
+
+  function pickPartnerSong(t) {
+    setPartnerSong(t.title);
+    setPartnerArtist(t.artist);
+    setPartnerTrackId(t.id);
   }
 
   async function handleSave() {
@@ -91,6 +110,15 @@ export default function CustomEditModal({ group, onClose, onSave }) {
     updates.isSongSwap = isLineDance && isSongSwap;
     updates.swapSongName = (isLineDance && isSongSwap) ? swapSongName.trim() || null : null;
     updates.swapArtist   = (isLineDance && isSongSwap) ? swapArtist.trim()   || null : null;
+
+    // Link (or unlink) the catalog song the request plays. A line dance only
+    // has one of its own when it's a swap; the dance's usual song comes from
+    // the dance catalog.
+    if (editType !== 'message' || selectedDb) {
+      updates.catalogTrackId = isLineDance
+        ? (isSongSwap ? swapTrackId : null)
+        : (editType === 'partner' ? partnerTrackId : null);
+    }
 
     await onSave(group.requests, updates);
     setSaving(false);
@@ -132,14 +160,25 @@ export default function CustomEditModal({ group, onClose, onSave }) {
               <datalist id="partner-styles">
                 {PARTNER_STYLES.map(s => <option key={s} value={s} />)}
               </datalist>
-              <label className={styles.modalLabel}>Song name</label>
-              <input className={styles.customEditInput} value={partnerSong}
-                onChange={e => setPartnerSong(e.target.value)}
-                placeholder="e.g. Dust on the Bottle…" />
-              <label className={styles.modalLabel}>Artist (optional)</label>
-              <input className={styles.customEditInput} value={partnerArtist}
-                onChange={e => setPartnerArtist(e.target.value)}
-                placeholder="e.g. David Lee Murphy…" />
+              <SuggestField
+                label="Song name"
+                value={partnerSong}
+                onChange={v => { setPartnerSong(v); setPartnerTrackId(null); }}
+                placeholder="e.g. Dust on the Bottle…"
+                onPickSong={pickPartnerSong}
+                labelClassName={styles.modalLabel}
+                inputClassName={styles.customEditInput}
+              />
+              <SuggestField
+                label="Artist"
+                optional
+                value={partnerArtist}
+                onChange={v => { setPartnerArtist(v); setPartnerTrackId(null); }}
+                placeholder="e.g. David Lee Murphy…"
+                onPickSong={pickPartnerSong}
+                labelClassName={styles.modalLabel}
+                inputClassName={styles.customEditInput}
+              />
             </>
           )}
 
@@ -220,20 +259,25 @@ export default function CustomEditModal({ group, onClose, onSave }) {
                     <span className={styles.swapSectionTitle}>🎵 Song Swap</span>
                     <button type="button" className={styles.swapClearBtn} onClick={clearSwap} title="Remove song swap">✕</button>
                   </div>
-                  <label className={styles.modalLabel}>Song to play instead</label>
-                  <input
-                    className={styles.customEditInput}
+                  <SuggestField
+                    label="Song to play instead"
                     value={swapSongName}
-                    onChange={e => setSwapSongName(e.target.value)}
+                    onChange={v => { setSwapSongName(v); setSwapTrackId(null); }}
                     placeholder="Song name…"
+                    onPickSong={pickSwapSong}
+                    labelClassName={styles.modalLabel}
+                    inputClassName={styles.customEditInput}
                     autoFocus
                   />
-                  <label className={styles.modalLabel}>Artist (optional)</label>
-                  <input
-                    className={styles.customEditInput}
+                  <SuggestField
+                    label="Artist"
+                    optional
                     value={swapArtist}
-                    onChange={e => setSwapArtist(e.target.value)}
+                    onChange={v => { setSwapArtist(v); setSwapTrackId(null); }}
                     placeholder="Artist name…"
+                    onPickSong={pickSwapSong}
+                    labelClassName={styles.modalLabel}
+                    inputClassName={styles.customEditInput}
                   />
                 </div>
               )}

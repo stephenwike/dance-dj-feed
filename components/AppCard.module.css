@@ -11,6 +11,10 @@
 .card {
   width: 100%;
   max-width: 540px;
+  /* As a flex item the card would otherwise refuse to be narrower than its
+     widest unbreakable content (e.g. a long session name), overflowing the
+     screen; this lets long text truncate inside it instead. */
+  min-width: 0;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
@@ -52,3 +56,9 @@
   transition: color 0.13s;
 }
 .navBtn:hover { color: rgba(255,255,255,0.95); }
+
+/* Phones: less side padding, more room for content. */
+@media (max-width: 480px) {
+  .page { padding: 12px 10px; }
+  .card { padding: 16px 16px 28px; }
+}

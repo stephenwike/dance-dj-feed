@@ -1,5 +1,5 @@
 'use strict';
-const { createRequest, listRequests, toLocalTrackKey, toPlayLengthMs } = require('../lib/server/dj/requestLogic');
+const { createRequest, listRequests, toLocalTrackKey, toPlayLengthMs, catalogTrackFields } = require('../lib/server/dj/requestLogic');
 
 const SESSION = { _id: 'sess1', status: 'active', ownerId: 'dj1' };
 
@@ -350,5 +350,21 @@ describe("play length from the DJ's player", () => {
     expect(toPlayLengthMs(2 * 60 * 60 * 1000)).toBeNull();
     expect(toPlayLengthMs(null)).toBeNull();
     expect(toPlayLengthMs('x')).toBeNull();
+  });
+});
+
+describe('catalogTrackFields', () => {
+  const tracks = [{ _id: 'musicbrainz:mb1', title: 'Achy Breaky Heart', artist: 'Billy Ray Cyrus', durationMs: 203000, isrcs: ['USMR19200001'] }];
+
+  test('links the request to the song, with its ISRCs and length', async () => {
+    const fields = await catalogTrackFields(makeMockClient({ tracks }), 'musicbrainz:mb1');
+    expect(fields).toEqual({ catalogTrackId: 'musicbrainz:mb1', isrcs: ['USMR19200001'], duration_ms: 203000 });
+  });
+
+  test('unlinks for null, unknown or malformed ids', async () => {
+    const client = makeMockClient({ tracks });
+    for (const id of [null, 'musicbrainz:nope', { $ne: null }]) {
+      expect(await catalogTrackFields(client, id)).toEqual({ catalogTrackId: null, isrcs: [] });
+    }
   });
 });

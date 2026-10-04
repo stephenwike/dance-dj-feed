@@ -92,6 +92,8 @@ When a song ends, the player re-reads the queue, checks the session is still act
 
 If the browser blocks autoplay (for example after a reload mid-song), the panel shows **Start audio**.
 
+In-queue comments (`danceType: 'message'`) never match a file, whatever their text says. When a comment reaches the playing slot, the player holds silence for the comment's duration (3 minutes if none was set), then moves on — the same timed break comments get without the plugin.
+
 ### Multiple sessions
 
 The player belongs to the session whose track it holds. Switching the controller to another session leaves that music playing, and its queue keeps advancing. A second Local Files session waits until the player is idle, or until the DJ clicks **Play this session instead**. Closing the owning session stops the music.
@@ -166,6 +168,8 @@ Learned from the first live night:
 ## Ideas to Review Later
 
 - **Companion desktop app.** A small installed app (e.g. Electron or Tauri) that plays the music, instead of a browser tab. It would avoid browser-specific problems: tab reloads, folder permission prompts after a restart, autoplay rules, other tabs' audio, and Chrome/Edge-only APIs. The open question is synchronisation: the app would follow the same queue in the database the way this player does (the queue is already the source of truth), with the web controller and phone remotes unchanged. Worth weighing against how well the browser fixes above hold up.
+
+- **Music under comments.** Instead of silence while an in-queue comment holds the floor, play something: a built-in "elevator music" loop, or a track the DJ picks (per comment, or a default in settings). Should fade in and out like any other track and stay quieter than the set.
 
 ## Known Limitations / Follow-ups
 

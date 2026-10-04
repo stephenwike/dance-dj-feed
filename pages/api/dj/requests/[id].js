@@ -1,5 +1,5 @@
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
-import { markSiblingsPlayed, buildSiblingDanceMatch, toLocalTrackKey, toPlayLengthMs } from '../../../../lib/server/dj/requestLogic';
+import { markSiblingsPlayed, buildSiblingDanceMatch, toLocalTrackKey, toPlayLengthMs, catalogTrackFields } from '../../../../lib/server/dj/requestLogic';
 import { ATTENDEE_REMOVABLE_STATUSES } from '../../../../lib/server/dj/requestAccess';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
@@ -89,7 +89,15 @@ export default async function handler(req, res) {
   if (!isOwner) return res.status(userId ? 403 : 401).json({ error: 'Forbidden' });
 
   const body = req.body ?? {};
-  await col.updateOne({ _id: objId }, { $set: buildUpdate(body) });
+  const set = buildUpdate(body);
+  // Picking a song from the music catalog (e.g. a swap song while editing)
+  // links the request to that exact recording; an explicit duration wins.
+  if ('catalogTrackId' in body) {
+    const linked = await catalogTrackFields(client, body.catalogTrackId);
+    if ('duration_ms' in body) delete linked.duration_ms;
+    Object.assign(set, linked);
+  }
+  await col.updateOne({ _id: objId }, { $set: set });
 
   if (body.status === 'played') {
     if (thisReq.danceType === 'partner') {
