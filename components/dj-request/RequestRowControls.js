@@ -1,11 +1,18 @@
 import styles from '../../pages/dj-request/dj-request.module.css';
 import BeatBooster from '../BeatBooster';
+import { Plus, Check } from 'lucide-react';
 import { beatsFromCents } from '../../lib/beats/constants';
 
 /**
- * Right-hand controls on a request row: either "+" to add your request, or —
- * when you already requested it — the Beats boost button, the requester count
- * and "−" to withdraw.
+ * Right-hand controls on a request row: one pill, with — on your own
+ * request — the Beats coin underneath.
+ *   "+ 1"  someone else's request: tap to add yours (the number is how many
+ *          people want it)
+ *   "✓ 2"  you're in: tap to withdraw (asks first)
+ *   🪙 20  your tip — or "Tip" before you've tipped; opens the booster (or
+ *          Get Beats with an empty balance)
+ * The block has a fixed size — the coin's space is kept even on rows without
+ * it — so every row lines up and the text beside it ends in one place.
  */
 export function RequestRowActions({
   myRequest, count, canTip, beatBalance, boosterOpen,
@@ -14,8 +21,16 @@ export function RequestRowActions({
   if (!myRequest) {
     return (
       <div className={styles.tabRowActions}>
-        <span className={styles.reqCount}>{count}</span>
-        <button className={styles.plusBtn} onClick={onAdd} disabled={addDisabled} title={addTitle}>+</button>
+        <button
+          className={`${styles.requestPill} ${styles.requestPillJoin}`}
+          onClick={onAdd}
+          disabled={addDisabled}
+          title={addTitle}
+          aria-label={`${addTitle} (${count} requested)`}
+        >
+          <Plus size={14} strokeWidth={3} aria-hidden="true" /><span>{count}</span>
+        </button>
+        <span className={styles.tipSlot} aria-hidden="true" />
       </div>
     );
   }
@@ -24,19 +39,25 @@ export function RequestRowActions({
   const hasTip = myBeats > 0;
   return (
     <div className={styles.tabRowActions}>
+      <button
+        className={`${styles.requestPill} ${styles.requestPillMine}`}
+        onClick={onRemove}
+        title="You requested this — tap to withdraw"
+        aria-label={`You requested this (${count} requested). Withdraw your request`}
+      >
+        <Check size={14} strokeWidth={3} aria-hidden="true" /><span>{count}</span>
+      </button>
+      {!canTip && <span className={styles.tipSlot} aria-hidden="true" />}
       {canTip && (
-        <div className={`${styles.splitBoostWrap} ${hasTip ? styles.splitBoostWrapTipped : ''} ${boosterOpen ? styles.splitBoostWrapOpen : ''}`}>
-          <button
-            className={`${styles.splitBtnLeft} ${hasTip ? styles.splitBtnLeftTipped : ''}`}
-            onClick={beatBalance === 0 ? onGetBeats : onToggleBooster}
-            title={beatBalance === 0 ? 'Get Beats' : 'Boost options'}
-          >
-            <img src="/beats/coin_front.png" className={styles.coinIcon} alt="" aria-hidden="true" />{hasTip ? myBeats : ''}
-          </button>
-        </div>
+        <button
+          className={`${styles.tipCoin} ${hasTip ? styles.tipCoinTipped : ''} ${boosterOpen ? styles.tipCoinOpen : ''}`}
+          onClick={beatBalance === 0 ? onGetBeats : onToggleBooster}
+          title={beatBalance === 0 ? 'Get Beats' : 'Tip with Beats to boost your request'}
+        >
+          <img src="/beats/coin_front.png" alt="" aria-hidden="true" />
+          <span>{hasTip ? myBeats : 'Tip'}</span>
+        </button>
       )}
-      <span className={styles.reqCount}>{count}</span>
-      <button className={styles.minusBtn} onClick={onRemove} title="Remove your request">−</button>
     </div>
   );
 }

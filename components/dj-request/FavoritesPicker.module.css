@@ -1,0 +1,299 @@
+.picker {
+  margin-top: 10px;
+  border: 1px solid #f1e8ff;
+  border-radius: 12px;
+  background: #fcfaff;
+  overflow: hidden;
+}
+
+.head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.headHeart { color: #e11d48; flex-shrink: 0; }
+.headTitle { flex: 1; font-size: 0.85rem; font-weight: 700; color: #111827; }
+.headCount {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #6d28d9;
+  background: #ede9fe;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.chevron { color: #9ca3af; transition: transform 0.15s; }
+.chevronOpen { transform: rotate(180deg); }
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 12px 8px;
+}
+
+/* Search inside a long favorites list */
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 10px;
+  height: 34px;
+  border: 1px solid #e9e3fb;
+  border-radius: 9px;
+  background: #fff;
+  color: #9ca3af;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: #111827;
+}
+.search:focus-within { border-color: #c4b5fd; }
+.selectAll {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #7c3aed;
+  cursor: pointer;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A row: the tickable dance, then its remove button */
+.item {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #f3eefc;
+}
+.item > .remove { margin-right: 8px; }
+
+.row {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row:hover:not(:disabled) { background: #f5f0ff; }
+.rowPicked { background: #f3edff; }
+.rowDone { cursor: default; }
+.rowDone .title { color: #9ca3af; }
+
+/* A tick box; done rows keep the space so titles line up. */
+.box {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  border: 1.5px solid #c4b5fd;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.rowDone .box { border-color: transparent; background: none; }
+.boxOn { background: #8A5CFF; border-color: #8A5CFF; }
+
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.diff { margin-left: 6px; font-size: 0.68rem; font-weight: 700; }
+.meta {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status_join { color: #7c3aed; font-weight: 600; }
+.status_mine { color: #16a34a; font-weight: 600; }
+.status_playing { color: #16a34a; font-weight: 600; }
+.status_played { color: #9ca3af; }
+
+/* ‹ 9–16 of 312 › */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px 0;
+  border-top: 1px solid #f3eefc;
+}
+.pageBtn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e9e3fb;
+  border-radius: 9px;
+  background: #fff;
+  color: #6d28d9;
+  cursor: pointer;
+}
+.pageBtn:disabled { color: #d1d5db; cursor: default; }
+.pageInfo { font-size: 0.76rem; font-weight: 600; color: #6b7280; font-variant-numeric: tabular-nums; }
+
+/* Closed: one favorite suggested at random */
+.suggest {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 12px;
+}
+.pair { display: flex; align-items: center; flex-shrink: 0; }
+.suggestText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.suggestLead { font-size: 0.7rem; font-weight: 600; color: #8b7fb8; text-transform: uppercase; letter-spacing: 0.04em; }
+.shuffle {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e9e3fb;
+  border-radius: 9px;
+  background: #fff;
+  color: #6d28d9;
+  cursor: pointer;
+}
+.suggestSend {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: #8A5CFF;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.suggestSend:hover:not(:disabled) { background: #7c3aed; }
+.suggestSend:disabled { opacity: 0.6; }
+
+.allDone {
+  margin: 0;
+  padding: 2px 12px 12px;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.send {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 8px 12px 12px;
+  min-height: 42px;
+  border: none;
+  border-radius: 10px;
+  background: #8A5CFF;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.send:hover:not(:disabled) { background: #7c3aed; }
+.send:disabled { background: #e9e3fb; color: #8b7fb8; cursor: default; }
+
+/* Signed out: an invitation instead of the list. */
+.signIn {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed #e9d5ff;
+  border-radius: 12px;
+  background: #fcfaff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6d28d9;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* 🗑 → "Remove?" (tap twice) */
+.remove {
+  flex-shrink: 0;
+  min-width: 30px;
+  height: 34px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: #9ca3af;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.remove:hover { color: #dc2626; background: #fef2f2; }
+.removeConfirm,
+.removeConfirm:hover {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+/* 📄 Stepsheet (an empty slot keeps the buttons lined up when there's none) */
+.stepsheet,
+.stepsheetSlot {
+  flex-shrink: 0;
+  width: 28px;
+  height: 34px;
+  /* Snug against the 🗑 after it; a little room from what's before. */
+  margin: 0 -2px 0 4px;
+}
+.stepsheet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: #6b7280;
+  text-decoration: none;
+}
+.stepsheet:hover { color: #374151; background: #f3f4f6; }

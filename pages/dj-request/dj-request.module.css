@@ -749,6 +749,19 @@
   gap: 8px;
 }
 
+/* The header and the row under it read as one item: no gap between the dance
+   name and its song line. */
+.tabGroupName + .tabRow { padding-top: 0; }
+
+/* The dance name in a request group header. */
+.tabGroupTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tabGroupBeats {
   font-size: 0.72rem;
   font-weight: 700;
@@ -839,82 +852,66 @@
   color: #9ca3af;
 }
 
+/* A request row's controls: one pill, and on your own request the Beats
+   coin under it. Fixed width, so the text beside it ends in one place on
+   every row. */
 .tabRowActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  width: 60px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
-.reqCount {
-  font-size: 0.72rem;
-  font-weight: 800;
-  min-width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #f3f4f6;
-  color: #374151;
-  display: flex;
+.requestPill {
+  min-width: 52px;
+  height: 30px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.plusBtn,
-.minusBtn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+  gap: 4px;
   font-family: inherit;
-  transition: background 0.15s;
-}
-
-.plusBtn { background: #8A5CFF; color: #fff; }
-.plusBtn:hover { background: #7c3aed; }
-
-.minusBtn { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
-.minusBtn:hover { background: #fee2e2; }
-
-/* ── Split boost button [🪙 n | +] ── */
-.splitBoostWrap {
-  display: flex;
-  align-items: stretch;
-  border: 1.5px solid rgba(200, 150, 12, 0.2);
-  border-radius: 14px;
-  overflow: hidden;
-  transition: border-color 0.13s;
-  flex-shrink: 0;
-}
-
-.splitBoostWrap:hover { border-color: rgba(200, 150, 12, 0.45); }
-.splitBoostWrapTipped { border-color: rgba(200, 150, 12, 0.45); }
-.splitBoostWrapOpen   { border-color: #C8960C; }
-
-.splitBtnLeft {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: rgba(200, 150, 12, 0.5);
-  background: none;
-  border: none;
-  padding: 3px 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-  white-space: nowrap;
-  line-height: 1.4;
-  display: flex;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.requestPill:active { transform: scale(0.95); }
+.requestPill:disabled { opacity: 0.5; cursor: default; }
+
+/* Someone else's request: "+ 1" to add yours */
+.requestPillJoin { background: #f5f3ff; color: #6d28d9; border: 1.5px solid #ddd6fe; }
+.requestPillJoin:hover:not(:disabled) { background: #ede9fe; border-color: #c4b5fd; }
+
+/* Yours: a filled "✓ 2" */
+.requestPillMine { background: #8A5CFF; color: #fff; border: 1.5px solid #8A5CFF; }
+.requestPillMine:hover { background: #7c3aed; border-color: #7c3aed; }
+
+/* Your tip, under the pill: the coin and your Beats (or "Tip") */
+.tipCoin {
+  display: inline-flex;
   align-items: center;
   gap: 3px;
+  padding: 1px 4px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #b45309;
+  cursor: pointer;
 }
-
-.splitBtnLeft:hover   { background: rgba(200, 150, 12, 0.07); color: #C8960C; }
-.splitBtnLeftTipped   { color: #C8960C; }
+.tipCoin img { width: 22px; height: 22px; display: block; }
+/* The coin's space on rows without one, so every row's controls match. */
+.tipSlot { display: block; height: 24px; }
+.tipCoin:hover { background: #fffbeb; }
+.tipCoinTipped { color: #92400e; }
+.tipCoinOpen { background: #fef3c7; }
 
 .removeWarning {
   margin-top: 6px;
@@ -1529,4 +1526,13 @@
   color: rgba(255, 255, 255, 0.7);
   line-height: 1.55;
   margin: 0;
+}
+
+/* Phones: a little less side padding on list rows, so a request row's
+   icons and status fit on one line beside its controls. */
+@media (max-width: 480px) {
+  .tabGroupName,
+  .tabRow,
+  .queueItem { padding-left: 20px; padding-right: 18px; }
+  .tabRow { gap: 10px; }
 }
