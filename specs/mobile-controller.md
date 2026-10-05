@@ -25,7 +25,7 @@ Both layouts render from the same `useController()` state, so they can't disagre
 | **Requests** tab | Pending requests by dance or by requester, filter and sort (`PendingRequests`, shared with desktop) |
 | **People** tab | Requesters: stats, messages, gift beats, suppress (`RequestersPanel`) |
 | **More** tab | Announcements, Add to queue, Tips & notifications, Played so far · Session settings (incl. music source), Feed display, Sessions, Wallet · Desktop layout, Sign out |
-| **Session sheet** | Switch between live sessions/drafts, Extend, Go live (draft), Session settings, End session (confirm), Discard draft (confirm), New session, All sessions |
+| **Session sheet** | Switch between live sessions, Extend, Session settings, End session (confirm), New event, Your events (drafts are planned there, not in the controller), All sessions |
 
 Sub-pages reuse the desktop panels full-screen, so behaviour is identical on both layouts. The phone's **Back** button closes the open page or sheet rather than leaving the controller.
 
@@ -33,7 +33,7 @@ Sub-pages reuse the desktop panels full-screen, so behaviour is identical on bot
 
 - **Live is home.** On the floor the DJ needs what's playing, the transport, tempo/volume and a way to announce.
 - **Press and hold to drag.** A card is picked up after a 350 ms hold without moving (dnd-kit `TouchSensor`/`MouseSensor` with a delay), so a quick swipe still scrolls the list and a tap still opens the card's sheet. Dropping uses the desktop's `useQueueReorder.handleDragEnd`, with the same optimistic, debounced save.
-- **Destructive actions confirm:** ending a session, discarding a draft.
+- **Destructive actions confirm:** ending a session.
 - **Feed display** keeps template and screen-shape switching. The visual Feed Editor is a computer task, and the page says so.
 - **The plugin overlay** ("use Chrome or Edge") is not shown on phones: a phone is a remote by nature.
 

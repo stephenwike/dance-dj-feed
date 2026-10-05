@@ -15,16 +15,10 @@ export default function SessionSheet({ ctl, onClose, onOpenPage }) {
     onClose();
   }
 
-  function discardDraft() {
-    if (!window.confirm(`Discard the draft "${workingSession.name}"?`)) return;
-    ctl.discardDraft();
-    onClose();
-  }
-
   return (
     <Sheet
       title={workingSession?.name ?? 'No session'}
-      subtitle={workingSession ? sessionStatusText(ctl) : 'Start an event to take requests'}
+      subtitle={workingSession ? sessionStatusText(ctl) : 'Go live with an event to take requests'}
       onClose={onClose}
     >
       {others.length > 0 && (
@@ -34,9 +28,9 @@ export default function SessionSheet({ ctl, onClose, onOpenPage }) {
             {others.map(s => (
               <MenuItem
                 key={s._id}
-                icon={s.status === 'draft' ? '📝' : '🟢'}
+                icon="🟢"
                 label={s.name}
-                hint={s.status === 'draft' ? 'Draft' : 'Live'}
+                hint="Live"
                 onClick={() => { ctl.selectSession(s._id); onClose(); }}
               />
             ))}
@@ -47,26 +41,24 @@ export default function SessionSheet({ ctl, onClose, onOpenPage }) {
       <p className={m.sectionTitle}>This session</p>
       <div className={m.menu}>
         {liveSession && <MenuItem icon="⏱️" label="Extend session" hint="Add more time" onClick={() => { ctl.setShowExtendModal(true); onClose(); }} />}
-        {workingSession?.status === 'draft' && <MenuItem icon="▶️" label="Go live" hint="Pay for and start this session" onClick={() => { window.location.href = '/start'; }} />}
         <MenuItem icon="⚙️" label="Session settings" onClick={() => { onOpenPage('settings'); onClose(); }} />
         {liveSession && <MenuItem icon="⏹️" label="End session" hint="Closes requests and stops the music" danger onClick={endSession} />}
-        {workingSession?.status === 'draft' && <MenuItem icon="🗑️" label="Discard draft" danger onClick={discardDraft} />}
       </div>
 
       <p className={m.sectionTitle}>Other</p>
       <div className={m.menu}>
-        <MenuItem icon="➕" label="New session" hint="Start another event or floor" onClick={() => { window.location.href = '/start'; }} />
+        <MenuItem icon="➕" label="New event" hint="Start another event or floor" onClick={() => { window.location.href = '/dj-session-config'; }} />
+        <MenuItem icon="📝" label="Your events" hint="Drafts you're planning, and live events" onClick={() => { window.location.href = '/start'; }} />
         <MenuItem icon="🗂️" label="All sessions" hint="Past sessions, reports, continue a closed one" onClick={() => { onOpenPage('sessions'); onClose(); }} />
       </div>
     </Sheet>
   );
 }
 
-/** "Live · ends in 1:42" / "Draft — not started" for the header and sheet. */
+/** "Live · ends in 1:42" for the header and sheet. */
 export function sessionStatusText(ctl) {
   const s = ctl.workingSession;
   if (!s) return 'No session';
-  if (s.status === 'draft') return 'Draft — not started';
   if (ctl.timeState === 'grace') return 'Time is up — extend to keep going';
   return ctl.countdown ? `Live · ends in ${ctl.countdown}` : 'Live';
 }

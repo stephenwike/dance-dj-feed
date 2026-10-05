@@ -33,7 +33,7 @@ export default function ExtendSessionModal({ sessionId, onClose, onExtended }) {
       const res = await fetch('/api/dj/sessions/extend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, hours, payFromWallet }),
+        body: JSON.stringify({ sessionId, hours, payFromWallet, origin: window.location.origin }),
       });
       const data = await res.json();
       if (data.url) {

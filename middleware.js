@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 const publicPaths = [
   '/',
   '/dj-request',
+  '/signin',
 ];
 
 const publicPatterns = [
@@ -31,7 +32,7 @@ export async function middleware(req) {
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token) {
-    const signInUrl = new URL('/api/auth/signin', req.url);
+    const signInUrl = new URL('/signin', req.url);
     signInUrl.searchParams.set('callbackUrl', req.url);
     return NextResponse.redirect(signInUrl);
   }

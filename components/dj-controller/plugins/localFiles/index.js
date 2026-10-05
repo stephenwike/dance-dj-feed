@@ -6,6 +6,7 @@ import LocalFilesSidebarStatus from './LocalFilesSidebarStatus';
 import UnsupportedBrowser from './UnsupportedBrowser';
 import TrackFileRow, { itemTone } from './TrackFileRow';
 import RemoteMix from './RemoteMix';
+import { musicSource } from '../../../../lib/dj/musicSources';
 
 /**
  * Local files: the controller plays music from a folder on the DJ's
@@ -14,8 +15,8 @@ import RemoteMix from './RemoteMix';
  */
 export default {
   id: 'local-files',
-  label: 'Local Files',
-  description: 'Play music from a folder on this computer (Chrome or Edge)',
+  label: musicSource('local-files').label,
+  description: musicSource('local-files').description,
   adapter: LocalFilesAdapter,
   useRuntime: useLocalFilesPlugin,
   itemTone,

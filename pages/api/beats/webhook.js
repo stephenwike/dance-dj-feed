@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { markWebhookReceived } from '../../../lib/server/stripeHealth';
 import { claimStripeEvent, releaseStripeEvent } from '../../../lib/server/stripeEvents';
-import { createSession, activateDraftSession } from '../../../lib/server/dj/sessionLogic';
+import { createSession, activateDraftSession, addSessionAddOn } from '../../../lib/server/dj/sessionLogic';
 import { toObjectId } from '../../../lib/server/db';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -88,7 +88,7 @@ async function handleSessionPurchase(client, db, checkoutSession) {
   if (!ownerId || !durationMinutes) return badMetadata('dj_session', checkoutSession);
 
   const sessionDoc = draftSessionId
-    ? await activateDraftSession(client, draftSessionId, { ownerId, durationMinutes: Number(durationMinutes) })
+    ? await activateDraftSession(client, draftSessionId, { ownerId, durationMinutes: Number(durationMinutes), plugin: plugin || undefined })
     : await createSession(client, {
         ownerId, name, plugin: plugin || 'standard', durationMinutes: Number(durationMinutes),
       });
@@ -98,6 +98,25 @@ async function handleSessionPurchase(client, db, checkoutSession) {
     sessionId: String(sessionDoc._id),
     sessionName: sessionDoc.name ?? name ?? null,
     durationMinutes: Number(durationMinutes),
+    addOns: sessionDoc.addOns ?? [],
+    amountCents: checkoutSession.amount_total,
+    stripeSessionId: checkoutSession.id,
+    stripePaymentIntentId: checkoutSession.payment_intent ?? null,
+    createdAt: new Date(),
+  });
+}
+
+async function handleSessionAddOn(client, db, checkoutSession) {
+  const { ownerId, sessionId, plugin } = checkoutSession.metadata;
+  if (!ownerId || !sessionId || !plugin) return badMetadata('session_add_on', checkoutSession);
+
+  const sessionDoc = await addSessionAddOn(client, sessionId, { ownerId, plugin });
+  await db.collection('session_transactions').insertOne({
+    ownerId,
+    type: 'session_add_on',
+    sessionId,
+    sessionName: sessionDoc?.name ?? null,
+    addOns: [plugin],
     amountCents: checkoutSession.amount_total,
     stripeSessionId: checkoutSession.id,
     stripePaymentIntentId: checkoutSession.payment_intent ?? null,
@@ -135,6 +154,7 @@ async function handleCheckoutCompleted(client, db, checkoutSession) {
     case 'direct_tip':        return handleDirectTip(db, checkoutSession);
     case 'session_extension': return handleSessionExtension(db, checkoutSession);
     case 'dj_session':        return handleSessionPurchase(client, db, checkoutSession);
+    case 'session_add_on':    return handleSessionAddOn(client, db, checkoutSession);
     default:                  return handleBeatPurchase(db, checkoutSession);
   }
 }

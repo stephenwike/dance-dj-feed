@@ -27,7 +27,7 @@ Three audiences, three sets of pages:
 
 | Audience | Pages | Description |
 |---|---|---|
-| **DJ** | `/start`, `/dj-controller`, `/reports`, `/dj-profile` | Session creation, queue management, earnings |
+| **DJ** | `/start`, `/dj-session-config`, `/dj-plan`, `/dj-controller`, `/reports`, `/dj-profile` | Events, set planning, queue management, earnings |
 | **Attendees** | `/dj-request`, `/request/[slug]` | Request a dance, tip the DJ, view own requests |
 | **Display** | `/feed-preview`, `/feed/[slug]` | TV/projector feed showing now-playing + queue |
 
@@ -57,8 +57,14 @@ Dev port: **4000**
 
 ### DJ Pages (signed-in)
 
-#### `/start`
-Session creation and resumption. The DJ names the session (defaults to today's date), picks a duration, and chooses a music source (Standard or Spotify). If an active session already exists for the DJ, the page offers to resume it instead of creating a new one. On submit, calls `POST /api/dj/sessions` and redirects to the appropriate controller.
+#### `/start`, `/dj-session-config`, `/dj-plan`
+**Your events** lists live events (open the controller), drafts and recent events.
+
+**New event** sets the name, length and music source. Standard and Local Files are included; Spotify is a paid add-on. From there the DJ either goes live (card or wallet) or plans the set first.
+
+**Plan the set** builds a draft's queue before it goes live.
+
+Going live lands in the controller with a "Get the room ready" card. See `specs/session-start.md`.
 
 #### `/dj-controller`
 Main queue management dashboard. Three-column layout:
@@ -109,6 +115,10 @@ The slug-based version (`/request/[slug]`) is the shareable QR code destination;
 |---|---|---|---|
 | `GET` | `/api/dj/sessions` | DJ | List all sessions for the signed-in DJ |
 | `POST` | `/api/dj/sessions` | DJ | Create session (other live sessions are left running) |
+| `POST` | `/api/dj/sessions/draft` | DJ | Save a draft event (name, length, music source) |
+| `POST` | `/api/dj/sessions/checkout` | DJ | Go live by card (Stripe), or free when the DJ isn't charged |
+| `POST` | `/api/dj/sessions/wallet-pay` | DJ | Go live, paid from the wallet |
+| `POST` | `/api/dj/sessions/add-on` | Owner | Buy a paid music source for a live session |
 | `GET` | `/api/dj/sessions/[id]` | Owner | Get session + played tracks for report |
 | `PATCH` | `/api/dj/sessions/[id]` | Owner | Update settings; close; continue a previously started session |
 

@@ -4,7 +4,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import m from './mobile.module.css';
 import Sheet, { MenuItem } from './Sheet';
-import { trackTitle, trackSub } from './trackText';
+import { trackTitle, trackSub } from '../trackText';
 import { formatTimestamp } from '../utils';
 
 const TONE_CLASS = { danger: m.queueItemDanger, warning: m.queueItemWarning };

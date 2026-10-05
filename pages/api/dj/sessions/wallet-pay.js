@@ -1,10 +1,16 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
-import { createSession, findDraft, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
+import { createSession, activateDraftSession } from '../../../../lib/server/dj/sessionLogic';
+import { resolveLaunch } from '../../../../lib/server/dj/launchRequest';
+import { djPays } from '../../../../lib/server/dj/sessionAccess';
 import { SESSION_DURATIONS_BY_MINUTES, SESSION_PLUGINS } from '../../../../lib/dj/sessionPricing';
 import { getWalletBalance, withWalletLock } from '../../../../lib/server/wallet';
 
+/**
+ * POST — go live, paid from the DJ's wallet (at the wallet price: no Stripe
+ * fee). Same body as /api/dj/sessions/checkout; returns { session }.
+ */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (process.env.NEXT_PUBLIC_PAYMENTS_ENABLED !== 'true') return res.status(503).json({ error: 'Payments not enabled' });
@@ -13,47 +19,44 @@ export default async function handler(req, res) {
   const userId = authSession?.user?.id ?? null;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { name, plugin, draftSessionId } = req.body ?? {};
-  let { durationMinutes } = req.body ?? {};
-
   const client = await clientPromise;
   const db = client.db(DB_NAME);
+  const launch = await resolveLaunch(client, userId, req.body, {
+    tiersByMinutes: SESSION_DURATIONS_BY_MINUTES, plugins: SESSION_PLUGINS,
+  });
+  if (launch.error) return res.status(launch.status).json({ error: launch.error });
+  const { draft, name, tier, plugin, charge } = launch;
+  const priceCents = charge.walletPriceCents;
+  const start = () => (draft
+    ? activateDraftSession(client, draft._id, { ownerId: userId, durationMinutes: tier.minutes, plugin })
+    : createSession(client, { ownerId: userId, name, plugin, durationMinutes: tier.minutes }));
 
-  if (draftSessionId) {
-    const draft = await findDraft(client, draftSessionId, userId);
-    if (!draft) return res.status(404).json({ error: 'Draft session not found' });
-    // If activating a draft, fall back to its configured duration
-    if (!durationMinutes) durationMinutes = draft.durationMinutes;
+  // DJs on the free-access list aren't charged, whichever way they choose to pay.
+  if (!(await djPays(client, authSession.user.email))) {
+    return res.status(201).json({ session: await start() });
   }
-
-  const tier = SESSION_DURATIONS_BY_MINUTES[Number(durationMinutes)];
-  if (!tier) return res.status(400).json({ error: 'Invalid duration' });
-
-  const resolvedPlugin = plugin ?? 'standard';
-  if (!SESSION_PLUGINS.includes(resolvedPlugin)) return res.status(400).json({ error: 'Invalid plugin' });
 
   try {
     const result = await withWalletLock(db, userId, async () => {
       const balance = await getWalletBalance(db, userId);
-      if (balance < tier.walletPriceCents) {
+      if (balance < priceCents) {
         return {
           status: 400,
-          body: { error: `Insufficient wallet balance. Need $${(tier.walletPriceCents / 100).toFixed(2)}, have $${(balance / 100).toFixed(2)}.` },
+          body: { error: `Insufficient wallet balance. Need $${(priceCents / 100).toFixed(2)}, have $${(balance / 100).toFixed(2)}.` },
         };
       }
 
-      const doc = draftSessionId
-        ? await activateDraftSession(client, draftSessionId, { ownerId: userId, durationMinutes: tier.minutes })
-        : await createSession(client, { ownerId: userId, name, plugin: resolvedPlugin, durationMinutes: tier.minutes });
+      const doc = await start();
 
       await db.collection('dj_wallet_transactions').insertOne({
         ownerId: userId,
         type: 'session_payment',
-        amountCents: -tier.walletPriceCents,
+        amountCents: -priceCents,
         sessionId: String(doc._id),
         durationMinutes: tier.minutes,
+        addOns: doc.addOns ?? [],
         createdAt: new Date(),
-        note: `${tier.label} session — paid from wallet`,
+        note: `${charge.items.map(i => i.label).join(' + ')} — paid from wallet`,
       });
 
       return { status: 201, body: { session: doc } };

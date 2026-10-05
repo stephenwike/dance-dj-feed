@@ -4,12 +4,11 @@ import styles from '../../pages/dj-controller/dj-controller.module.css';
 
 export default function TopBar({
   workingSession, liveSessions = [],
-  selectSession, closeSession, discardDraft, timeState, countdown,
+  selectSession, closeSession, timeState, countdown,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const isDraft = workingSession?.status === 'draft';
   const isActive = workingSession?.status === 'active';
 
   useEffect(() => {
@@ -46,9 +45,7 @@ export default function TopBar({
             aria-expanded={dropdownOpen}
           >
             {isActive && <span className={styles.sessionBarDot} />}
-            {isDraft && <span className={styles.topBarDraftDot} />}
             <span className={styles.topBarSessionName}>{workingSession.name}</span>
-            {isDraft && <span className={styles.topBarDraftBadge}>setup</span>}
             <span className={styles.sessionSwitchSep} />
             <span className={styles.sessionSwitchArrow}>{dropdownOpen ? '▲' : '▼'}</span>
           </button>
@@ -57,7 +54,6 @@ export default function TopBar({
             <div className={styles.sessionDropdown}>
               {liveSessions.map(s => {
                 const isSelected = s._id === workingSession._id;
-                const live = s.status === 'active';
                 return (
                   <button
                     key={s._id}
@@ -65,10 +61,10 @@ export default function TopBar({
                     className={`${styles.sessionDropdownItem} ${isSelected ? styles.sessionDropdownItemSelected : ''}`}
                     onClick={() => handleSelect(s._id)}
                   >
-                    <span className={live ? styles.sessionBarDot : styles.topBarDraftDot} />
+                    <span className={styles.sessionBarDot} />
                     <span className={styles.sessionDropdownItemName}>{s.name}</span>
                     <span className={styles.sessionDropdownItemBadge}>
-                      {live ? 'Live' : 'Setup'}
+                      Live
                     </span>
                     {isSelected && <span className={styles.sessionDropdownItemCheck}>✓</span>}
                   </button>
@@ -80,7 +76,7 @@ export default function TopBar({
                 onClick={() => setDropdownOpen(false)}
               >
                 <span className={styles.sessionDropdownCreatePlus}>＋</span>
-                Create Another Session
+                New event
               </Link>
             </div>
           )}
@@ -104,14 +100,8 @@ export default function TopBar({
         {isActive && (
           <button className={styles.topBarEndBtn} onClick={closeSession}>End</button>
         )}
-        {isDraft && (
-          <>
-            <Link href="/start" className={styles.topBarStartBtn}>▶ Start Event</Link>
-            <button className={styles.topBarEndBtn} onClick={discardDraft}>Discard</button>
-          </>
-        )}
         {!workingSession && (
-          <Link href="/start" className={styles.topBarNewBtn}>+ New Session</Link>
+          <Link href="/dj-session-config" className={styles.topBarNewBtn}>+ New event</Link>
         )}
         {workingSession?.status === 'active' && (
           <>

@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   const pkg = BEAT_PACKAGES_BY_ID[packageId];
   if (!pkg) return res.status(400).json({ error: 'Invalid package' });
 
-  const safeReturn = safeReturnUrl(returnUrl);
+  const safeReturn = safeReturnUrl(returnUrl, req);
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',

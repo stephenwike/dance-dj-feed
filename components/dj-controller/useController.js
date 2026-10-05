@@ -15,6 +15,7 @@ import { usePluginRuntime } from './plugins/usePluginRuntime';
 import { StandardAdapter } from '../../lib/client/dj/controllerAdapters';
 import { estimateQueueTimes } from './utils';
 import { fetcher } from '../../lib/client/fetcher';
+import { CHECKOUT_STARTED_KEY, PAYMENTS_ENABLED } from '../../lib/client/dj/useGoLive';
 
 // Suppressed requesters' pending requests are hidden; approved ones stay (see /api/dj/requests).
 const SUPPRESS_STATUSES = new Set(['pending']);
@@ -42,12 +43,11 @@ export function useController() {
   // ── Sessions ───────────────────────────────────────────────────────────────
   const sessionManager = useSessionManager();
   const {
-    workingSession, mutateSessions, pluginId, setPlugin,
+    workingSession, mutateSessions, pluginId, setPlugin, selectSession,
     closeSession: closeSessionBase, continueSession: continueSessionBase,
     fairnessScoringEnabled, decayEnabled, halfLifeMinutes,
   } = sessionManager;
-  // The selected session, when it is live (drafts can be configured and
-  // pre-loaded, but not played or announced to).
+  // The selected session, when it is live.
   const liveSession = workingSession?.status === 'active' ? workingSession : null;
   const { timeState, countdown, isGrace } = useSessionTimeState(liveSession);
   const [showExtendModal, setShowExtendModal] = useState(false);
@@ -162,11 +162,67 @@ export function useController() {
     await continueSessionBase(id, async () => { mutate(); await onDone?.(); });
   }
 
-  // ── Returning from Stripe (session extension, payout onboarding) ───────────
+  // ── Paid music sources ─────────────────────────────────────────────────────
+  // Buying one opens AddOnDialog; while payments are off it's added at once.
+  const [addOnPlugin, setAddOnPlugin] = useState(null);
+  async function buyAddOn(id) {
+    if (PAYMENTS_ENABLED) { setAddOnPlugin(id); return; }
+    await fetch('/api/dj/sessions/add-on', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: liveSession?._id, plugin: id }),
+    });
+    mutateSessions();
+  }
+
+  // ── Arriving from Your events / going live ─────────────────────────────────
+  // ?session=<id> opens that event; ?welcome=<id> just went live (show the
+  // "Get the room ready" card); ?session_started=1 is Stripe's return after
+  // paying — the webhook creates the session, so wait for it to appear.
+  const [getReadySessionId, setGetReadySessionId] = useState(null);
+  const [launchNotice, setLaunchNotice] = useState('');
+  useEffect(() => {
+    if (!router.isReady) return;
+    const { session, welcome, session_started: sessionStarted } = router.query;
+    if (!session && !welcome && !sessionStarted) return;
+    window.history.replaceState({}, '', '/dj-controller');
+    if (session) selectSession(String(session));
+    if (welcome) { selectSession(String(welcome)); setGetReadySessionId(String(welcome)); }
+    if (!sessionStarted) return;
+
+    let startedAt = 0;
+    try {
+      startedAt = Number(sessionStorage.getItem(CHECKOUT_STARTED_KEY)) || 0;
+      sessionStorage.removeItem(CHECKOUT_STARTED_KEY);
+    } catch { /* storage unavailable: take the newest live session */ }
+    setLaunchNotice('Payment received — starting your event…');
+    let attempts = 0;
+    let timer = null;
+    const poll = async () => {
+      attempts += 1;
+      const list = await fetch('/api/dj/sessions').then(r => r.json()).catch(() => []);
+      const started = (Array.isArray(list) ? list : [])
+        .filter(s => s.status === 'active' && new Date(s.startedAt).getTime() >= startedAt - 5000)
+        .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))[0];
+      if (started) {
+        await mutateSessions();
+        selectSession(started._id);
+        setGetReadySessionId(started._id);
+        setLaunchNotice('');
+      } else if (attempts < 10) {
+        timer = setTimeout(poll, 2000);
+      } else {
+        setLaunchNotice('Your payment went through, but the event is taking longer than usual to start. Refresh in a moment.');
+      }
+    };
+    poll();
+    return () => clearTimeout(timer);
+  }, [router.isReady]);
+
+  // ── Returning from Stripe (extension, add-on, payout onboarding) ──────────
   const [connectNotice, setConnectNotice] = useState('');
   const [focusPanel, setFocusPanel] = useState(null);
   useEffect(() => {
-    if (router.query.extension_success) {
+    if (router.query.extension_success || router.query.addon_success) {
       window.history.replaceState({}, '', '/dj-controller');
       mutateSessions();
     }
@@ -180,7 +236,7 @@ export function useController() {
       setConnectNotice('Please complete your payout account setup.');
       setFocusPanel('wallet');
     }
-  }, [router.query.extension_success, router.query.connect_success, router.query.connect_refresh]);
+  }, [router.query.extension_success, router.query.addon_success, router.query.connect_success, router.query.connect_refresh]);
 
   const [stripeDismissed, setStripeDismissed] = useState(false);
   const { data: stripeStatus } = useSWR(STRIPE_STATUS_URL, fetcher, {
@@ -209,6 +265,12 @@ export function useController() {
     toastQueue, dismissToast, markSeenFromToast,
     // playback plugin
     plugin, pluginRuntime, pluginController, itemTone,
+    // paid music sources
+    addOnPlugin, buyAddOn, closeAddOn: () => setAddOnPlugin(null),
+    // going live
+    getReadySession: liveSession && liveSession._id === getReadySessionId ? liveSession : null,
+    dismissGetReady: () => setGetReadySessionId(null),
+    launchNotice, dismissLaunchNotice: () => setLaunchNotice(''),
     // misc
     connectNotice, focusPanel, clearFocusPanel: () => setFocusPanel(null),
     stripeWarning, dismissStripeWarning: () => setStripeDismissed(true),

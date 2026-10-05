@@ -1,4 +1,5 @@
 import { StandardAdapter } from '../../../lib/client/dj/controllerAdapters';
+import { musicSource } from '../../../lib/dj/musicSources';
 
 const RUNTIME = Object.freeze({});
 
@@ -8,8 +9,8 @@ const RUNTIME = Object.freeze({});
  */
 export default {
   id: 'standard',
-  label: 'Standard',
-  description: 'Play music from any source; the queue advances on a timer',
+  label: musicSource('standard').label,
+  description: musicSource('standard').description,
   adapter: StandardAdapter,
   useRuntime: () => RUNTIME,
   slots: {},

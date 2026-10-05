@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Minimum tip is $${MIN_AMOUNT_CENTS / 100}` });
   }
 
-  const safeReturn = safeReturnUrl(returnUrl);
+  const safeReturn = safeReturnUrl(returnUrl, req);
 
   const fee = stripeFeeCents(amountCents);
   const totalCents = amountCents + fee;
