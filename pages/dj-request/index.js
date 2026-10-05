@@ -12,6 +12,13 @@ import DirectTipSection from '../../components/dj-request/DirectTipSection';
 import CatalogSongPicker, { CatalogSuggestionList } from '../../components/dj-request/CatalogSongPicker';
 import { useCatalogSearch } from '../../lib/client/catalog/useCatalogSearch';
 import { RequestRowActions, RequestRowPanels, SuppressedOverlay } from '../../components/dj-request/RequestRowControls';
+import DanceMarks, { SignInToSave, MarkToast } from '../../components/dj-request/DanceMarks';
+import markStyles from '../../components/dj-request/DanceMarks.module.css';
+import { useDanceMarks } from '../../lib/client/dancer/useDanceMarks';
+import FavoritesPicker, { FavoritesSignIn } from '../../components/dj-request/FavoritesPicker';
+import WishlistPanel from '../../components/dj-request/WishlistPanel';
+import { favoriteDanceItems, favoriteSongItems, wishlistItems } from '../../lib/client/dancer/favoriteRequests';
+import { danceMatches, searchDances } from '../../lib/client/dj/danceTextSearch';
 import { danceKey, isActive, sortedQueue } from '../../lib/client/dj/queue';
 import { beatsFromCents } from '../../lib/beats/constants';
 import { fetcher } from '../../lib/client/fetcher';
@@ -165,6 +172,40 @@ export default function DJRequestPage({
 
   const { data: dances = [], isLoading } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false, dedupingInterval: 60_000 });
 
+  // ♥ / ⚑ / stepsheet next to dance titles (see DanceMarks). Requests may not
+  // carry a stepsheet, so fall back to the catalog's.
+  const marks = useDanceMarks(isSignedIn);
+  const [askSignInToSave, setAskSignInToSave] = useState(false);
+  const stepsheetById = useMemo(() => Object.fromEntries(dances.map(d => [d.id, d.stepsheet])), [dances]);
+  // Requests tab: a row's status line with the ♥ ⚑ 📄 icons on its left and
+  // the status on its right, so the row's right side keeps a single cluster
+  // of controls (the request buttons).
+  function withMarks(status, row, name) {
+    return (
+      <span className={markStyles.metaLine}>
+        {danceMarks(name, row)}
+        {status}
+      </span>
+    );
+  }
+
+  // Line dances are marked by catalog dance id; partner dances by their
+  // song's music catalog id (favorite songs).
+  function danceMarks(name, { danceId, stepsheet, danceType, catalogTrackId, songName }) {
+    const isPartner = danceType === 'partner';
+    return (
+      <DanceMarks
+        danceId={isPartner ? null : danceId || null}
+        trackId={isPartner ? catalogTrackId || null : null}
+        danceName={isPartner ? songName || name : name}
+        stepsheet={stepsheet || (danceId ? stepsheetById[danceId] : '') || ''}
+        marks={marks}
+        isSignedIn={isSignedIn}
+        onNeedSignIn={() => setAskSignInToSave(true)}
+      />
+    );
+  }
+
   // Broadcast (urgent) messages the DJ sent to all users
   const broadcastUrl = sessionId ? `/api/dj/messages?sessionId=${sessionId}&audience=attendees` : null;
   const { data: broadcastData } = useSWR(broadcastUrl, fetcher, {
@@ -292,11 +333,13 @@ export default function DJRequestPage({
           difficulty: r.difficulty, stepsheet: r.stepsheet,
           duration_ms: r.duration_ms,
           danceType: r.danceType ?? null,
+          catalogTrackId: r.catalogTrackId ?? null,
           partnerStyle: r.partnerStyle ?? null,
           originals: [],
           swaps: {},
         };
       }
+      map[key].catalogTrackId ??= r.catalogTrackId ?? null;
       if (!r.isSongSwap) {
         map[key].originals.push(r);
       } else {
@@ -334,7 +377,9 @@ export default function DJRequestPage({
   const playedHistory = useMemo(() => {
     const map = {};
     for (const r of allRequests.filter(r => r.status === 'played')) {
-      const key = r.danceId || r.danceName;
+      const key = r.danceType === 'partner'
+        ? `partner:${r.catalogTrackId || r.songName || r._id}`
+        : r.danceId || r.danceName;
       if (!map[key] || new Date(r.updatedAt) > new Date(map[key].updatedAt)) map[key] = r;
     }
     return Object.values(map).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -345,24 +390,21 @@ export default function DJRequestPage({
     [dances, allRequests]
   );
 
+  // Every word typed must match something about the dance — name, song,
+  // artist, difficulty or choreographer — in any order; dance-name matches
+  // come first, then song/artist, then choreographer (danceTextSearch.js).
   const filtered = useMemo(() => {
     if (!search.trim()) return availableDances.slice(0, 8);
-    const q = search.toLowerCase();
-    return availableDances.filter(d =>
-      d.danceName.toLowerCase().includes(q) ||
-      d.songName.toLowerCase().includes(q) ||
-      d.artist.toLowerCase().includes(q)
-    ).slice(0, 12);
+    return searchDances(availableDances, search).slice(0, 12);
   }, [availableDances, search]);
 
   // No dance in the whole catalog matches what they typed (not just the ones
   // available now — a dance hidden because it just played shouldn't turn into
   // song suggestions): offer songs instead, from the music catalog.
-  const noDanceMatches = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return q.length > 0 && !dances.some(d =>
-      d.danceName.toLowerCase().includes(q) || d.songName.toLowerCase().includes(q) || d.artist.toLowerCase().includes(q));
-  }, [dances, search]);
+  const noDanceMatches = useMemo(
+    () => search.trim().length > 0 && !dances.some(d => danceMatches(d, search)),
+    [dances, search],
+  );
   const songFallback = useCatalogSearch(search, { enabled: requestType === 'line' && !selected && noDanceMatches });
 
   // A song picked from the catalog stands in for the dance; many line dances
@@ -520,6 +562,34 @@ export default function DJRequestPage({
     setSearch('');
     setSwapSongName('');
     setSwapArtist('');
+  }
+
+  // ── Requesting from favorites (FavoritesPicker) ──
+  const favoriteDanceList = useMemo(
+    () => (isSignedIn ? favoriteDanceItems({ dances, favoriteIds: marks.favoriteIds, requests: allRequests, clientId }) : []),
+    [isSignedIn, dances, marks.favoriteIds, allRequests, clientId],
+  );
+  const favoriteSongList = useMemo(
+    () => (isSignedIn ? favoriteSongItems({ songs: marks.favoriteSongs, requests: allRequests, clientId }) : []),
+    [isSignedIn, marks.favoriteSongs, allRequests, clientId],
+  );
+
+  const wishlistList = useMemo(
+    () => (isSignedIn ? wishlistItems({ dances, wishlistIds: marks.wishlistIds, refreshIds: marks.refreshIds }) : []),
+    [isSignedIn, dances, marks.wishlistIds, marks.refreshIds],
+  );
+
+  /** Send each picked favorite as its own request, then say how it went. */
+  async function requestFavorites(payloads, noun) {
+    let sent = 0;
+    for (const payload of payloads) {
+      try { await submitRequest(payload); sent += 1; } catch { /* counted below */ }
+    }
+    mutateRequests();
+    const failed = payloads.length - sent;
+    const plural = n => `${n} ${noun}${n === 1 ? '' : 's'}`;
+    if (failed) marks.notify(`Requested ${plural(sent)} — ${failed} couldn’t be sent. Try again.`, { error: true });
+    else marks.notify(`Requested ${plural(sent)} from your favorites`);
   }
 
   async function handlePanelRequest(group) {
@@ -935,6 +1005,23 @@ export default function DJRequestPage({
                         emptyText="No matches — your request will be sent as typed"
                       />
                     )}
+                    {!search && (isSignedIn ? (
+                      <>
+                        <FavoritesPicker
+                          title="Request from your favorites"
+                          items={favoriteDanceList}
+                          onRequest={payloads => requestFavorites(payloads, 'dance')}
+                          onRemove={i => marks.toggle(i.mark.kind, i.mark.id, i.title)}
+                        />
+                        <WishlistPanel
+                          items={wishlistList}
+                          onLearned={i => marks.learn(i.mark.id, i.title)}
+                          onRemove={i => marks.toggle('wishlist', i.mark.id, i.title)}
+                        />
+                      </>
+                    ) : (
+                      <FavoritesSignIn label="Sign in to request from your favorite dances" onSignIn={() => setAskSignInToSave(true)} />
+                    ))}
                   </>
                 )}
               </div>
@@ -944,6 +1031,15 @@ export default function DJRequestPage({
             {requestType === 'partner' && (
               <div className={styles.partnerForm}>
                 <p className={styles.partnerHint}>Request a partner dance. Specify a style and/or song if you have one in mind.</p>
+                {isSignedIn && (
+                  <FavoritesPicker
+                    title="Request from your favorite songs"
+                    items={favoriteSongList}
+                    noun="song"
+                    onRequest={payloads => requestFavorites(payloads, 'song')}
+                    onRemove={i => marks.toggle(i.mark.kind, i.mark.id, i.title)}
+                  />
+                )}
                 <label className={styles.label}>Style <span className={styles.optionalLabel}>(optional)</span></label>
                 <div className={styles.field}>
                   <input
@@ -1124,8 +1220,13 @@ export default function DJRequestPage({
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsFor(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsFor(r)}</span>}
-                      <span className={styles.queueItemStatus}>Now Playing</span>
+                      <div className={markStyles.corner}>
+                        {danceMarks(r.danceName, r)}
+                        <div className={markStyles.cornerBelow}>
+                          {beatsFor(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsFor(r)}</span>}
+                          <span className={styles.queueItemStatus}>Now Playing</span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                   {visibleQueued.map((r, i) => (
@@ -1135,7 +1236,14 @@ export default function DJRequestPage({
                         <span className={styles.queueItemName}>{r.danceName}</span>
                         {r.songName && <span className={styles.queueItemSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>}
                       </div>
-                      {beatsFor(r) > 0 && <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsFor(r)}</span>}
+                      <div className={markStyles.corner}>
+                        {danceMarks(r.danceName, r)}
+                        {beatsFor(r) > 0 && (
+                          <div className={markStyles.cornerBelow}>
+                            <span className={styles.queueItemBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{beatsFor(r)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1154,6 +1262,9 @@ export default function DJRequestPage({
               ) : requestGroups.map(group => {
                 const myOriginal = group.originals.find(r => r.clientId === clientId);
                 const totalOriginals = group.originals.length;
+                const groupMarkName = group.danceType === 'partner'
+                  ? group.songName || group.partnerStyle || 'Partner Dance'
+                  : group.danceName;
                 const totalBeats = beatsFromCents([
                   ...group.originals,
                   ...group.swaps.flatMap(s => s.requests),
@@ -1164,7 +1275,7 @@ export default function DJRequestPage({
                     {group.danceType === 'partner' ? (
                       <div className={styles.tabGroupName}>
                         {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
-                        <span>
+                        <span className={styles.tabGroupTitle}>
                           {group.songName
                             ? <>{group.songName}{group.artist ? <span className={styles.tabGroupNameArtist}> — {group.artist}</span> : ''}</>
                             : group.partnerStyle || 'Partner Dance'}
@@ -1173,7 +1284,7 @@ export default function DJRequestPage({
                     ) : (
                       <div className={styles.tabGroupName}>
                         {totalBeats > 0 && <span className={styles.tabGroupBeats}><img src="/beats/coin.gif" className={styles.coinIcon} alt="" aria-hidden="true" />{totalBeats}</span>}
-                        <span>{group.danceName}</span>
+                        <span className={styles.tabGroupTitle}>{group.danceName}</span>
                       </div>
                     )}
 
@@ -1191,7 +1302,7 @@ export default function DJRequestPage({
                                 </span>
                               )
                             )}
-                            {(() => { const s = getRowStatus(group.originals, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
+                            {(() => { const s = getRowStatus(group.originals, queueTimes); return withMarks(s && <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span>, group, groupMarkName); })()}
                           </div>
                           {renderRowActions(myOriginal, totalOriginals, () => handlePanelRequest(group), 'Add your request')}
                         </div>
@@ -1200,15 +1311,20 @@ export default function DJRequestPage({
                     )}
 
                     {/* Swap variant rows */}
-                    {group.swaps.map(swap => {
+                    {group.swaps.map((swap, swapIndex) => {
                       const mySwap = swap.requests.find(r => r.clientId === clientId);
+                      const carriesMarks = totalOriginals === 0 && swapIndex === 0;
                       return (
                         <React.Fragment key={swap.swapSongName}>
                           <div className={`${styles.tabRow} ${styles.tabRowSwap}`}>
                             <div className={styles.tabRowInfo}>
                               <span className={styles.tabRowSwapLabel}>↪ {swap.swapSongName}</span>
                               {swap.swapArtist && <span className={styles.tabRowSong}>{swap.swapArtist}</span>}
-                              {(() => { const s = getRowStatus(swap.requests, queueTimes); return s ? <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span> : null; })()}
+                              {(() => {
+                                const s = getRowStatus(swap.requests, queueTimes);
+                                const status = s && <span className={styles[`tabRowStatus${s.type}`]}>{s.label}</span>;
+                                return carriesMarks ? withMarks(status, group, groupMarkName) : status;
+                              })()}
                             </div>
                             {renderRowActions(mySwap, swap.requests.length, () => handlePanelRequestSwap(group, swap), 'Support this song swap')}
                           </div>
@@ -1232,7 +1348,12 @@ export default function DJRequestPage({
                       <span className={styles.tabRowSong}>{r.songName}{r.artist ? ` — ${r.artist}` : ''}</span>
                     )}
                   </div>
-                  <span className={styles.playTime}>{formatPlayTime(r.updatedAt)}</span>
+                  <div className={markStyles.corner}>
+                    {danceMarks(r.danceName, r)}
+                    <div className={markStyles.cornerBelow}>
+                      <span className={styles.playTime}>{formatPlayTime(r.updatedAt)}</span>
+                    </div>
+                  </div>
                 </div>
               ))
             )}
@@ -1240,6 +1361,15 @@ export default function DJRequestPage({
         </div>
 
       </div>
+
+      <MarkToast toast={marks.toast} />
+
+      {askSignInToSave && (
+        <SignInToSave
+          onSignIn={() => signIn('ldco', { callbackUrl: window.location.href })}
+          onClose={() => setAskSignInToSave(false)}
+        />
+      )}
 
       {/* ── Suppression overlay ── */}
       {isSuppressed && (

@@ -23,6 +23,23 @@ Stephen has some changes in mind for the controller's organisation and other UI,
 
 ---
 
+## Requests and fairness
+
+### Re-weight requesters when their request is queued — _planned_ (2026-10-05)
+Today a requester's weight (`lib/client/dj/fairnessScore.js`) only drops when one of their dances **plays**: `1 / (1 + plays_this_session)`. Many requests at once therefore each carry a full-strength vote until the first one plays.
+
+Stephen's plan: when the DJ **queues** one of a requester's requests, re-evaluate their weight on everything else they've asked for, so they don't keep crowding out people who haven't been served yet.
+
+This matters more now that dancers can request several favorites at once.
+
+### Per-requester limit on active requests — _idea_ (2026-10-05)
+A Session Setting, **off by default**, capping how many active (pending or queued) requests one person can have, e.g. off / 5 / 10. Requests must not be changed or batched: the DJ already has a "by requester" view.
+
+**Open question:** what happens when the DJ turns the limit on, or lowers it, mid-event, and some requesters are already over it? Options:
+- leave existing requests alone and block only new ones until they're under the limit
+- ask the requester to choose which to drop
+- let the DJ trim from the by-requester view
+
 ## Local Files playback
 
 ### Timeline handle hints — _planned_

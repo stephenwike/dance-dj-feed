@@ -1,0 +1,49 @@
+/* The wishlist panel: FavoritesPicker's look, in the wishlist's amber. */
+.panel { border-color: #fdecc8; background: #fffdf7; }
+.flag { color: #d97706; flex-shrink: 0; }
+.count { color: #b45309; background: #fef3c7; }
+
+.hint {
+  margin: 0;
+  padding: 0 12px 10px;
+  font-size: 0.74rem;
+  color: #92400e;
+  opacity: 0.8;
+}
+
+/* The dance (not tickable — the wishlist isn't for requesting) */
+.row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px 6px 8px 12px;
+}
+
+.refresh {
+  color: #b45309;
+  font-weight: 700;
+}
+
+/* 🎓 Learned */
+.learned {
+  flex-shrink: 0;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border: 1.5px solid #bbf7d0;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #15803d;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.learned:hover { background: #dcfce7; border-color: #86efac; }
+.learned:active { transform: scale(0.95); }
+
+.pager { padding-bottom: 10px; }

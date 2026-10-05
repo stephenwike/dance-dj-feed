@@ -1,0 +1,177 @@
+/* Queue and History: a row's top-right corner. The icons always sit here,
+   whatever the title's length; anything else the row shows on its right
+   (status, beats, time) goes underneath. */
+.corner {
+  align-self: flex-start;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.cornerBelow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Past the right edge by the glyph's inset, so the last icon lines up with
+   the text underneath. */
+.corner > .marks { margin-right: -5px; }
+
+/* Requests: the icons on the left of the status line, the status on its
+   right (wrapping under the icons on a narrow row rather than being cut). */
+.metaLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 8px;
+  row-gap: 2px;
+  min-width: 0;
+}
+.metaLine > :last-child:not(.marks) { margin-left: auto; text-align: right; }
+/* Line the first icon's glyph up with the text above it. */
+.metaLine > .marks { margin-left: -6px; }
+
+.marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  /* The tap targets reach into the row's padding rather than making the
+     line taller. */
+  margin: -7px 0;
+}
+
+/* Small to look at, big enough to tap (narrower than tall, so the icons
+   sit close together). */
+.icon {
+  width: 25px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.12s, background 0.12s, transform 0.12s;
+}
+.icon:hover { color: #4b5563; background: #f3f4f6; }
+.icon:active { transform: scale(0.88); }
+.icon:focus-visible { outline: 2px solid #8A5CFF; outline-offset: 1px; }
+
+/* An empty icon-sized space, so icons line up from row to row. */
+.slot { width: 25px; height: 30px; flex-shrink: 0; }
+
+.favoriteOn,
+.favoriteOn:hover { color: #e11d48; }
+.wishlistOn,
+.wishlistOn:hover { color: #d97706; }
+
+/* ── Sign-in prompt ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(17,24,39,0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+@media (min-width: 600px) {
+  .overlay { align-items: center; }
+}
+
+.prompt {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}
+
+.promptIcons { display: flex; gap: 10px; }
+.promptHeart { color: #e11d48; }
+.promptFlag { color: #d97706; }
+
+.promptTitle {
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.promptText {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.promptSignIn {
+  width: 100%;
+  min-height: 46px;
+  border: none;
+  border-radius: 10px;
+  background: #8A5CFF;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+.promptSignIn:hover { background: #7c3aed; }
+
+.promptLater {
+  min-height: 40px;
+  border: none;
+  background: none;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ── "… added to your favorites" toast ── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 350;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #1f2937;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 10px 28px rgba(17,24,39,0.3);
+  pointer-events: none;
+  animation: markToast 2.6s ease forwards;
+}
+.toastError { background: #991b1b; }
+.toastText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toastHeart { color: #fb7185; flex-shrink: 0; }
+.toastFlag { color: #fbbf24; flex-shrink: 0; }
+.toastLearned { color: #4ade80; flex-shrink: 0; }
+
+@keyframes markToast {
+  0%   { opacity: 0; transform: translate(-50%, 10px); }
+  8%   { opacity: 1; transform: translate(-50%, 0); }
+  85%  { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
