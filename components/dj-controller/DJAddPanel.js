@@ -101,7 +101,6 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
 
   function switchType(t) {
     setType(t);
-    setRecentlyAdded(null);
     setDurationMin(DEFAULT_DURATION_MIN);
     clearLine();
     setPartnerTrack(null);
