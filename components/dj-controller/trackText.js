@@ -1,4 +1,4 @@
-// How a request reads on a phone: its title, and a second line with the song.
+// How a request reads in a list: its title, and a second line with the song.
 
 export function trackTitle(t) {
   if (t.danceType === 'message') return `💬 ${t.danceName}`;

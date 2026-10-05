@@ -97,7 +97,7 @@ export default function MobileController({ ctl, onUseDesktop }) {
   }, [ctl.focusPanel]);
 
   const s = ctl.workingSession;
-  const statusClass = s?.status === 'active' ? m.statusLive : s?.status === 'draft' ? m.statusDraft : '';
+  const statusClass = s?.status === 'active' ? m.statusLive : '';
 
   return (
     <div className={m.shell}>

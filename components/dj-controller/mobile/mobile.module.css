@@ -44,7 +44,6 @@
   flex-shrink: 0;
 }
 .statusLive { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2); }
-.statusDraft { background: #fbbf24; }
 
 .sessionText {
   flex: 1;

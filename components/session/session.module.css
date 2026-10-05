@@ -1,0 +1,105 @@
+/* Shared pieces of the session pages: New event, Plan the set, Your events. */
+
+/* ── Music source picker ── */
+.sources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 13px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.13s, border-color 0.13s;
+}
+.source:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); }
+
+.sourceSelected,
+.sourceSelected:hover {
+  background: rgba(138,92,255,0.15);
+  border-color: rgba(138,92,255,0.6);
+}
+
+.sourceTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sourceName {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.sourceDesc {
+  font-size: 0.74rem;
+  color: rgba(255,255,255,0.45);
+}
+
+.sourceSoon,
+.sourceSoon:hover {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.08);
+}
+
+.sourceBadges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.sourceComingSoon,
+.sourceIncluded,
+.sourcePrice {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.sourceComingSoon { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+.sourceIncluded { background: rgba(52,211,153,0.12); color: #6ee7b7; }
+.sourcePrice { background: rgba(251,191,36,0.14); color: #fcd34d; }
+
+/* ── Charge summary ── */
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.summaryLine {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryTotal {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  color: #fff;
+  font-weight: 700;
+}
+
+.error {
+  font-size: 0.8rem;
+  color: #f87171;
+  margin: 0;
+}

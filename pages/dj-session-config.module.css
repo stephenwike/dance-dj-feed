@@ -117,24 +117,16 @@
 .btn:hover:not(:disabled) { background: #7c3aed; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
-.btnSecondary {
-  width: 100%;
-  padding: 11px;
-  background: transparent;
-  color: rgba(255,255,255,0.55);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
-  font-size: 0.88rem;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-.btnSecondary:hover:not(:disabled) { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.28); }
-.btnSecondary:disabled { opacity: 0.4; cursor: default; }
-
 .error {
   font-size: 0.8rem;
   color: #f87171;
   margin: 0;
 }
+
+.hintCenter {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.4);
+  text-align: center;
+  margin-top: -12px;
+}
+

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import useSWR from 'swr';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { PARTNER_STYLES, diffColor } from './utils';
@@ -27,7 +27,19 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
   const [durationMin, setDurationMin] = useState(DEFAULT_DURATION_MIN);
 
   const [adding, setAdding] = useState(false);
-  const [recentlyAdded, setRecentlyAdded] = useState(null);
+  // "✓ … added to queue": a toast over the page, so the form stays ready for
+  // the next dance. `id` restarts the toast when dances are added quickly.
+  const [toast, setToast] = useState(null); // { id, text }
+  const toastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+  function showAdded(text) {
+    clearTimeout(toastTimer.current);
+    setToast({ id: Date.now(), text });
+    toastTimer.current = setTimeout(() => setToast(null), 2500);
+  }
+  // Back to the first field after adding, to type the next dance.
+  const lineNameRef = useRef(null);
+  const partnerStyleRef = useRef(null);
 
   // Catalog for line dance suggestions
   const { data: catalogDances = [] } = useSWR('/api/dj/dances', fetcher, { revalidateOnFocus: false, dedupingInterval: 60_000 });
@@ -133,9 +145,9 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       ...(catalogSelected?.stepsheet && { stepsheet: catalogSelected.stepsheet }),
     });
     if (ok) {
-      setRecentlyAdded(lineName.trim());
+      showAdded(lineName.trim());
       clearLine();
-      setTimeout(() => setRecentlyAdded(null), 2500);
+      lineNameRef.current?.focus();
       mutate();
     }
   }
@@ -154,13 +166,12 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
       catalogTrackId: partnerTrack?.id ?? null,
     });
     if (ok) {
-      const label = styleTrimmed ? `Partner — ${styleTrimmed}` : 'Partner Dance';
-      setRecentlyAdded(label);
+      showAdded(styleTrimmed ? `Partner — ${styleTrimmed}` : 'Partner Dance');
       setPartnerStyle('');
       setPartnerSong('');
       setPartnerArtist('');
       setPartnerTrack(null);
-      setTimeout(() => setRecentlyAdded(null), 2500);
+      partnerStyleRef.current?.focus();
       mutate();
     }
   }
@@ -189,20 +200,21 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
         </div>
 
         {/* Success flash */}
-        {recentlyAdded && (
-          <div className={styles.djAddSuccess}>
-            ✓ {recentlyAdded} added to queue
+        {toast && (
+          <div key={toast.id} className={styles.djAddToast} role="status" aria-live="polite">
+            ✓ {toast.text} added to queue
           </div>
         )}
 
         {/* ── Line Dance tab ── */}
-        {type === 'line' && !recentlyAdded && (
+        {type === 'line' && (
           <div className={styles.djAddPartnerForm}>
             <SuggestField
               label="Dance Name"
               field="danceName"
               placeholder="Search dances or songs, or type a name…"
               value={lineName}
+              inputRef={lineNameRef}
               onChange={v => { setLineName(v); setCatalogSelected(null); }}
               danceMatches={nameMatches}
               suggestionsEnabled={!picked}
@@ -274,7 +286,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
         )}
 
         {/* ── Partner Dance tab ── */}
-        {type === 'partner' && !recentlyAdded && (
+        {type === 'partner' && (
           <div className={styles.djAddPartnerForm}>
             <p className={styles.djAddPartnerHint}>
               Specify a style and/or song, or leave blank to add a generic partner dance.
@@ -284,6 +296,7 @@ export default function DJAddPanel({ activeSession, nextQueuePos, mutate }) {
             <div className={styles.djAddFieldWrap}>
               <input
                 className={styles.djAddSearch}
+                ref={partnerStyleRef}
                 placeholder="e.g. Two-Step, Waltz, Swing…"
                 value={partnerStyle}
                 onChange={e => setPartnerStyle(e.target.value)}

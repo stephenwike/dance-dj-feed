@@ -21,9 +21,19 @@ DJs pay for an event session when they start an event. Sessions are time-limited
 
 Running sessions can be extended at **$1.00 per additional hour**.
 
-## Plugins / integrations
+## Music sources (plugins) and add-ons
 
-Sessions can be created with the `standard` or `spotify` plugin. The Spotify plugin enables Spotify playback integration (requires the DJ to have a Spotify Premium account).
+**Last updated:** 2026-10-04
+
+Standard and Local Files are included with every session. Other integrations are **paid add-ons**, charged as a **flat fee per session** whatever its length. Spotify (it needs a Spotify Premium account) and Apple Music are the first ones, both **$1.00 for now** and marked **Coming soon**: shown but not selectable until they're ready (`lib/dj/musicSources.js`). Prices are in `lib/dj/sessionAddOns.js`.
+
+- **Chosen when creating the event:** charged at launch as a separate line item.
+- **Added mid-event:** bought from the controller's Music Source picker, by card or wallet.
+- **Once bought:** the session can switch to and from the add-on freely, and extensions don't charge it again.
+- **Included sources:** the DJ can always switch back to one.
+- **Wallet prices:** the price minus the Stripe fee, the same rule as session tiers.
+
+See `specs/session-start.md` for the flow and the server-side checks.
 
 ## Revenue model
 

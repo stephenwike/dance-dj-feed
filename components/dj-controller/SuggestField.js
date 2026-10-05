@@ -19,7 +19,7 @@ const MATCHED_ON_LABEL = { danceName: 'dance name match', songName: 'song match'
 export default function SuggestField({
   label, optional = false, value, onChange, placeholder, field,
   danceMatches = [], onPickDance, onPickSong, suggestionsEnabled = true,
-  labelClassName = styles.djAddLabel, inputClassName = styles.djAddSearch, autoFocus = false,
+  labelClassName = styles.djAddLabel, inputClassName = styles.djAddSearch, autoFocus = false, inputRef,
 }) {
   const [focused, setFocused] = useState(false);
   const open = focused && suggestionsEnabled;
@@ -37,6 +37,7 @@ export default function SuggestField({
       </label>
       <div className={styles.djAddFieldWrap}>
         <input
+          ref={inputRef}
           className={inputClassName}
           placeholder={placeholder}
           autoFocus={autoFocus}

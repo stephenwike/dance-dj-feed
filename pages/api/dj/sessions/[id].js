@@ -6,6 +6,9 @@ import { normalizeSession } from '../../../../lib/server/dj/reportLogic';
 import { makeSlug } from '../../../../lib/server/dj/sessionLogic';
 import { toObjectId, exactCaseInsensitive } from '../../../../lib/server/db';
 import { SESSION_PLUGINS } from '../../../../lib/dj/sessionPricing';
+import { sessionHasPlugin, addOnFor } from '../../../../lib/dj/sessionAddOns';
+import { djPays } from '../../../../lib/server/dj/sessionAccess';
+import { isAvailable } from '../../../../lib/dj/musicSources';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -44,9 +47,8 @@ export default async function handler(req, res) {
     const { status, name, durationMinutes, partnerDancesEnabled, tippingEnabled, requestsEnabled, weightDecayEnabled, weightDecayHalfLifeMinutes, fairnessScoringEnabled, queueVisibleToRequesters, queueVisibleCount, feedAspectRatio, feedTemplateId, feedAppliedAt, plugin } = req.body ?? {};
     const set = {};
 
-    if (plugin !== undefined) {
-      if (!SESSION_PLUGINS.includes(plugin)) return res.status(400).json({ error: 'Invalid plugin' });
-      set.plugin = plugin;
+    if (plugin !== undefined && !SESSION_PLUGINS.includes(plugin)) {
+      return res.status(400).json({ error: 'Invalid plugin' });
     }
 
     if (name !== undefined) {
@@ -65,8 +67,21 @@ export default async function handler(req, res) {
 
     // Only the filter below matters for writes, but status transitions depend
     // on the current state, so load it first.
-    const current = await col.findOne({ _id: objId, ownerId: userId }, { projection: { status: 1, startedAt: 1 } });
+    const current = await col.findOne({ _id: objId, ownerId: userId }, { projection: { status: 1, startedAt: 1, addOns: 1, plugin: 1 } });
     if (!current) return res.status(404).json({ error: 'Not found' });
+
+    // A paid music source must be bought for the session first
+    // (/api/dj/sessions/add-on). A draft may pick one: it's charged at launch.
+    if (plugin !== undefined) {
+      // A coming-soon source can't be newly chosen (a session already on it keeps it).
+      if (!isAvailable(plugin) && current.plugin !== plugin) {
+        return res.status(400).json({ error: 'That music source is coming soon' });
+      }
+      if (current.status !== 'draft' && !sessionHasPlugin(current, plugin) && await djPays(client, session.user.email)) {
+        return res.status(402).json({ error: `${addOnFor(plugin).label} is a paid add-on for this session`, addOn: addOnFor(plugin) });
+      }
+      set.plugin = plugin;
+    }
 
     if (status === 'closed') {
       set.status = 'closed';

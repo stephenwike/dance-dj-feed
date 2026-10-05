@@ -1,6 +1,6 @@
 import r from './LiveTab.module.css';
 import { Countdown, IconRestart, IconSkip, IconPause, IconPlay, IconRewind, IconFastFwd } from '../RemoteControl';
-import { trackTitle, trackSub } from './trackText';
+import { trackTitle, trackSub } from '../trackText';
 
 /**
  * Home tab on a phone — what the DJ needs on the dance floor: what's
@@ -20,12 +20,8 @@ export default function LiveTab({ ctl, pluginControls, onOpenPage, onShowQueue }
   if (!liveSession) {
     return (
       <div className={r.idle}>
-        <p className={r.empty}>
-          {ctl.workingSession?.status === 'draft'
-            ? 'This session is a draft. Start it from the session menu at the top to go live.'
-            : 'No session is live. Start one to take requests and play music.'}
-        </p>
-        <a className={r.start} href="/start">▶ Start an event</a>
+        <p className={r.empty}>No event is live. Go live to take requests and play music.</p>
+        <a className={r.start} href="/start">▶ Your events</a>
       </div>
     );
   }

@@ -1,289 +1,160 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './start.module.css';
 import AppCard from '../components/AppCard';
 import { SESSION_DURATIONS_BY_MINUTES } from '../lib/dj/sessionPricing';
+import { musicSource } from '../lib/dj/musicSources';
 
-const CONTROLLER_PATH = '/dj-controller';
-const SETUP_PATH = (sessionId) => `/dj-setup?sessionId=${sessionId}`;
+const NEW_EVENT_PATH = '/dj-session-config';
 
-function formatDur(minutes) {
-  if (!minutes) return null;
-  return minutes % 60 === 0 ? `${minutes / 60}h` : `${minutes}m`;
-}
-
+/**
+ * Your events: live events (open the controller), events not started yet
+ * (edit, plan the set, start the session, delete), recent events (reports),
+ * and + New event. ?event=<id> highlights an event just created.
+ */
 export default function StartPage() {
   const router = useRouter();
-  const [activeSession, setActiveSession] = useState(undefined);
-  const [draftSessions, setDraftSessions] = useState(undefined);
-  const [recentSessions, setRecentSessions] = useState([]);
-  const [launchingId, setLaunchingId] = useState(null);
-  const [walletLaunchingId, setWalletLaunchingId] = useState(null);
-  const [walletBalance, setWalletBalance] = useState(null);
+  const [sessions, setSessions] = useState(undefined);
   const [error, setError] = useState('');
-  const [finishing, setFinishing] = useState(false);
-  const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
+  const createdId = typeof router.query.event === 'string' ? router.query.event : null;
 
   useEffect(() => {
-    if (paymentsEnabled) {
-      fetch('/api/dj/wallet').then(r => r.json()).then(d => setWalletBalance(d.balance ?? 0)).catch(() => {});
+    // Stripe used to return here after paying; the controller handles it now.
+    if (new URLSearchParams(window.location.search).get('session_started')) {
+      router.replace('/dj-controller?session_started=1');
+      return;
     }
-  }, [paymentsEnabled]);
-
-  useEffect(() => {
     fetch('/api/dj/sessions')
       .then(r => r.json())
-      .then(sessions => {
-        const list = Array.isArray(sessions) ? sessions : [];
-        setActiveSession(list.find(s => s.status === 'active') ?? null);
-        setDraftSessions(list.filter(s => s.status === 'draft'));
-        setRecentSessions(list.filter(s => s.status === 'closed' && s.startedAt).slice(0, 5));
-      })
-      .catch(() => { setActiveSession(null); setDraftSessions([]); });
+      .then(list => setSessions(Array.isArray(list) ? list : []))
+      .catch(() => setSessions([]));
   }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.get('session_started')) return;
-
-    window.history.replaceState({}, '', window.location.pathname);
-    setFinishing(true);
-
-    const startedAt = Number(sessionStorage.getItem('dj_session_checkout_started_at')) || 0;
-    sessionStorage.removeItem('dj_session_checkout_started_at');
-
-    let attempts = 0;
-    const poll = async () => {
-      attempts += 1;
-      try {
-        const res = await fetch('/api/dj/sessions');
-        const sessions = await res.json();
-        const active = Array.isArray(sessions)
-          ? sessions.find(s => s.status === 'active' && new Date(s.startedAt).getTime() >= startedAt - 5000)
-          : null;
-        if (active) { router.push(SETUP_PATH(active._id)); return; }
-      } catch { /* retry */ }
-      if (attempts < 5) setTimeout(poll, 2000);
-      else {
-        setFinishing(false);
-        setError('Your payment succeeded, but session setup is taking longer than expected. Refresh in a moment.');
-      }
-    };
-    poll();
-  }, [router]);
-
-  async function handleDeleteDraft(draftId) {
-    if (!window.confirm('Delete this pre-configured session? This cannot be undone.')) return;
+  async function handleDeleteDraft(draft) {
+    if (!window.confirm(`Delete the draft "${draft.name}" and its planned set? This cannot be undone.`)) return;
     try {
-      await fetch(`/api/dj/sessions/${draftId}`, {
+      await fetch(`/api/dj/sessions/${draft._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'closed' }),
       });
-      setDraftSessions(prev => prev.filter(d => d._id !== draftId));
+      setSessions(prev => prev.filter(s => s._id !== draft._id));
     } catch {
-      setError('Failed to delete session. Try again.');
+      setError('Failed to delete the draft. Try again.');
     }
   }
 
-  async function handleWalletLaunch(draftId) {
-    setWalletLaunchingId(draftId);
-    setError('');
-    try {
-      const res = await fetch('/api/dj/sessions/wallet-pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ draftSessionId: draftId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Wallet payment failed'); return; }
-      if (data.session) { router.push(SETUP_PATH(data.session._id)); return; }
-      setError('Unexpected response from server');
-    } catch {
-      setError('Something went wrong. Check your connection.');
-    } finally {
-      setWalletLaunchingId(null);
-    }
-  }
-
-  async function handleLaunch(draftId) {
-    setLaunchingId(draftId);
-    setError('');
-    try {
-      const res = await fetch('/api/dj/sessions/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ returnUrl: window.location.href, draftSessionId: draftId }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Failed to launch session'); return; }
-      if (data.url) {
-        sessionStorage.setItem('dj_session_checkout_started_at', String(Date.now()));
-        window.location.href = data.url;
-        return;
-      }
-      if (data.session) { router.push(SETUP_PATH(data.session._id)); return; }
-      setError('Unexpected response from server');
-    } catch {
-      setError('Something went wrong. Check your connection.');
-    } finally {
-      setLaunchingId(null);
-    }
-  }
-
-  const loading = activeSession === undefined || draftSessions === undefined;
-  const hasSessions = activeSession || (draftSessions?.length > 0);
+  const live = sessions?.filter(s => s.status === 'active') ?? [];
+  const drafts = sessions?.filter(s => s.status === 'draft') ?? [];
+  const recent = sessions?.filter(s => s.status === 'closed' && s.startedAt).slice(0, 5) ?? [];
 
   return (
     <>
-      <Head><title>Start an Event</title></Head>
+      <Head><title>Your Events</title></Head>
       <AppCard leftHref="/my-account" leftLabel="My Account">
-          <div className={styles.logo}>🎛️</div>
-          <h1 className={styles.title}>Start an Event</h1>
+        <div className={styles.logo}>🎛️</div>
+        <h1 className={styles.title}>Your events</h1>
 
-          {finishing ? (
-            <div className={styles.finishing}>
-              <span className={styles.finishingSpinner} />
-              <p>Finishing setup…</p>
-            </div>
-          ) : loading ? (
-            <p className={styles.sub}>Loading…</p>
-          ) : (
-            <>
-              {hasSessions && (
-                <div className={styles.sessionList}>
-                  {activeSession && (
-                    <div className={`${styles.sessionCard} ${styles.sessionCardLive}`}>
-                      <div className={styles.sessionCardLeft}>
-                        <span className={styles.liveDot} />
-                        <div className={styles.sessionCardText}>
-                          <span className={styles.sessionCardName}>{activeSession.name}</span>
-                          <span className={styles.sessionCardSub}>Live</span>
-                        </div>
+        {sessions === undefined ? (
+          <p className={styles.sub}>Loading…</p>
+        ) : (
+          <>
+            {(live.length > 0 || drafts.length > 0) && (
+              <div className={styles.eventList}>
+                {live.map(s => (
+                  <div key={s._id} className={styles.eventCard}>
+                    <div className={styles.eventInfo}>
+                      <span className={styles.liveDot} />
+                      <div className={styles.eventText}>
+                        <span className={styles.eventName}>{s.name}</span>
+                        <span className={`${styles.eventMeta} ${styles.eventMetaLive}`}>Live · {musicSource(s.plugin).label}</span>
                       </div>
-                      <button
-                        type="button"
-                        className={styles.sessionCardAction}
-                        onClick={() => router.push(CONTROLLER_PATH)}
-                      >
-                        Continue →
-                      </button>
                     </div>
-                  )}
+                    <div className={styles.eventActions}>
+                      <Link href={`/dj-controller?session=${s._id}`} className={styles.actionPrimary}>Open controller →</Link>
+                    </div>
+                  </div>
+                ))}
 
-                  {draftSessions.map(d => {
-                    const dur = formatDur(d.durationMinutes);
-                    const isLaunching = launchingId === d._id;
-                    return (
-                      <div key={d._id} className={`${styles.sessionCard} ${styles.sessionCardDraft} ${styles.sessionCardStacked}`}>
-                        {/* Top row: what the draft is, with its small tools. */}
-                        <div className={styles.sessionCardTop}>
-                          <div className={styles.sessionCardLeft}>
-                            <span className={styles.draftDot} />
-                            <div className={styles.sessionCardText}>
-                              <span className={styles.sessionCardName}>{d.name}</span>
-                              <span className={styles.sessionCardSub}>
-                                {dur ? `Pre-configured · ${dur}` : 'Pre-configured · no duration set'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className={styles.sessionCardTools}>
-                            <button
-                              type="button"
-                              className={styles.sessionCardEdit}
-                              onClick={() => router.push(`/dj-session-config?id=${d._id}`)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.sessionCardDelete}
-                              onClick={() => handleDeleteDraft(d._id)}
-                              aria-label="Delete"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                        {/* Second row: the ways to launch it, full width. */}
-                        {dur && (() => {
-                          const tier = SESSION_DURATIONS_BY_MINUTES[d.durationMinutes];
-                          const walletPrice = tier?.walletPriceCents;
-                          const savings = tier ? tier.priceCents - tier.walletPriceCents : 0;
-                          const canWallet = paymentsEnabled && walletBalance !== null && walletPrice !== undefined && walletBalance >= walletPrice;
-                          const isWalletLaunching = walletLaunchingId === d._id;
-                          return (
-                            <div className={styles.sessionCardLaunch}>
-                              {paymentsEnabled && walletPrice !== undefined && (
-                                <button
-                                  type="button"
-                                  className={styles.btnWallet}
-                                  onClick={() => handleWalletLaunch(d._id)}
-                                  disabled={!canWallet || isWalletLaunching || isLaunching}
-                                  title={canWallet ? `Save $${(savings / 100).toFixed(2)} vs. Stripe` : walletBalance !== null ? 'Insufficient wallet balance' : 'Loading balance…'}
-                                >
-                                  {isWalletLaunching ? '…' : `Wallet $${(walletPrice / 100).toFixed(2)}`}
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                className={styles.btnLaunch}
-                                onClick={() => handleLaunch(d._id)}
-                                disabled={isLaunching || isWalletLaunching}
-                              >
-                                {isLaunching ? '…' : '▶ Launch'}
-                              </button>
-                            </div>
-                          );
-                        })()}
+                {drafts.map(d => (
+                  <DraftCard
+                    key={d._id}
+                    draft={d}
+                    justCreated={d._id === createdId}
+                    onDelete={() => handleDeleteDraft(d)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {error && <p className={styles.error}>{error}</p>}
+
+            <button type="button" className={styles.btnCreate} onClick={() => router.push(NEW_EVENT_PATH)}>
+              + New event
+            </button>
+
+            {recent.length > 0 && (
+              <div className={styles.recentSessions}>
+                <p className={styles.recentSessionsLabel}>Recent events</p>
+                {recent.map(s => {
+                  const ms = s.closedAt ? new Date(s.closedAt) - new Date(s.startedAt) : null;
+                  const dur = ms ? (() => {
+                    const h = Math.floor(ms / 3600000);
+                    const m = Math.floor((ms % 3600000) / 60000);
+                    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                  })() : null;
+                  return (
+                    <div key={s._id} className={styles.recentSessionRow}>
+                      <div className={styles.recentSessionInfo}>
+                        <span className={styles.recentSessionName}>{s.name}</span>
+                        <span className={styles.recentSessionMeta}>
+                          {new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {dur && ` · ${dur}`}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {error && <p className={styles.error}>{error}</p>}
-
-              <button
-                type="button"
-                className={styles.btnCreate}
-                onClick={() => router.push('/dj-session-config')}
-              >
-                + Create New Session
-              </button>
-
-              {recentSessions.length > 0 && (
-                <div className={styles.recentSessions}>
-                  <p className={styles.recentSessionsLabel}>Recent sessions</p>
-                  {recentSessions.map(s => {
-                    const ms = s.closedAt ? new Date(s.closedAt) - new Date(s.startedAt) : null;
-                    const dur = ms ? (() => {
-                      const h = Math.floor(ms / 3600000);
-                      const m = Math.floor((ms % 3600000) / 60000);
-                      return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                    })() : null;
-                    return (
-                      <div key={s._id} className={styles.recentSessionRow}>
-                        <div className={styles.recentSessionInfo}>
-                          <span className={styles.recentSessionName}>{s.name}</span>
-                          <span className={styles.recentSessionMeta}>
-                            {new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            {dur && ` · ${dur}`}
-                          </span>
-                        </div>
-                        <Link href={`/reports?session=${s._id}`} className={styles.recentSessionLink}>
-                          Report →
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
+                      <Link href={`/reports?session=${s._id}`} className={styles.recentSessionLink}>
+                        Report →
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </AppCard>
     </>
+  );
+}
+
+/**
+ * An event that isn't live yet, on one line: name and details (with Edit,
+ * which reopens the event form, and Delete), then Plan set and Start.
+ */
+function DraftCard({ draft, justCreated, onDelete }) {
+  const tier = SESSION_DURATIONS_BY_MINUTES[draft.durationMinutes];
+  const ref = useRef(null);
+  useEffect(() => { if (justCreated) ref.current?.scrollIntoView({ block: 'center' }); }, [justCreated]);
+
+  return (
+    <div ref={ref} className={styles.eventCard}>
+      <div className={styles.eventInfo}>
+        <span className={styles.idleDot} />
+        <div className={styles.eventText}>
+          <span className={styles.eventName}>{draft.name}</span>
+          <span className={styles.eventMeta}>
+            {justCreated ? 'Created' : 'Not started'} · {tier ? tier.label : 'no length'} · {musicSource(draft.plugin).label}
+            {' · '}<Link href={`${NEW_EVENT_PATH}?id=${draft._id}`} className={styles.metaLink}>Edit</Link>
+            {' · '}<button type="button" className={styles.metaLink} onClick={onDelete}>Delete</button>
+          </span>
+        </div>
+      </div>
+      <div className={styles.eventActions}>
+        <Link href={`/dj-plan?id=${draft._id}`} className={styles.actionBtn}>Plan set</Link>
+        <Link href={`/dj-start-session?id=${draft._id}`} className={styles.actionPrimary}>▶ Start</Link>
+      </div>
+    </div>
   );
 }

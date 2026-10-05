@@ -2,6 +2,7 @@ import styles from '../../../pages/dj-controller/dj-controller.module.css';
 import { SpotifyAdapter } from '../../../lib/client/dj/controllerAdapters';
 import { useSpotifyPlugin } from '../../../lib/client/dj/plugins/useSpotifyPlugin';
 import { SpotifyPanel, SpotifySearch } from '../SpotifyComponents';
+import { musicSource } from '../../../lib/dj/musicSources';
 
 /** Spotify transport, Start Queue, and the now-playing card. */
 function SpotifyPlayer({ runtime, controller }) {
@@ -60,8 +61,8 @@ function SpotifySidebarStatus({ runtime }) {
 
 export default {
   id: 'spotify',
-  label: 'Spotify',
-  description: 'Play through your Spotify account; the queue follows Spotify',
+  label: musicSource('spotify').label,
+  description: musicSource('spotify').description,
   adapter: SpotifyAdapter,
   useRuntime: useSpotifyPlugin,
   slots: {

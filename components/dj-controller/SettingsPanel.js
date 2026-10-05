@@ -17,7 +17,7 @@ export default function SettingsPanel({
   cycleDecay, decayLabel,
   queueVisibleToRequesters, toggleQueueVisibility,
   queueVisibleCount, setQueueVisibleCount,
-  pluginId, setPlugin, pluginLocked,
+  pluginId, setPlugin, buyAddOn, pluginLocked,
 }) {
   return (
     <div className={styles.panel}>
@@ -29,7 +29,7 @@ export default function SettingsPanel({
           <p className={styles.empty}>Start a session to configure settings.</p>
         ) : (
           <>
-            <PluginPicker pluginId={pluginId} onSelect={setPlugin} locked={pluginLocked} />
+            <PluginPicker pluginId={pluginId} onSelect={setPlugin} onBuy={buyAddOn} session={activeSession} locked={pluginLocked} />
 
             <div className={styles.settingRow}>
               <div className={styles.settingInfo}>

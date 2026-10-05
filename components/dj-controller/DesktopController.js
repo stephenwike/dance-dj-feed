@@ -66,7 +66,6 @@ export default function DesktopController({ ctl }) {
         liveSessions={ctl.liveSessions}
         selectSession={ctl.selectSession}
         closeSession={() => ctl.closeSession()}
-        discardDraft={ctl.discardDraft}
         timeState={ctl.timeState}
         countdown={ctl.countdown}
       />
@@ -217,7 +216,7 @@ export function settingsPanelProps(ctl) {
     cycleDecay: ctl.cycleDecay, decayLabel: ctl.decayLabel,
     queueVisibleToRequesters: ctl.queueVisibleToRequesters, toggleQueueVisibility: ctl.toggleQueueVisibility,
     queueVisibleCount: ctl.queueVisibleCount, setQueueVisibleCount: ctl.setQueueVisibleCount,
-    pluginId: ctl.plugin.id, setPlugin: ctl.setPlugin, pluginLocked: ctl.playing.length > 0,
+    pluginId: ctl.plugin.id, setPlugin: ctl.setPlugin, buyAddOn: ctl.buyAddOn, pluginLocked: ctl.playing.length > 0,
   };
 }
 
