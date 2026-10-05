@@ -7,6 +7,7 @@ import { isFreeSessionEmail } from '../../../../lib/server/dj/sessionAccess';
 import { getSessionTimeState } from '../../../../lib/dj/sessionTimeState';
 import { EXTENSION_PRICE_CENTS_PER_HOUR } from '../../../../lib/dj/sessionPricing';
 import { getWalletBalance, withWalletLock } from '../../../../lib/server/wallet';
+import { safeReturnUrl } from '../../../../lib/server/safeReturnUrl';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -18,6 +19,8 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
   const { sessionId, hours } = req.body ?? {};
+  // Where Stripe returns to: the controller, on the address the DJ is using.
+  const controllerUrl = `${req.body?.origin ?? ''}/dj-controller`;
   const h = Number(hours);
   if (!sessionId || !h || h < 1 || h > 12) {
     return res.status(400).json({ error: 'Invalid sessionId or hours (1-12)' });
@@ -124,8 +127,8 @@ export default async function handler(req, res) {
       hours: String(h),
       ownerId: userId,
     },
-    success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dj-controller?extension_success=1`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dj-controller`,
+    success_url: `${safeReturnUrl(controllerUrl, req)}?extension_success=1`,
+    cancel_url: safeReturnUrl(controllerUrl, req),
   });
 
   return res.status(200).json({ url: checkoutSession.url });

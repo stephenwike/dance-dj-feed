@@ -97,7 +97,10 @@ export default function WalletPanel({ connectNotice }) {
   async function startOnboarding() {
     setOnboarding(true);
     try {
-      const res = await fetch('/api/dj/connect/onboard', { method: 'POST' });
+      const res = await fetch('/api/dj/connect/onboard', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin: window.location.origin }),
+      });
       const { url } = await res.json();
       if (url) window.location.href = url;
     } finally {

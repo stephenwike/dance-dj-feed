@@ -2,6 +2,7 @@ import Stripe from 'stripe';
 import clientPromise, { DB_NAME } from '../../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../../lib/server/authOptions';
+import { safeReturnUrl } from '../../../../lib/server/safeReturnUrl';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -33,11 +34,12 @@ export default async function handler(req, res) {
     );
   }
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL;
+  // Back to the controller, on the address the DJ is using.
+  const controller = safeReturnUrl(`${req.body?.origin ?? ''}/dj-controller`, req);
   const accountLink = await stripe.accountLinks.create({
     account: stripeAccountId,
-    refresh_url: `${base}/dj-controller?connect_refresh=1`,
-    return_url:  `${base}/dj-controller?connect_success=1`,
+    refresh_url: `${controller}?connect_refresh=1`,
+    return_url:  `${controller}?connect_success=1`,
     type: 'account_onboarding',
   });
 
