@@ -65,10 +65,10 @@ function fixture() {
       { sessionId: String(S2), ownerId: 'host', clientId: 'host', requesterName: 'Me', sessionDate: day(24), requests: [] },
       { sessionId: String(OTHER), ownerId: 'someone-else', clientId: 'pat', sessionDate: day(12), requests: [] },
     ],
-    'djfeed.user_profiles': [
-      { id: 'pat', name: 'Pat Doe', email: 'pat@example.com' },
-      { id: 'sam', name: 'Sam Roe', email: 'sam@example.com' },
-      { id: 'host', name: 'The Host', email: 'host@example.com' },
+    'ldco.users': [
+      { _id: 'pat', name: 'Pat Doe', email: 'pat@example.com' },
+      { _id: 'sam', name: 'Sam Roe', email: 'sam@example.com' },
+      { _id: 'host', name: 'The Host', email: 'host@example.com' },
     ],
   });
 }

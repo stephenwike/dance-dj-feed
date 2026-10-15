@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
-import { exactCaseInsensitive } from '../../../lib/server/db';
+import { findAccountByEmail, findAccountById } from '../../../lib/server/ldco/users';
 import { getWalletBalance, withWalletLock } from '../../../lib/server/wallet';
 import { BEAT_VALUE_CENTS } from '../../../lib/beats/constants';
 
@@ -21,15 +21,12 @@ export default async function handler(req, res) {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
 
-  const recipient = await db.collection('user_profiles').findOne(
-    { email: exactCaseInsensitive(recipientEmail.trim()) },
-    { projection: { id: 1, name: 1 } }
-  );
+  const recipient = await findAccountByEmail(client, recipientEmail.trim());
   if (!recipient) return res.status(404).json({ error: 'No registered user found with that email' });
   if (recipient.id === djId) return res.status(400).json({ error: 'Cannot gift beats to yourself' });
 
   // Look up DJ's registered name for the notification
-  const djProfile = await db.collection('user_profiles').findOne({ id: djId }, { projection: { name: 1 } });
+  const djProfile = await findAccountById(client, djId);
   const djName = djProfile?.name || 'The DJ';
   const giftMessage = message?.trim() || null;
   const costCents = beats * BEAT_VALUE_CENTS;

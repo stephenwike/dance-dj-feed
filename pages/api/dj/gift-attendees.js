@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
+import { findAccountsByEmails, findAccountsByIds } from '../../../lib/server/ldco/users';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -24,15 +25,13 @@ export default async function handler(req, res) {
     .toArray();
   const senderEmails = [...new Set(directTips.map(t => t.senderEmail).filter(Boolean).map(e => e.toLowerCase()))];
 
-  // Look up user_profiles matching either set
-  const query = [];
-  if (attendeeIds.length) query.push({ id: { $in: attendeeIds } });
-  if (senderEmails.length) query.push({ email: { $in: senderEmails } });
-  if (!query.length) return res.status(200).json({ attendees: [] });
+  // Look up accounts matching either set
+  if (!attendeeIds.length && !senderEmails.length) return res.status(200).json({ attendees: [] });
 
-  const profiles = await db.collection('user_profiles')
-    .find({ $or: query }, { projection: { id: 1, name: 1, email: 1 } })
-    .toArray();
+  const profiles = [
+    ...(await findAccountsByIds(client, attendeeIds)),
+    ...(await findAccountsByEmails(client, senderEmails)),
+  ];
 
   // Deduplicate by id, exclude the DJ themselves
   const seen = new Set();
