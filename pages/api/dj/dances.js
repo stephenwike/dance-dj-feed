@@ -20,6 +20,8 @@ export default async function handler(req, res) {
     .map(d => {
       // primaryTrack is the canonical FK; fall back to first track if missing
       const track = trackMap[d.primaryTrack] ?? trackMap[d.tracks?.[0]] ?? null;
+      // Dances without a matched track keep their scraped song in songArtists
+      const songArtist = track ? null : d.songArtists?.[0] ?? null;
 
       return {
         id: String(d._id),
@@ -27,8 +29,8 @@ export default async function handler(req, res) {
         difficulty: d.difficulty ?? '',
         stepsheet: d.stepsheet ?? '',
         primaryTrack: d.primaryTrack ?? '',
-        songName: track?.name ?? '',
-        artist: Array.isArray(track?.artists) ? track.artists.join(', ') : '',
+        songName: track?.name ?? songArtist?.song ?? '',
+        artist: Array.isArray(track?.artists) ? track.artists.join(', ') : songArtist?.artist ?? '',
         duration_ms: track?.duration_ms ?? null,
         spotifyUri: track?.uri ?? null,
         choreographers: (d.choreographers ?? [])

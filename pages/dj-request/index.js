@@ -280,6 +280,19 @@ export default function DJRequestPage({
   const liveSession = requestsData?.session ?? null;
   const effectivelyEnded = sessionEnded || (!!liveSession && liveSession.status !== 'active');
   const sessionActive = !!sessionId && !effectivelyEnded;
+
+  // A signed-in dancer with a host's live event open is dancing with that
+  // host: record it once per page load (lib/server/ldco/hostDancers.js).
+  const attendedRef = useRef(null);
+  useEffect(() => {
+    if (!isSignedIn || !sessionActive || attendedRef.current === sessionId) return;
+    attendedRef.current = sessionId;
+    fetch('/api/dancer/attend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => { attendedRef.current = null; });
+  }, [isSignedIn, sessionActive, sessionId]);
   const djId = djIdProp;
   const paymentsEnabled = process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
   const tippingEnabled = paymentsEnabled && (liveSession ? liveSession.tippingEnabled : (tippingEnabledProp ?? true));

@@ -2,6 +2,7 @@ import clientPromise, { DB_NAME } from '../../../lib/server/mongodb';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../../lib/server/authOptions';
 import { toObjectId } from '../../../lib/server/db';
+import { findAccountsByIds } from '../../../lib/server/ldco/users';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -67,9 +68,7 @@ export default async function handler(req, res) {
       }
 
       // Direct tips to this DJ (by email → profile lookup)
-      const profiles = await db.collection('user_profiles')
-        .find({ id: { $in: clientIds } }, { projection: { id: 1, name: 1, email: 1 } })
-        .toArray();
+      const profiles = await findAccountsByIds(client, clientIds);
 
       const registeredEmails = profiles.map(p => p.email?.toLowerCase()).filter(Boolean);
       let directTipTotals = {};

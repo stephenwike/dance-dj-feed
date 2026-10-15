@@ -4,6 +4,7 @@ import { markWebhookReceived } from '../../../lib/server/stripeHealth';
 import { claimStripeEvent, releaseStripeEvent } from '../../../lib/server/stripeEvents';
 import { createSession, activateDraftSession, addSessionAddOn } from '../../../lib/server/dj/sessionLogic';
 import { toObjectId } from '../../../lib/server/db';
+import { findAccountByEmail } from '../../../lib/server/ldco/users';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -34,9 +35,7 @@ async function handleDirectTip(db, checkoutSession) {
   const tipAmountCents = parseInt(amountCents, 10);
 
   // Prefer the registered profile name over whatever Stripe captured at checkout
-  const profile = senderEmail
-    ? await db.collection('user_profiles').findOne({ email: senderEmail.toLowerCase() }, { projection: { name: 1 } })
-    : null;
+  const profile = await findAccountByEmail(await clientPromise, senderEmail);
   const senderName = profile?.name || stripeName;
   const now = new Date();
 
