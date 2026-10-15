@@ -133,15 +133,6 @@ Both collections are in the shared **`ldco`** database, keyed by the shared acco
 
 Reloading only moves `lastSeenAt`; `sessionCount` counts each event once. The indexes are created the first time the endpoint is used.
 
-### Linking dancers from past events
-
-For events from before live links, a host can link dancers after the fact on **Link past dancers** (`/dj-link-dancers`, linked from Your events → Recent events). The logic is in `lib/server/dj/dancerLinks.js` and the API is `/api/dj/dancer-links`.
-1. **Choose events:** the host's own closed events, each showing its date, how many signed-in dancers and guests requested there, and how many are already linked. Events with no signed-in dancers can't be ticked. **Select all** is available.
-2. **Find dancers:** the signed-in dancers who requested at those events, with name and email (from `user_profiles`), how many of the events they were at, and **Linked** if already linked. All are ticked by default.
-3. **Link n dancers:** writes the same `session_attendance` and `host_dancers` records as live links, dated to the dancer's first request at each event. Dates only widen (first seen keeps the earliest, last seen the latest), and each event counts once, so running it again changes nothing.
-
-**Where the data comes from:** each past event's `requester_history` (written when it closed: one entry per requester per event). A signed-in dancer's requester id is their account id; guests ("anon_…") can't be linked, and the page says how many there were. Page visits weren't recorded before live links, so only dancers who made a request are found. Events closed before `requester_history` existed won't show any dancers. A host can only link from their own events, and never links themselves.
-
 **For the manager:** "what my dancers want to learn" is `host_dancers` (hostId = the instructor's account id) joined to `user_flagged_dances` by `userId`, grouped by `danceId`.
 
 ## API
@@ -153,9 +144,6 @@ For events from before live links, a host can link dancers after the fact on **L
 | `POST` | `/api/dancer/marks` | `{ danceId, kind: 'learned' }` | `{ danceId, learned: true }`: off the wishlist, known, no refresh |
 | `POST` | `/api/dancer/marks` | `{ trackId, kind: 'song', on }` | `{ trackId, kind, on }`; `404` for a song not in the catalog |
 
-| `GET` | `/api/dj/dancer-links` | — | `{ sessions: [{ id, name, date, dancers, guests, linked }] }`: the host's past events |
-| `POST` | `/api/dj/dancer-links` | `{ action: 'preview', sessionIds }` | `{ dancers: [{ userId, name, email, sessions, linked }], guests }` |
-| `POST` | `/api/dj/dancer-links` | `{ action: 'link', sessionIds, userIds }` | `{ dancers, newLinks, events }` |
 | `POST` | `/api/dancer/attend` | `{ sessionId }` | `{ recorded, firstVisit }`: links the dancer to the live event's host; `404` if the event isn't live |
 
 All require sign-in (`401` otherwise). The client is `lib/client/dancer/useDanceMarks.js` and the UI is `components/dj-request/DanceMarks.js`.

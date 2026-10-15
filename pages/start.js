@@ -99,7 +99,6 @@ export default function StartPage() {
               <div className={styles.recentSessions}>
                 <div className={styles.recentSessionsHead}>
                   <p className={styles.recentSessionsLabel}>Recent events</p>
-                  <Link href="/dj-link-dancers" className={styles.recentSessionLink}>Link past dancers →</Link>
                 </div>
                 {recent.map(s => {
                   const ms = s.closedAt ? new Date(s.closedAt) - new Date(s.startedAt) : null;

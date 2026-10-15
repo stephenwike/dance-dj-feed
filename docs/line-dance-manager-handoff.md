@@ -13,8 +13,7 @@ Both apps sign in through the same LDCO auth server, so a user's id is the same 
 A **host** is the DJ or instructor who runs an event in the DJ Feed app. `hostId` is their account id: the same id as `instructors.userId` when the host is an instructor in the manager.
 
 ### When a link is recorded
-- **Live:** a signed-in dancer opens a host's live event on the DJ Feed requester page. Being on the page is the proof they were there. A host opening their own event isn't recorded; closed or old events aren't either.
-- **After the fact:** the host uses the DJ Feed's **Link past dancers** tool to link dancers who made requests (while signed in) at their past events.
+A signed-in dancer opens a host's live event on the DJ Feed requester page. Being on the page is the proof they were there. A host opening their own event isn't recorded; closed or old events aren't either.
 
 ### `session_attendance`: one document per dancer per event
 
@@ -48,7 +47,6 @@ A **host** is the DJ or instructor who runs an event in the DJ Feed app. `hostId
 **Rules the DJ Feed follows:**
 - Reloading only moves `lastSeenAt`.
 - `sessionCount` counts each event once.
-- Backfilled dates only widen: `firstSeenAt` keeps the earliest, `lastSeenAt` the latest.
 - Each host has their own row for the same dancer.
 
 **Ownership:** the DJ Feed app writes these two collections. **The manager should only read them.** If the manager needs to write them too (e.g. links from venue check-ins), please coordinate so the document shape and rules above stay the same in both apps.
@@ -132,7 +130,6 @@ The manager's mark routes (`/api/users/dance/{favorite,flagged,known,refresh}/{a
 
 ## Where to look in the DJ Feed repo
 
-- `lib/server/ldco/hostDancers.js`: live linking (`recordAttendance`), backfill (`backfillAttendance`), indexes.
-- `lib/server/dj/dancerLinks.js`: the "Link past dancers" tool (it reads `djfeed.requester_history`).
+- `lib/server/ldco/hostDancers.js`: live linking (`recordAttendance`) and indexes.
 - `lib/server/ldco/danceMarks.js`: favorite, wishlist, known and refresh writes, and the Learned and refresh rules.
 - `specs/dance-marks.md`: the full behavior.
