@@ -169,6 +169,15 @@
   padding-top: 16px;
 }
 
+.recentSessionsHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+.recentSessionsHead .recentSessionsLabel { margin: 0; }
+
 .recentSessionsLabel {
   font-size: 0.68rem;
   font-weight: 700;
