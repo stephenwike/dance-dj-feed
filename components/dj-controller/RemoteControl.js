@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../../pages/dj-controller/dj-controller.module.css';
 import { diffColor } from './utils';
+import { runsUntilSkipped } from '../../lib/client/dj/autoAdvance';
 
 /* ── SVG icons ── */
 export function IconRestart() {
@@ -66,10 +67,11 @@ export function IconRequeue() {
 }
 
 /* Countdown that works from playStartedAt + duration_ms */
-export function Countdown({ playStartedAt, duration_ms, paused, pausedAt }) {
+export function Countdown({ playStartedAt, duration_ms, paused, pausedAt, untilSkipped }) {
   const [remaining, setRemaining] = useState(null);
 
   useEffect(() => {
+    if (untilSkipped) return;
     function calc() {
       const total = duration_ms ?? 180_000;
       if (paused && pausedAt) {
@@ -81,8 +83,9 @@ export function Countdown({ playStartedAt, duration_ms, paused, pausedAt }) {
     if (paused) return;
     const iv = setInterval(() => setRemaining(calc()), 1000);
     return () => clearInterval(iv);
-  }, [playStartedAt, duration_ms, paused, pausedAt]);
+  }, [playStartedAt, duration_ms, paused, pausedAt, untilSkipped]);
 
+  if (untilSkipped) return <span className={styles.npCountdown}>Until skipped</span>;
   if (remaining === null) return null;
   const s = Math.floor(remaining / 1000);
   return (
@@ -200,6 +203,7 @@ export default function RemoteControl({ playing, queue, onAction, activeSession,
               <Countdown
                 playStartedAt={track.playStartedAt}
                 duration_ms={track.duration_ms}
+                untilSkipped={runsUntilSkipped(track)}
                 paused={isPaused}
                 pausedAt={track.pausedAt}
               />

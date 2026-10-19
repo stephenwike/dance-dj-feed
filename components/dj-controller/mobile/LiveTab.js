@@ -1,6 +1,7 @@
 import r from './LiveTab.module.css';
 import { Countdown, IconRestart, IconSkip, IconPause, IconPlay, IconRewind, IconFastFwd } from '../RemoteControl';
 import { trackTitle, trackSub } from '../trackText';
+import { runsUntilSkipped } from '../../../lib/client/dj/autoAdvance';
 
 /**
  * Home tab on a phone — what the DJ needs on the dance floor: what's
@@ -42,7 +43,7 @@ export default function LiveTab({ ctl, pluginControls, onOpenPage, onShowQueue }
             <span className={r.trackName}>{trackTitle(track)}</span>
             {trackSub(track) && <span className={r.trackSub}>{trackSub(track)}</span>}
             <span className={r.countdown}>
-              <Countdown playStartedAt={track.playStartedAt} duration_ms={track.duration_ms} paused={isPaused} pausedAt={track.pausedAt} />
+              <Countdown playStartedAt={track.playStartedAt} duration_ms={track.duration_ms} untilSkipped={runsUntilSkipped(track)} paused={isPaused} pausedAt={track.pausedAt} />
             </span>
           </section>
 

@@ -1,5 +1,5 @@
 'use strict';
-const { remainingMs } = require('../lib/client/dj/autoAdvance');
+const { remainingMs, runsUntilSkipped } = require('../lib/client/dj/autoAdvance');
 
 // Note: the "should the timer fire?" gate was previously tested here via
 // shouldTimerAdvance(). That logic now lives in StandardAdapter.shouldAutoAdvance
@@ -35,5 +35,15 @@ describe('remainingMs', () => {
     const now = 1_000_000;
     const playing = { _id: 'r1', playStartedAt: new Date(now - 60_000).toISOString(), duration_ms: 180_000 };
     expect(remainingMs(playing, now)).toBe(120_000);
+  });
+});
+
+describe('runsUntilSkipped', () => {
+  test('is true only for comments with no duration', () => {
+    expect(runsUntilSkipped({ danceType: 'message', duration_ms: null })).toBe(true);
+    expect(runsUntilSkipped({ danceType: 'message' })).toBe(true);
+    expect(runsUntilSkipped({ danceType: 'message', duration_ms: 300_000 })).toBe(false);
+    expect(runsUntilSkipped({ danceType: 'line' })).toBe(false);
+    expect(runsUntilSkipped(null)).toBe(false);
   });
 });

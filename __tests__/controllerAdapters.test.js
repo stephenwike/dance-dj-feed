@@ -30,6 +30,14 @@ describe('StandardAdapter.shouldAutoAdvance', () => {
     expect(StandardAdapter.shouldAutoAdvance({ ...base, pausedAt: new Date().toISOString() })).toBe(false);
   });
 
+  test('returns false for an in-queue comment set to "Until skipped"', () => {
+    expect(StandardAdapter.shouldAutoAdvance({ ...base, danceType: 'message', duration_ms: null })).toBe(false);
+  });
+
+  test('returns true for an in-queue comment with a duration', () => {
+    expect(StandardAdapter.shouldAutoAdvance({ ...base, danceType: 'message', duration_ms: 180_000 })).toBe(true);
+  });
+
   test('returns false when another adapter claimed the track (Spotify)', () => {
     expect(StandardAdapter.shouldAutoAdvance({ ...base, advancedBy: 'spotify' })).toBe(false);
   });
