@@ -58,6 +58,26 @@ function CrossfadeChoice({ playback }) {
   );
 }
 
+function TrimSilenceChoice({ playback }) {
+  return (
+    <div className={s.row}>
+      <span className={s.deckLabel}>Trim silence</span>
+      <div className={s.chips}>
+        {[false, true].map(on => (
+          <button
+            key={String(on)}
+            className={`${s.chip} ${playback.trimSilence === on ? s.chipActive : ''}`}
+            onClick={() => playback.setTrimSilence(on)}
+            title={on ? "Start and end tracks where their sound starts and ends, unless they have saved Start/Fade points" : undefined}
+          >
+            {on ? 'On' : 'Off'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function OutputChoice({ outputs, playback }) {
   if (!outputs.supported) return null;
   return (
@@ -115,6 +135,7 @@ export default function DeckControls({ runtime, nowPlaying }) {
       {playingHere && <SaveToTrack runtime={runtime} />}
       {playingHere && <FadeButtons request={nowPlaying} runtime={runtime} />}
       <CrossfadeChoice playback={playback} />
+      <TrimSilenceChoice playback={playback} />
       <OutputChoice outputs={outputs} playback={playback} />
     </div>
   );

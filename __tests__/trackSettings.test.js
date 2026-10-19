@@ -1,6 +1,6 @@
 'use strict';
 const {
-  dbToGain, clampDb, normalizeSettings, sameSettings, playLengthMs, DEFAULT_SETTINGS,
+  dbToGain, clampDb, normalizeSettings, sameSettings, playLengthMs, trimSilence, DEFAULT_SETTINGS, NO_AUTO,
 } = require('../lib/client/dj/plugins/localFiles/trackSettings');
 
 describe('dbToGain', () => {
@@ -64,5 +64,35 @@ describe('playLengthMs', () => {
 
   test('unknown while the file length is unknown', () => {
     expect(playLengthMs(normalizeSettings({}), NaN, 5)).toBeNull();
+  });
+});
+
+describe('trimSilence', () => {
+  // 100 s of audio in 1 s slices: silent for the first 3 s and the last 5 s.
+  const peaks = Array.from({ length: 100 }, (_, i) => (i < 3 || i >= 95 ? 0 : 0.8));
+  const wave = { peaks, durationSec: 100 };
+
+  test('starts just before the sound and ends where it ends', () => {
+    const { settings, auto } = trimSilence(DEFAULT_SETTINGS, wave);
+    expect(settings).toMatchObject({ inSec: 2.9, outSec: 95 });
+    expect(auto).toEqual({ inSec: 2.9, outSec: 95 });
+  });
+
+  test('keeps points the DJ saved, trimming only the other end', () => {
+    const { settings, auto } = trimSilence(normalizeSettings({ inSec: 10, volumeDb: 2 }), wave);
+    expect(settings).toMatchObject({ inSec: 10, outSec: 95, volumeDb: 2 });
+    expect(auto).toEqual({ inSec: null, outSec: 95 });
+    expect(trimSilence(normalizeSettings({ inSec: 10, outSec: 80 }), wave).auto).toEqual(NO_AUTO);
+  });
+
+  test('leaves short silences, and tracks with no waveform yet, alone', () => {
+    const tight = { peaks: Array.from({ length: 100 }, () => 0.8), durationSec: 100 };
+    expect(trimSilence(DEFAULT_SETTINGS, tight)).toEqual({ settings: DEFAULT_SETTINGS, auto: NO_AUTO });
+    expect(trimSilence(DEFAULT_SETTINGS, null)).toEqual({ settings: DEFAULT_SETTINGS, auto: NO_AUTO });
+  });
+
+  test("never trims a saved In point away", () => {
+    const saved = normalizeSettings({ inSec: 90 });
+    expect(trimSilence(saved, wave)).toEqual({ settings: saved, auto: NO_AUTO });
   });
 });

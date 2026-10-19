@@ -98,9 +98,13 @@ export default function TrackTimeline({ runtime, request }) {
   if (failed) return <p className={s.hint}>Couldn't draw this track's waveform.</p>;
   if (!wave) return <p className={s.hint}>Reading waveform…</p>;
 
-  const fadeSec = playback.crossfadeSec || MANUAL_FADE_SEC;
   const inSec = drag?.which === 'in' ? drag.sec : (playback.adjust.inSec ?? 0);
   const outSec = drag?.which === 'out' ? drag.sec : playback.adjust.outSec; // null = near the end
+  // Points Trim silence filled in (not dragged or saved by the DJ).
+  const autoIn = inSec > 0 && inSec === playback.auto.inSec;
+  const autoOut = outSec !== null && outSec === playback.auto.outSec;
+  // A trimmed end hands over with just the crossfade (none = a cut).
+  const fadeSec = autoOut ? playback.crossfadeSec : (playback.crossfadeSec || MANUAL_FADE_SEC);
   const toX = sec => (sec / durationSec) * W;
   const inX = toX(inSec);
   const outX = outSec !== null ? toX(outSec) : null;
@@ -189,7 +193,7 @@ export default function TrackTimeline({ runtime, request }) {
       </svg>
       <div className={s.timelineLegend}>
         <span className={s.timelineInLabel}>
-          ▶ Start {inSec > 0 ? formatTime(inSec) : 'at beginning'}
+          ▶ Start {inSec > 0 ? formatTime(inSec) : 'at beginning'}{autoIn && ' (silence trimmed)'}
           {inSec > 0 && !drag && <button className={s.linkBtn} onClick={() => playback.setInPoint(null)}>reset</button>}
         </span>
         <button
@@ -200,7 +204,7 @@ export default function TrackTimeline({ runtime, request }) {
           {seekArmed ? 'Click the waveform to jump · cancel' : '⇥ Move playhead'}
         </button>
         <span className={s.timelineOutLabel}>
-          Fade {outSec !== null ? formatTime(outSec) : 'near the end'} ◀
+          {autoOut ? 'End' : 'Fade'} {outSec !== null ? formatTime(outSec) : 'near the end'}{autoOut && ' (silence trimmed)'} ◀
           {outSec !== null && !drag && <button className={s.linkBtn} onClick={() => playback.setOutPoint(null)}>reset</button>}
         </span>
       </div>
