@@ -29,12 +29,12 @@ describe('share tokens', () => {
 describe('toPublicReport', () => {
   const report = {
     playedTracks: [
-      { danceName: 'Tush Push', songName: 'Swingin', artist: 'John Anderson', difficulty: 'Beginner', playedAt: at(30), requesterCount: 1,
+      { danceName: 'Tush Push', danceId: 'd1', songName: 'Swingin', artist: 'John Anderson', difficulty: 'Beginner', playedAt: at(30), requesterCount: 1,
         requesters: [{ clientId: 'c1', requesterName: 'Pat', tipCents: 500 }], totalTips: 500 },
       { danceName: 'Copperhead Road', songName: 'Copperhead Road', artist: 'Steve Earle', playedAt: at(5), requesterCount: 4,
         requesters: [], totalTips: 0 },
       { danceName: 'Swap Dance', songName: 'Original', isSongSwap: true, swapSongName: 'Swapped', swapArtist: 'Someone', playedAt: at(40), requesterCount: 2 },
-      { danceName: 'Two Step', danceType: 'partner', partnerStyle: 'Two Step', playedAt: at(50), requesterCount: 0 },
+      { danceName: 'Two Step', danceType: 'partner', partnerStyle: 'Two Step', catalogTrackId: 't9', playedAt: at(50), requesterCount: 0 },
     ],
     stats: { totalRequests: 12, uniqueRequesters: 7, totalTipCents: 500 },
   };
@@ -45,6 +45,9 @@ describe('toPublicReport', () => {
     expect(pub.tracks.map(t => t.danceName)).toEqual(['Copperhead Road', 'Tush Push', 'Swap Dance', 'Two Step']);
     expect(pub.tracks[0].requests).toBe(4);
     expect(pub.tracks[2]).toMatchObject({ songName: 'Swapped', artist: 'Someone' });
+    // Ids for the ♥/⚑ buttons.
+    expect(pub.tracks[1]).toMatchObject({ danceId: 'd1', catalogTrackId: null });
+    expect(pub.tracks[3]).toMatchObject({ danceId: null, catalogTrackId: 't9' });
   });
 
   test('totals, most-requested dances and duration', () => {

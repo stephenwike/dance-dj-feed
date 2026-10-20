@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useSession, signIn } from 'next-auth/react';
 import styles from './share.module.css';
 import listStyles from '../reports/reports.module.css';
 import clientPromise from '../../lib/server/mongodb';
 import { getSharedReport } from '../../lib/server/dj/shareLogic';
 import { shareMeta, shareSummary, formatShareTime } from '../../lib/dj/shareFormat';
 import { diffColor } from '../../components/dj-controller/utils';
+import DanceMarks, { SignInToSave, MarkToast } from '../../components/dj-request/DanceMarks';
+import { useDanceMarks } from '../../lib/client/dancer/useDanceMarks';
 
 /** The address this page was requested on, for absolute link-preview URLs. */
 function originOf(req) {
@@ -39,9 +43,18 @@ function Stat({ value, label }) {
   );
 }
 
-/** A DJ's session report, shared by link: anyone with it can view, no sign-in. */
+/**
+ * A DJ's session report, shared by link: anyone with it can view, no sign-in.
+ * Signed-in dancers can ♥ favorite and ⚑ wishlist the dances (and favorite
+ * partner-dance songs), as on the requester app; signed out, tapping one
+ * asks them to sign in and brings them back here.
+ */
 export default function SharedReportPage({ report, pageUrl, imageUrl }) {
   const { stats } = report;
+  const { status: authStatus } = useSession();
+  const isSignedIn = authStatus === 'authenticated';
+  const marks = useDanceMarks(isSignedIn);
+  const [askSignIn, setAskSignIn] = useState(false);
   const title = `${report.name} · DanceFeed`;
   const description = `${shareMeta(report)} — ${shareSummary(report)}`;
 
@@ -88,11 +101,16 @@ export default function SharedReportPage({ report, pageUrl, imageUrl }) {
                   <span className={listStyles.trackNum}>{i + 1}</span>
                   <div className={listStyles.trackInfo}>
                     <div className={listStyles.trackPrimary}>
-                      <span className={listStyles.trackName}>
-                        {t.stepsheet
-                          ? <a href={t.stepsheet} target="_blank" rel="noopener noreferrer" className={listStyles.trackLink}>{t.danceName}</a>
-                          : t.danceName}
-                      </span>
+                      <span className={listStyles.trackName}>{t.danceName}</span>
+                      <DanceMarks
+                        danceId={t.danceType === 'partner' ? null : t.danceId}
+                        trackId={t.danceType === 'partner' ? t.catalogTrackId : null}
+                        danceName={t.danceType === 'partner' ? t.songName || t.danceName : t.danceName}
+                        stepsheet={t.stepsheet}
+                        marks={marks}
+                        isSignedIn={isSignedIn}
+                        onNeedSignIn={() => setAskSignIn(true)}
+                      />
                       {t.playedAt && <span className={listStyles.trackTime}>{formatShareTime(t.playedAt, report.timeZone)}</span>}
                     </div>
                     <div className={listStyles.trackSecondary}>
@@ -114,6 +132,14 @@ export default function SharedReportPage({ report, pageUrl, imageUrl }) {
           </p>
         </main>
       </div>
+
+      <MarkToast toast={marks.toast} />
+      {askSignIn && (
+        <SignInToSave
+          onSignIn={() => signIn('ldco', { callbackUrl: window.location.href })}
+          onClose={() => setAskSignIn(false)}
+        />
+      )}
     </>
   );
 }
