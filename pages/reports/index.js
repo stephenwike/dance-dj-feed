@@ -13,6 +13,88 @@ function formatDate(date) {
   });
 }
 
+/** True on phones/tablets, where the share sheet (WhatsApp etc.) is the natural way to send a link. */
+function prefersShareSheet() {
+  return typeof navigator !== 'undefined' && !!navigator.share
+    && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+}
+
+/**
+ * Share link for a session's report: anyone with it can view the playlist
+ * and stats (not who requested what, or tips), with a stats cover image as
+ * the link preview. See lib/server/dj/shareLogic.js.
+ */
+function ShareLink({ session, onChange }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);
+  const url = session.shareToken ? `${window.location.origin}/share/${session.shareToken}` : null;
+
+  async function copy(link) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setNote('Link copied');
+    } catch {
+      setNote('Copy the link below');
+    }
+  }
+
+  async function share() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await fetch('/api/dj/sessions/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: session._id, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      });
+      if (!res.ok) throw new Error();
+      const { token } = await res.json();
+      const link = `${window.location.origin}/share/${token}`;
+      onChange();
+      if (prefersShareSheet()) {
+        await navigator.share({ title: session.name, url: link }).catch(() => {});
+      } else {
+        await copy(link);
+      }
+    } catch {
+      setNote("Couldn't create the link");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stopSharing() {
+    if (!window.confirm('Stop sharing? The link will stop working for everyone who has it.')) return;
+    setBusy(true);
+    await fetch('/api/dj/sessions/share', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: session._id }),
+    }).catch(() => {});
+    setNote(null);
+    onChange();
+    setBusy(false);
+  }
+
+  return (
+    <div className={styles.sharePanel}>
+      <div className={styles.shareRow}>
+        <button className={styles.shareBtn} onClick={share} disabled={busy}>
+          {url ? '↗ Share link' : '↗ Create share link'}
+        </button>
+        {url && <button className={styles.exportBtn} onClick={() => copy(url)}>Copy</button>}
+        {url && <button className={styles.shareStop} onClick={stopSharing} disabled={busy}>Stop sharing</button>}
+        {note && <span className={styles.shareNote}>{note}</span>}
+      </div>
+      {url ? (
+        <input className={styles.shareUrl} value={url} readOnly onFocus={e => e.target.select()} aria-label="Share link" />
+      ) : (
+        <p className={styles.shareHint}>Anyone with the link can see the playlist and stats, with no sign-in needed. It won't show who requested what or any tips.</p>
+      )}
+    </div>
+  );
+}
+
 function SessionDetail({ sessionId }) {
   const [showPartner, setShowPartner] = useState(true);
   const [showCustom, setShowCustom] = useState(true);
@@ -36,7 +118,7 @@ function SessionDetail({ sessionId }) {
       setExporting(false);
     }
   }
-  const { data, isLoading } = useSWR(
+  const { data, isLoading, mutate } = useSWR(
     sessionId ? `/api/dj/sessions/${sessionId}` : null,
     fetcher,
     { revalidateOnFocus: false }
@@ -72,6 +154,7 @@ function SessionDetail({ sessionId }) {
 
   return (
     <div className={styles.detail}>
+      <ShareLink session={data} onChange={() => mutate()} />
       <div ref={captureRef} className={styles.captureArea}>
       <div className={styles.detailHeader}>
         <div>

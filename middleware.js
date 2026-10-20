@@ -10,6 +10,8 @@ const publicPaths = [
 const publicPatterns = [
   /^\/feed\/.+/,
   /^\/request\/.+/,
+  /^\/share\/[^/]+$/,
+  /^\/api\/share\/[^/]+(\/image)?$/,
   /^\/api\/auth(\/|$)/,
   /^\/api\/dj\/dances$/,
   /^\/api\/catalog\/search$/,
