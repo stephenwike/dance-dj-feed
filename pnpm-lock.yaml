@@ -19,7 +19,7 @@ importers:
         version: 3.2.2(react@18.3.1)
       '@ldco/database':
         specifier: github:stephenwike/ldco-database-contract
-        version: https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/c48cff1f0d5840f169508adaabb7cca6ef838e6e
+        version: https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/365f5271a2537e593257466f3d80915f635659b7
       html-to-image:
         specifier: ^1.11.13
         version: 1.11.13
@@ -449,9 +449,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@ldco/database@https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/c48cff1f0d5840f169508adaabb7cca6ef838e6e':
-    resolution: {tarball: https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/c48cff1f0d5840f169508adaabb7cca6ef838e6e}
-    version: 0.12.0
+  '@ldco/database@https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/365f5271a2537e593257466f3d80915f635659b7':
+    resolution: {tarball: https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/365f5271a2537e593257466f3d80915f635659b7}
+    version: 0.13.0
     hasBin: true
 
   '@mongodb-js/saslprep@1.4.11':
@@ -2555,7 +2555,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@ldco/database@https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/c48cff1f0d5840f169508adaabb7cca6ef838e6e':
+  '@ldco/database@https://codeload.github.com/stephenwike/ldco-database-contract/tar.gz/365f5271a2537e593257466f3d80915f635659b7':
     dependencies:
       mongodb: 7.7.0
       zod: 4.6.7
